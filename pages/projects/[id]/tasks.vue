@@ -58,8 +58,6 @@ const handleStatusChange = (value: string) => {
   setActiveStatus(value as TaskStatusFilter)
 }
 
-const description = computed(() => project.value?.description ?? '')
-
 useHead({
   title: pageTitle,
   htmlAttrs: {
@@ -97,9 +95,6 @@ useHead({
 
     <main class="flex-1 px-4 pb-24">
       <section v-if="project" class="space-y-4 py-4">
-        <p v-if="description" class="text-sm text-zinc-600 dark:text-zinc-400">
-          {{ description }}
-        </p>
         <TaskSearch :model-value="searchQuery" @update:model-value="handleSearchUpdate" />
         <TaskStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
 
