@@ -15,6 +15,7 @@ interface TelegramWebApp {
   themeParams?: Record<string, string | undefined>
   setHeaderColor: (color: string) => void
   setBackgroundColor: (color: string) => void
+  disableVerticalSwipes?: () => void
 }
 
 declare global {
@@ -172,6 +173,12 @@ export const useTelegram = () => {
     const instance = getWebAppInstance()
     if (!instance) {
       return
+    }
+
+    try {
+      instance.disableVerticalSwipes?.()
+    } catch (error) {
+      console.warn('[Telegram] Unable to disable vertical swipes', error)
     }
 
     try {
