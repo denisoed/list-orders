@@ -34,6 +34,19 @@ export default defineNuxtPlugin(() => {
     return element instanceof HTMLTextAreaElement
   }
 
+  const dismissKeyboard = (element: HTMLInputElement | HTMLTextAreaElement) => {
+    if (typeof navigator.virtualKeyboard?.hide === 'function') {
+      navigator.virtualKeyboard.hide()
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      if (element === document.activeElement) {
+        element.blur()
+      }
+    })
+  }
+
   const hideKeyboard = (event: FocusEvent) => {
     const target = event.target
 
@@ -46,20 +59,34 @@ export default defineNuxtPlugin(() => {
       return
     }
 
-    if (typeof navigator.virtualKeyboard?.hide === 'function') {
-      navigator.virtualKeyboard.hide()
+    dismissKeyboard(target)
+  }
+
+  const handleDoneKey = (event: KeyboardEvent) => {
+    if (event.key !== 'Enter') {
       return
     }
 
-    window.requestAnimationFrame(() => {
-      if (target === document.activeElement) {
-        target.blur()
-      }
-    })
+    const target = event.target
+
+    if (!(target instanceof HTMLInputElement)) {
+      return
+    }
+
+    const hintAttr = target.getAttribute('enterkeyhint')
+    const hintProp = 'enterKeyHint' in target ? target.enterKeyHint : undefined
+    const hint = (hintAttr ?? hintProp ?? '').toLowerCase()
+    if (hint !== 'done') {
+      return
+    }
+
+    event.preventDefault()
+    dismissKeyboard(target)
   }
 
   window.addEventListener('blur', hideKeyboard, true)
   window.addEventListener('focusout', hideKeyboard, true)
+  window.addEventListener('keydown', handleDoneKey, true)
 })
 
 export {}
