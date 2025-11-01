@@ -298,14 +298,14 @@ useHead({
     <header class="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background-dark/80 p-4 pb-3 backdrop-blur-sm">
       <button
         type="button"
-        class="flex size-10 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
         aria-label="Закрыть создание задачи"
         @click="handleClose"
       >
         <span class="material-symbols-outlined text-3xl">close</span>
       </button>
       <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">Новая задача</h1>
-      <div class="flex w-10 items-center justify-end"></div>
+      <div class="flex w-12 items-center justify-end"></div>
     </header>
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
