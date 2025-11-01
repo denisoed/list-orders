@@ -20,6 +20,16 @@ const visibleProjects = computed<Project[]>(() => {
 
 const hasProjects = computed(() => visibleProjects.value.length > 0)
 
+const userProfile = computed(() => {
+  const showEmptyAvatar = route.query.noAvatar === 'true'
+
+  return {
+    name: 'Анна Смирнова',
+    profileUrl: '/profile',
+    avatarUrl: showEmptyAvatar ? null : 'https://i.pravatar.cc/160?img=5',
+  }
+})
+
 const calculateProgress = (project: Project) => {
   if (project.total === 0) {
     return 0
@@ -33,10 +43,6 @@ const formatProgressLabel = (project: Project) => {
 
 const handleAddProject = () => {
   console.info('Открыть создание нового проекта')
-}
-
-const handleSearch = () => {
-  console.info('Открыть поиск по проектам')
 }
 
 useHead({
@@ -67,7 +73,12 @@ useHead({
     class="relative flex min-h-screen w-full flex-col bg-background-light text-black dark:bg-background-dark dark:text-white"
     :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
   >
-    <ProjectsPageHeader title="Мои проекты" @search="handleSearch" />
+    <ProjectsPageHeader
+      title="Мои проекты"
+      :profile-url="userProfile.profileUrl"
+      :avatar-url="userProfile.avatarUrl"
+      :user-name="userProfile.name"
+    />
 
     <main class="flex-1 px-4 pt-4">
       <div v-if="hasProjects" class="flex flex-col gap-2">

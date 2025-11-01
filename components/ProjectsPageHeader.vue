@@ -1,19 +1,28 @@
 <script setup lang="ts">
+import { computed, toRefs } from 'vue'
 interface Props {
   title: string
+  profileUrl?: string
+  avatarUrl?: string | null
+  userName?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   title: 'Мои проекты',
+  profileUrl: '/profile',
+  avatarUrl: null,
+  userName: undefined,
 })
 
-const emit = defineEmits<{
-  (event: 'search'): void
-}>()
+const { title, profileUrl, avatarUrl } = toRefs(props)
 
-const handleSearchClick = () => {
-  emit('search')
-}
+const avatarAltText = computed(() => {
+  if (props.userName) {
+    return `Аватар пользователя ${props.userName}`
+  }
+
+  return 'Аватар пользователя'
+})
 </script>
 
 <template>
@@ -25,14 +34,19 @@ const handleSearchClick = () => {
       {{ title }}
     </h1>
     <div class="flex items-center">
-      <button
-        type="button"
-        class="flex size-12 items-center justify-center text-black transition hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white"
-        aria-label="Поиск по проектам"
-        @click="handleSearchClick"
+      <NuxtLink
+        :to="profileUrl"
+        class="flex size-12 items-center justify-center overflow-hidden rounded-full border border-transparent bg-gray-200 text-black transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#282e39] dark:text-white"
+        aria-label="Перейти в профиль"
       >
-        <span class="material-symbols-outlined">search</span>
-      </button>
+        <img
+          v-if="avatarUrl"
+          :src="avatarUrl"
+          :alt="avatarAltText"
+          class="size-full object-cover"
+        />
+        <span v-else class="material-symbols-outlined text-2xl text-gray-500 dark:text-gray-300">person</span>
+      </NuxtLink>
     </div>
   </header>
 </template>
