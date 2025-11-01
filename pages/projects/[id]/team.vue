@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
+import SearchField from '~/components/SearchField.vue'
 import { useProjectTeam } from '~/composables/useProjectTeam'
 import { useProjectsState } from '~/composables/useProjectTasks'
 
@@ -31,9 +32,8 @@ const handleBack = () => {
   router.push(backPath.value)
 }
 
-const handleSearchInput = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  setSearchQuery(target.value)
+const handleSearchUpdate = (value: string) => {
+  setSearchQuery(value)
 }
 
 useHead({
@@ -83,19 +83,12 @@ useHead({
         <div class="flex size-12 shrink-0 items-center justify-center"></div>
       </div>
       <div class="mt-3">
-        <label class="relative flex h-11 w-full items-center">
-          <span class="material-symbols-outlined pointer-events-none absolute left-3.5 text-2xl text-gray-400 dark:text-[#9da6b9]">
-            search
-          </span>
-          <input
-            :value="searchQuery"
-            class="form-input h-full w-full rounded-xl border-none bg-white pl-11 pr-4 text-base leading-normal text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-[#1c2431] dark:text-white dark:placeholder:text-[#9da6b9]"
-            type="search"
-            placeholder="Поиск по имени"
-            enterkeyhint="search"
-            @input="handleSearchInput"
-          />
-        </label>
+        <SearchField
+          :model-value="searchQuery"
+          placeholder="Поиск по имени"
+          aria-label="Поиск по имени"
+          @update:model-value="handleSearchUpdate"
+        />
       </div>
     </header>
 

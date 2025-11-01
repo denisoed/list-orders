@@ -4,7 +4,7 @@ import { useRoute, useRouter } from '#imports'
 import TaskCard from '~/components/TaskCard.vue'
 import TaskEmptyState from '~/components/TaskEmptyState.vue'
 import TaskPageHeader from '~/components/TaskPageHeader.vue'
-import TaskSearch from '~/components/TaskSearch.vue'
+import SearchField from '~/components/SearchField.vue'
 import TaskStatusChips from '~/components/TaskStatusChips.vue'
 import { TASK_STATUS_FILTERS, useProjectTasks, type TaskStatusFilter } from '~/composables/useProjectTasks'
 
@@ -128,7 +128,13 @@ useHead({
 
     <main class="flex-1 px-4 pb-24">
       <section v-if="project" class="space-y-4 py-4">
-        <TaskSearch :model-value="searchQuery" @update:model-value="handleSearchUpdate" />
+        <SearchField
+          :model-value="searchQuery"
+          placeholder="Найти по названию или исполнителю…"
+          aria-label="Поиск по задачам"
+          enter-key-hint="done"
+          @update:model-value="handleSearchUpdate"
+        />
         <TaskStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
 
         <div class="flex flex-col gap-4 pt-2">
