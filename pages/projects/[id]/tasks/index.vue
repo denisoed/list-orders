@@ -47,7 +47,17 @@ const handleBack = () => {
 }
 
 const handleAddTask = () => {
-  router.push(`/projects/${projectId.value}/tasks/new`)
+  const id = projectId.value
+
+  if (!id) {
+    console.warn('[tasks/index] Missing project id, cannot open create task page')
+    return
+  }
+
+  router.push({
+    name: 'projects-id-tasks-new',
+    params: { id },
+  })
 }
 
 const handleSearchUpdate = (value: string) => {

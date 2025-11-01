@@ -214,6 +214,16 @@ const handleClose = () => {
     return
   }
 
+  const id = projectId.value
+
+  if (id) {
+    router.push({
+      name: 'projects-id-tasks',
+      params: { id },
+    })
+    return
+  }
+
   router.back()
 }
 
@@ -236,7 +246,17 @@ const handleSubmit = async () => {
       attachments: form.attachments,
     })
 
-    router.replace(`/projects/${projectId.value}/tasks`)
+    const id = projectId.value
+
+    if (!id) {
+      router.replace('/projects')
+      return
+    }
+
+    router.replace({
+      name: 'projects-id-tasks',
+      params: { id },
+    })
   } catch (error: unknown) {
     submissionError.value = error instanceof Error ? error.message : 'Не удалось создать задачу'
   }

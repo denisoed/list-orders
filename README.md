@@ -74,8 +74,8 @@ bun run preview
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
 
-## Создание новой задачи
+## Creating a New Task
 
-- Страница создания задачи доступна по адресу `/projects/:id/tasks/new` и открывается из списка задач кнопкой «плюс».
-- Форма требует заполнить название и описание, поддерживает загрузку до 5 вложений, выбор исполнителя и дедлайна.
-- После успешного сохранения приложение возвращает на страницу списка задач и автоматически отображает новую задачу.
+- The task creation page is available at `/projects/:id/tasks/new` and opens from the task list via the “plus” button.
+- The form requires a title and description, supports up to five attachments, and allows choosing an assignee and deadline.
+- After a successful submission the app navigates back to the task list and displays the newly created task automatically.
