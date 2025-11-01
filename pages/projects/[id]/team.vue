@@ -14,25 +14,7 @@ const projectId = computed(() => {
 
 const projectsState = useProjectsState()
 const project = computed(() => projectsState.value.find((item) => item.id === projectId.value))
-const projectTitle = computed(() => project.value?.title ?? 'Проект')
-
-const { filteredMembers, members, memberCount, searchQuery, setSearchQuery } = useProjectTeam(projectId)
-
-const memberCountLabel = computed(() => {
-  const count = memberCount.value
-  const mod10 = count % 10
-  const mod100 = count % 100
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return `${count} участник`
-  }
-
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return `${count} участника`
-  }
-
-  return `${count} участников`
-})
+const { filteredMembers, members, searchQuery, setSearchQuery } = useProjectTeam(projectId)
 
 const hasMembers = computed(() => members.value.length > 0)
 const filteredHasItems = computed(() => filteredMembers.value.length > 0)
@@ -82,24 +64,24 @@ useHead({
     class="relative flex min-h-screen w-full flex-col bg-background-light text-black dark:bg-background-dark dark:text-white"
     :style="{ backgroundColor: 'var(--tg-theme-bg-color, var(--telegram-background-color, #101622))' }"
   >
-    <header class="sticky top-0 z-10 bg-white/90 px-4 pb-3 pt-4 shadow-sm backdrop-blur-sm dark:bg-background-dark/80">
-      <div class="flex items-center justify-between">
+    <header
+      class="sticky top-0 z-20 flex flex-col bg-background-light/95 px-4 pb-3 pt-4 backdrop-blur-sm transition-colors dark:bg-background-dark/80"
+      :style="{ backgroundColor: 'var(--telegram-header-color, rgba(246, 246, 248, 0.95))' }"
+    >
+      <div class="flex items-center justify-between gap-3">
         <button
           type="button"
-          class="flex size-10 shrink-0 items-center justify-center rounded-full text-gray-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white/70 dark:hover:bg-white/5"
+          class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
           aria-label="Вернуться к проекту"
           @click="handleBack"
         >
-          <span class="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
+          <span class="material-symbols-outlined text-3xl">arrow_back</span>
         </button>
-        <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
-          Управление командой
-        </h1>
-        <div class="flex size-10 shrink-0 items-center justify-center"></div>
+        <div class="flex flex-1 flex-col items-start text-left">
+          <h1 class="text-lg font-bold leading-tight tracking-[-0.015em] text-zinc-900 dark:text-white">Управление командой</h1>
+        </div>
+        <div class="flex size-12 shrink-0 items-center justify-center"></div>
       </div>
-      <p class="mt-2 text-center text-sm text-gray-500 dark:text-[#9da6b9]">
-        {{ projectTitle }} · {{ memberCountLabel }}
-      </p>
       <div class="mt-3">
         <label class="relative flex h-11 w-full items-center">
           <span class="material-symbols-outlined pointer-events-none absolute left-3.5 text-2xl text-gray-400 dark:text-[#9da6b9]">
