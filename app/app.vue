@@ -44,7 +44,7 @@ useHead({
   },
   bodyAttrs: {
     class: 'bg-background-light dark:bg-background-dark font-display',
-    style: 'min-height: max(884px, 100dvh);',
+    style: 'min-height: 100dvh;',
   },
   link: [
     {
