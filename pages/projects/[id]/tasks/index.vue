@@ -47,7 +47,15 @@ const handleBack = () => {
 }
 
 const handleAddTask = () => {
-  console.info('Создание задачи для проекта', projectId.value)
+  const fallbackPath = `/projects/${projectId.value}/tasks`
+  const returnPath = typeof route.fullPath === 'string' && route.fullPath.length > 0 ? route.fullPath : fallbackPath
+
+  router.push({
+    path: `/projects/${projectId.value}/tasks/new`,
+    query: {
+      from: returnPath,
+    },
+  })
 }
 
 const handleSearchUpdate = (value: string) => {
