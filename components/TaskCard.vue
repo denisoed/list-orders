@@ -7,6 +7,7 @@ interface StatusMeta {
   badgeBg: string
   badgeText: string
   dot: string
+  cardClass: string
 }
 
 interface PriorityMeta {
@@ -22,24 +23,30 @@ const STATUS_META: Record<TaskStatus, StatusMeta> = {
     badgeBg: 'bg-amber-500/20',
     badgeText: 'text-amber-600 dark:text-amber-400',
     dot: 'bg-amber-500 dark:bg-amber-400',
+    cardClass: 'bg-amber-50 border border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/25',
   },
   in_progress: {
     label: 'В работе',
     badgeBg: 'bg-blue-500/20',
     badgeText: 'text-blue-500 dark:text-blue-400',
     dot: 'bg-blue-500 dark:bg-blue-400',
+    cardClass: 'bg-blue-50 border border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/25',
   },
   review: {
     label: 'Проверяется',
     badgeBg: 'bg-purple-500/20',
     badgeText: 'text-purple-500 dark:text-purple-400',
     dot: 'bg-purple-500 dark:bg-purple-400',
+    cardClass:
+      'bg-purple-50 border border-purple-100 dark:bg-purple-500/10 dark:border-purple-500/25',
   },
   done: {
     label: 'Сделано',
     badgeBg: 'bg-green-500/20',
     badgeText: 'text-green-500 dark:text-green-400',
     dot: 'bg-green-500 dark:bg-green-400',
+    cardClass:
+      'bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/25',
   },
 }
 
@@ -95,9 +102,8 @@ const dueTextClass = computed(() => {
 const containerClasses = computed(() => {
   return [
     'flex flex-col gap-4 rounded-xl p-4 transition-shadow',
-    isCompleted.value
-      ? 'bg-white/80 opacity-80 dark:bg-[#1C2431]/70'
-      : 'bg-white dark:bg-[#1C2431]',
+    statusMeta.value.cardClass,
+    isCompleted.value ? 'opacity-95' : '',
   ]
 })
 
