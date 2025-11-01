@@ -1,16 +1,37 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useProjects } from '~/composables/useProjects'
+import { useProjectsState } from '~/composables/useProjectTasks'
 
 const router = useRouter()
 const route = useRoute()
-const { createProject, isCreating } = useProjects()
+const projectsState = useProjectsState()
+const { createProject, updateProject, isCreating, isUpdating } = useProjects()
 
 const title = ref('')
 const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
+
+const editProjectId = computed(() => {
+  const edit = route.query.edit
+  if (typeof edit === 'string' && edit.length > 0) {
+    return edit
+  }
+  return ''
+})
+
+const editableProject = computed(() => {
+  if (!editProjectId.value) {
+    return undefined
+  }
+
+  return projectsState.value.find((project) => project.id === editProjectId.value)
+})
+
+const isEditing = computed(() => editProjectId.value.length > 0)
+const projectNotFound = computed(() => isEditing.value && !editableProject.value)
 
 const titleError = computed(() => {
   if (title.value.trim().length > 0) {
@@ -20,12 +41,29 @@ const titleError = computed(() => {
 })
 
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
-const isSubmitDisabled = computed(() => isCreating.value || Boolean(titleError.value))
+const isSubmitting = computed(() => (isEditing.value ? isUpdating.value : isCreating.value))
+const isSubmitDisabled = computed(
+  () => isSubmitting.value || Boolean(titleError.value) || projectNotFound.value,
+)
+
+const fallbackPath = computed(() => {
+  const fallback = route.query.fallback
+  if (typeof fallback === 'string' && fallback.length > 0) {
+    return fallback
+  }
+  return ''
+})
 
 const returnPath = computed(() => {
   const from = route.query.from
   if (typeof from === 'string' && from.length > 0) {
     return from
+  }
+  if (fallbackPath.value.length > 0) {
+    return fallbackPath.value
+  }
+  if (isEditing.value && editableProject.value) {
+    return `/projects/${editableProject.value.id}/tasks`
   }
   return '/'
 })
@@ -33,6 +71,17 @@ const returnPath = computed(() => {
 const handleClose = () => {
   router.push(returnPath.value)
 }
+
+const pageTitle = computed(() => (isEditing.value ? 'Редактирование проекта' : 'Новый проект'))
+const closeAriaLabel = computed(() =>
+  isEditing.value ? 'Закрыть редактирование проекта' : 'Закрыть создание проекта',
+)
+const submitButtonText = computed(() => {
+  if (isEditing.value) {
+    return isUpdating.value ? 'Сохранение…' : 'Сохранить изменения'
+  }
+  return isCreating.value ? 'Создание…' : 'Создать проект'
+})
 
 const handleTitleBlur = () => {
   titleTouched.value = true
@@ -42,23 +91,38 @@ const handleSubmit = async () => {
   submitAttempted.value = true
   submitError.value = ''
 
-  if (titleError.value) {
+  if (titleError.value || projectNotFound.value) {
+    if (projectNotFound.value) {
+      submitError.value = 'Проект не найден. Вернитесь назад и попробуйте снова.'
+    }
     return
   }
 
   try {
+    if (isEditing.value && editableProject.value) {
+      const updatedProject = await updateProject({
+        id: editableProject.value.id,
+        title: title.value,
+      })
+
+      await router.push(returnPath.value || `/projects/${updatedProject.id}/tasks`)
+      return
+    }
+
     const project = await createProject({
       title: title.value,
     })
 
     await router.push(`/projects/${project.id}/tasks`)
   } catch (error) {
-    submitError.value = 'Не удалось создать проект. Попробуйте ещё раз.'
+    submitError.value = isEditing.value
+      ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'
+      : 'Не удалось создать проект. Попробуйте ещё раз.'
   }
 }
 
 useHead({
-  title: 'Новый проект',
+  title: pageTitle,
   htmlAttrs: {
     lang: 'ru',
     class: 'dark',
@@ -78,6 +142,17 @@ useHead({
     },
   ],
 })
+
+watch(
+  () => editableProject.value?.title,
+  (projectTitle) => {
+    if (projectTitle && isEditing.value) {
+      title.value = projectTitle
+      submitError.value = ''
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -86,17 +161,23 @@ useHead({
       <button
         type="button"
         class="flex size-10 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-label="Закрыть создание проекта"
+        :aria-label="closeAriaLabel"
         @click="handleClose"
       >
         <span class="material-symbols-outlined text-3xl">close</span>
       </button>
-      <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">Новый проект</h1>
+      <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
       <div class="flex w-10 items-center justify-end"></div>
     </header>
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
       <div class="flex flex-col space-y-6">
+        <div
+          v-if="projectNotFound"
+          class="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-red-300"
+        >
+          Проект не найден. Возможно, он был удалён. Вернитесь назад.
+        </div>
         <label class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Название проекта</p>
           <input
@@ -122,7 +203,7 @@ useHead({
           :disabled="isSubmitDisabled"
           @click="handleSubmit"
         >
-          {{ isCreating ? 'Создание…' : 'Создать проект' }}
+          {{ submitButtonText }}
         </button>
       </div>
     </footer>
