@@ -40,6 +40,8 @@ const dueDate = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
 const reminderOffset = ref<TaskReminderOffset | null>(null)
+const paymentOption = ref<'prepayment' | 'full' | ''>('')
+const paymentAmount = ref('')
 
 const titleTouched = ref(false)
 const clientNameTouched = ref(false)
@@ -126,6 +128,8 @@ const showDeliveryAddressError = computed(
   () =>
     !isPickup.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
 )
+
+const isPaymentAmountDisabled = computed(() => paymentOption.value === '')
 
 const isFormValid = computed(() => {
   return (
@@ -256,6 +260,12 @@ watch(isPickup, (value) => {
   }
 })
 
+watch(paymentOption, (value) => {
+  if (!value) {
+    paymentAmount.value = ''
+  }
+})
+
 useHead({
   title: 'Новая задача',
   htmlAttrs: {
@@ -348,6 +358,44 @@ useHead({
           />
           <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
         </label>
+
+        <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
+          <p class="text-base font-medium leading-normal">Оплата</p>
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="paymentOption"
+                type="radio"
+                value="prepayment"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="payment-option"
+              />
+              <span>Предоплата</span>
+            </label>
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="paymentOption"
+                type="radio"
+                value="full"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="payment-option"
+              />
+              <span>Вся сумма</span>
+            </label>
+          </div>
+          <label class="flex flex-col">
+            <span class="pb-2 text-base font-medium leading-normal">Сумма</span>
+            <input
+              v-model="paymentAmount"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              type="number"
+              inputmode="decimal"
+              placeholder="Введите сумму"
+              :disabled="isPaymentAmountDisabled"
+              min="0"
+            />
+          </label>
+        </div>
 
         <div class="flex flex-col gap-4">
           <label class="flex flex-col">
