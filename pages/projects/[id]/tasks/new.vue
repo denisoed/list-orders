@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
-import type { TaskAttachment } from '~/data/projects'
+import type { TaskAttachment, TaskReminderOffset } from '~/data/projects'
 import { useProjectTasks } from '~/composables/useProjectTasks'
 
 interface FormAttachment extends TaskAttachment {
@@ -39,6 +39,7 @@ const isPickup = ref(false)
 const dueDate = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
+const reminderOffset = ref<TaskReminderOffset | null>(null)
 
 const titleTouched = ref(false)
 const clientNameTouched = ref(false)
@@ -84,7 +85,7 @@ const titleError = computed(() => {
   if (title.value.trim().length > 0) {
     return ''
   }
-  return 'Введите название задачи'
+  return 'Введите название заказа'
 })
 
 const clientNameError = computed(() => {
@@ -134,6 +135,16 @@ const isFormValid = computed(() => {
     deliveryAddressError.value.length === 0
   )
 })
+
+const reminderOptions: ReadonlyArray<{ label: string; value: TaskReminderOffset }> = [
+  { label: '1 час', value: '1h' },
+  { label: '3 часа', value: '3h' },
+  { label: '1 день', value: '1d' },
+]
+
+const handleToggleReminder = (value: TaskReminderOffset) => {
+  reminderOffset.value = reminderOffset.value === value ? null : value
+}
 
 const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value)
 
@@ -201,6 +212,7 @@ const handleSubmit = async () => {
       deliveryAddress: deliveryAddress.value,
       isPickup: isPickup.value,
       dueDate: dueDate.value || undefined,
+      remindBefore: reminderOffset.value || undefined,
       attachments: attachments.value.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
       assignee:
         selectedAssignee.value.id === DEFAULT_ASSIGNEE.id
@@ -210,6 +222,7 @@ const handleSubmit = async () => {
 
     attachments.value.forEach(revokeAttachmentPreview)
     attachments.value = []
+    reminderOffset.value = null
 
     await router.push(returnPath.value)
   } catch (error) {
@@ -284,12 +297,12 @@ useHead({
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
       <div v-if="project" class="flex flex-col space-y-6">
         <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Название задачи</p>
+          <p class="pb-2 text-base font-medium leading-normal">Название заказа</p>
           <input
             v-model="title"
             class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
             type="text"
-            placeholder="Введите короткое название задачи"
+            placeholder="Введите короткое название заказа"
             :aria-invalid="showTitleError"
             enterkeyhint="done"
             @blur="handleTitleBlur"
@@ -363,23 +376,23 @@ useHead({
         </div>
 
         <div class="flex flex-col space-y-4">
-          <p class="text-base font-medium leading-normal">Вложения</p>
+          <p class="text-base font-medium leading-normal">Фото</p>
           <div class="flex items-center gap-4">
             <button
               type="button"
               class="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-[#3b4354] bg-[#1c1f27] text-[#9da6b9] transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              aria-label="Добавить вложения"
+              aria-label="Добавить фото"
               @click="handleAddAttachment"
             >
               <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
             </button>
             <ul v-if="attachments.length" class="flex items-center gap-4" role="list">
               <li v-for="attachment in attachments" :key="attachment.id" role="listitem" class="relative">
-                <img :src="attachment.previewUrl" :alt="`Вложение ${attachment.name}`" class="h-20 w-20 rounded-lg object-cover" />
+                <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 rounded-lg object-cover" />
                 <button
                   type="button"
                   class="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
-                  :aria-label="`Удалить вложение ${attachment.name}`"
+                  :aria-label="`Удалить фото ${attachment.name}`"
                   @click="handleRemoveAttachment(attachment.id)"
                 >
                   <span class="material-symbols-outlined text-sm">close</span>
@@ -448,6 +461,27 @@ useHead({
                 <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col space-y-3">
+          <p class="text-base font-medium leading-normal">Напомнить за:</p>
+          <div class="flex items-center gap-3">
+            <button
+              v-for="option in reminderOptions"
+              :key="option.value"
+              type="button"
+              class="flex-1 rounded-xl px-4 py-3 text-base font-medium leading-normal transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              :class="
+                reminderOffset === option.value
+                  ? 'bg-primary text-white'
+                  : 'bg-[#282e39] text-white/80 hover:bg-[#323a47]'
+              "
+              :aria-pressed="reminderOffset === option.value"
+              @click="handleToggleReminder(option.value)"
+            >
+              {{ option.label }}
+            </button>
           </div>
         </div>
       </div>

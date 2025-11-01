@@ -1,6 +1,8 @@
 export type TaskStatus = 'in_progress' | 'overdue' | 'review' | 'done'
 export type TaskPriority = 'high' | 'medium' | 'low'
 
+export type TaskReminderOffset = '1h' | '3h' | '1d'
+
 export interface TaskAttachment {
   id: string
   name: string
@@ -26,6 +28,7 @@ export interface ProjectTask {
   clientPhone?: string
   deliveryAddress?: string
   isPickup?: boolean
+  remindBefore?: TaskReminderOffset
 }
 
 export interface Project {

@@ -6,6 +6,7 @@ import {
   type ProjectTask,
   type TaskAssignee,
   type TaskAttachment,
+  type TaskReminderOffset,
 } from '~/data/projects'
 
 export const TASK_STATUS_FILTERS = [
@@ -30,6 +31,7 @@ export interface CreateProjectTaskInput {
   clientPhone?: string
   deliveryAddress?: string
   isPickup?: boolean
+  remindBefore?: TaskReminderOffset
 }
 
 export interface UseProjectTasksResult {
@@ -135,6 +137,7 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
         deliveryAddress:
           input.isPickup === true ? undefined : input.deliveryAddress?.trim() || undefined,
         isPickup: input.isPickup ?? false,
+        remindBefore: input.remindBefore,
       }
 
       isCreating.value = true
