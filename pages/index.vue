@@ -4,6 +4,7 @@ import type { Project } from '~/data/projects'
 
 const route = useRoute()
 const projects = useAllProjects()
+const router = useRouter()
 
 const visibleProjects = computed<Project[]>(() => {
   return route.query.empty === 'true' ? [] : projects.value
@@ -33,7 +34,7 @@ const formatProgressLabel = (project: Project) => {
 }
 
 const handleAddProject = () => {
-  console.info('Открыть создание нового проекта')
+  router.push('/projects/new')
 }
 
 useHead({
