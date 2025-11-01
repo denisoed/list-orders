@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useProjects } from '~/composables/useProjects'
 import { useProjectsState } from '~/composables/useProjectTasks'
+import { useProjectTeam } from '~/composables/useProjectTeam'
 
 const router = useRouter()
 const route = useRoute()
@@ -32,6 +33,8 @@ const editableProject = computed(() => {
 
 const isEditing = computed(() => editProjectId.value.length > 0)
 const projectNotFound = computed(() => isEditing.value && !editableProject.value)
+
+const { memberCount: teamMemberCount } = useProjectTeam(editProjectId)
 
 const titleError = computed(() => {
   if (title.value.trim().length > 0) {
@@ -71,6 +74,16 @@ const returnPath = computed(() => {
 const handleClose = () => {
   router.push(returnPath.value)
 }
+
+const inviteProjectId = computed(() => {
+  if (!isEditing.value || projectNotFound.value || !editableProject.value) {
+    return ''
+  }
+
+  return editableProject.value.id
+})
+
+const inviteReturnPath = computed(() => route.fullPath)
 
 const pageTitle = computed(() => (isEditing.value ? 'Редактирование проекта' : 'Новый проект'))
 const closeAriaLabel = computed(() =>
@@ -191,6 +204,12 @@ watch(
           />
           <p v-if="showTitleError" class="pt-1 text-sm text-red-400">{{ titleError }}</p>
         </label>
+        <ProjectInviteLink
+          :project-id="inviteProjectId"
+          :project-title="title"
+          :member-count="teamMemberCount"
+          :return-path="inviteReturnPath"
+        />
       </div>
     </main>
 
