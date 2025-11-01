@@ -35,7 +35,7 @@ const description = ref('')
 const clientName = ref('')
 const clientPhone = ref('')
 const deliveryAddress = ref('')
-const isPickup = ref(false)
+const deliveryOption = ref<'pickup' | 'delivery' | ''>('')
 const dueDate = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
@@ -105,8 +105,10 @@ const clientPhoneError = computed(() => {
   return 'Введите номер телефона'
 })
 
+const isDeliverySelected = computed(() => deliveryOption.value === 'delivery')
+
 const deliveryAddressError = computed(() => {
-  if (isPickup.value) {
+  if (!isDeliverySelected.value) {
     return ''
   }
 
@@ -126,8 +128,10 @@ const showClientPhoneError = computed(
 )
 const showDeliveryAddressError = computed(
   () =>
-    !isPickup.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
+    isDeliverySelected.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
 )
+
+const shouldShowDeliveryAddress = computed(() => isDeliverySelected.value)
 
 const isPaymentAmountDisabled = computed(() => paymentOption.value === '')
 
@@ -214,7 +218,7 @@ const handleSubmit = async () => {
       clientName: clientName.value,
       clientPhone: clientPhone.value,
       deliveryAddress: deliveryAddress.value,
-      isPickup: isPickup.value,
+      isPickup: deliveryOption.value === 'pickup',
       dueDate: dueDate.value || undefined,
       remindBefore: reminderOffset.value || undefined,
       attachments: attachments.value.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
@@ -254,8 +258,8 @@ onBeforeUnmount(() => {
   attachments.value.forEach(revokeAttachmentPreview)
 })
 
-watch(isPickup, (value) => {
-  if (value) {
+watch(deliveryOption, (value) => {
+  if (value !== 'delivery') {
     deliveryAddressTouched.value = false
   }
 })
@@ -397,29 +401,43 @@ useHead({
           </label>
         </div>
 
-        <div class="flex flex-col gap-4">
-          <label class="flex flex-col">
-            <p class="pb-2 text-base font-medium leading-normal">Адрес доставки</p>
+        <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
+          <p class="text-base font-medium leading-normal">Доставка</p>
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="deliveryOption"
+                type="radio"
+                value="pickup"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="delivery-option"
+              />
+              <span>Самовывоз</span>
+            </label>
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="deliveryOption"
+                type="radio"
+                value="delivery"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="delivery-option"
+              />
+              <span>Доставка</span>
+            </label>
+          </div>
+
+          <label v-if="shouldShowDeliveryAddress" class="flex flex-col">
+            <span class="pb-2 text-base font-medium leading-normal">Адрес доставки</span>
             <input
               v-model="deliveryAddress"
-              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
               type="text"
               placeholder="Введите адрес доставки"
               :aria-invalid="showDeliveryAddressError"
-              :disabled="isPickup"
               enterkeyhint="done"
               @blur="handleDeliveryAddressBlur"
             />
             <p v-if="showDeliveryAddressError" class="pt-1 text-sm text-red-400">{{ deliveryAddressError }}</p>
-          </label>
-
-          <label class="flex items-center gap-3 text-base font-medium leading-normal">
-            <input
-              v-model="isPickup"
-              type="checkbox"
-              class="size-5 rounded border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
-            />
-            <span>Самовывоз</span>
           </label>
         </div>
 
