@@ -160,7 +160,7 @@ watch(
     <header class="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background-dark/80 p-4 pb-3 backdrop-blur-sm">
       <button
         type="button"
-        class="flex size-10 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="flex size-10 items-center justify-center rounded-lg bg-white/10 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         :aria-label="closeAriaLabel"
         @click="handleClose"
       >

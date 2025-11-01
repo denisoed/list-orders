@@ -31,7 +31,7 @@ const handleEdit = () => {
     <div class="flex items-center justify-between gap-3">
       <button
         type="button"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-zinc-300 dark:hover:bg-white/5"
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
         aria-label="Вернуться к списку проектов"
         @click="handleBack"
       >
