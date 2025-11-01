@@ -47,7 +47,7 @@ const handleEdit = () => {
       </div>
       <button
         type="button"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary transition hover:bg-primary/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-primary/30 dark:text-white"
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
         aria-label="Редактировать проект"
         @click="handleEdit"
       >
