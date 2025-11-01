@@ -1,5 +1,12 @@
+import { useState } from '#imports'
 import { computed, ref, watch, type Ref } from 'vue'
-import { findProjectById, PROJECTS, type Project, type ProjectTask } from '~/data/projects'
+import {
+  PROJECTS,
+  type Project,
+  type ProjectTask,
+  type TaskAssignee,
+  type TaskAttachment,
+} from '~/data/projects'
 
 export const TASK_STATUS_FILTERS = [
   { value: 'all', label: 'Все' },
@@ -11,15 +18,43 @@ export const TASK_STATUS_FILTERS = [
 
 export type TaskStatusFilter = (typeof TASK_STATUS_FILTERS)[number]['value']
 
+export interface CreateProjectTaskInput {
+  title: string
+  description: string
+  link?: string
+  dueDate?: string
+  attachments: TaskAttachment[]
+  assignee?: TaskAssignee
+  priority?: ProjectTask['priority']
+  status?: ProjectTask['status']
+}
+
 export interface UseProjectTasksResult {
   project: Ref<Project | undefined>
   allTasks: Ref<ProjectTask[]>
   filteredTasks: Ref<ProjectTask[]>
   searchQuery: Ref<string>
   activeStatus: Ref<TaskStatusFilter>
+  isCreating: Ref<boolean>
   setSearchQuery: (value: string) => void
   setActiveStatus: (value: TaskStatusFilter) => void
+  createTask: (input: CreateProjectTaskInput) => Promise<ProjectTask>
 }
+
+const cloneProjects = (): Project[] => {
+  return PROJECTS.map((project) => ({
+    ...project,
+    tasks: project.tasks.map((task) => ({
+      ...task,
+      assignee: { ...task.assignee },
+      attachments: task.attachments?.map((attachment) => ({ ...attachment })),
+    })),
+  }))
+}
+
+const useProjectsState = () => useState<Project[]>('projects-data', cloneProjects)
+
+const generateTaskId = () => `task-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`
 
 export const filterProjectTasks = (
   tasks: ProjectTask[],
@@ -39,13 +74,15 @@ export const filterProjectTasks = (
 }
 
 export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTasksResult => {
+  const projectsState = useProjectsState()
   const projectIdRef = computed(() => (typeof projectId === 'string' ? projectId : projectId.value))
 
-  const project = computed(() => findProjectById(projectIdRef.value))
+  const project = computed(() => projectsState.value.find((item) => item.id === projectIdRef.value))
   const allTasks = computed(() => project.value?.tasks ?? [])
 
   const searchQuery = ref('')
   const activeStatus = ref<TaskStatusFilter>('all')
+  const isCreating = ref(false)
 
   const filteredTasks = computed(() => filterProjectTasks(allTasks.value, activeStatus.value, searchQuery.value))
 
@@ -60,15 +97,68 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
     filteredTasks,
     searchQuery,
     activeStatus,
+    isCreating,
     setSearchQuery: (value: string) => {
       searchQuery.value = value
     },
     setActiveStatus: (value: TaskStatusFilter) => {
       activeStatus.value = value
     },
+    createTask: async (input: CreateProjectTaskInput) => {
+      const currentProjectIndex = projectsState.value.findIndex((item) => item.id === projectIdRef.value)
+
+      if (currentProjectIndex === -1) {
+        throw new Error('Проект не найден для создания задачи')
+      }
+
+      const projectSnapshot = projectsState.value[currentProjectIndex]
+      const assignee = input.assignee ?? {
+        name: 'Не назначен',
+        avatarUrl:
+          'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
+      }
+
+      const nextTask: ProjectTask = {
+        id: generateTaskId(),
+        title: input.title.trim(),
+        description: input.description.trim(),
+        link: input.link?.trim() || undefined,
+        dueDate: input.dueDate ?? new Date().toISOString().slice(0, 10),
+        status: input.status ?? 'in_progress',
+        priority: input.priority ?? 'medium',
+        assignee,
+        attachments: input.attachments.map((attachment) => ({ ...attachment })),
+      }
+
+      isCreating.value = true
+
+      try {
+        const updatedProject: Project = {
+          ...projectSnapshot,
+          total: projectSnapshot.total + 1,
+          tasks: [nextTask, ...projectSnapshot.tasks],
+        }
+
+        projectsState.value.splice(currentProjectIndex, 1, updatedProject)
+
+        console.info('[tasks] Создана новая задача', {
+          projectId: projectIdRef.value,
+          taskId: nextTask.id,
+          title: nextTask.title,
+        })
+
+        return nextTask
+      } catch (error) {
+        console.error('[tasks] Не удалось создать задачу', error)
+        throw error
+      } finally {
+        isCreating.value = false
+      }
+    },
   }
 }
 
 export const useAllProjects = () => {
-  return computed(() => PROJECTS)
+  const projectsState = useProjectsState()
+  return computed(() => projectsState.value)
 }

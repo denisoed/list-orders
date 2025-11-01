@@ -1,6 +1,20 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { ref, type Ref } from 'vue'
+
+const stateRegistry = new Map<string, Ref<unknown>>()
+
+vi.mock('#imports', () => ({
+  useState: <T>(key: string, init: () => T) => {
+    if (!stateRegistry.has(key)) {
+      stateRegistry.set(key, ref(init()))
+    }
+
+    return stateRegistry.get(key) as Ref<T>
+  },
+}))
+
 import type { ProjectTask } from '../data/projects'
-import { filterProjectTasks } from '../composables/useProjectTasks'
+import { filterProjectTasks, useProjectTasks } from '../composables/useProjectTasks'
 
 const mockTasks: ProjectTask[] = [
   {
@@ -30,6 +44,10 @@ const mockTasks: ProjectTask[] = [
   },
 ]
 
+beforeEach(() => {
+  stateRegistry.clear()
+})
+
 describe('filterProjectTasks', () => {
   it('returns all tasks when filter is "all" and query is empty', () => {
     const result = filterProjectTasks(mockTasks, 'all', '')
@@ -54,5 +72,31 @@ describe('filterProjectTasks', () => {
     const result = filterProjectTasks(mockTasks, 'review', 'иван')
 
     expect(result).toHaveLength(0)
+  })
+})
+
+describe('useProjectTasks createTask', () => {
+  it('appends a new task and increases project total', async () => {
+    const { project, allTasks, createTask } = useProjectTasks('design-refresh')
+
+    const initialTotal = project.value?.total ?? 0
+    const initialFirstTaskTitle = allTasks.value[0]?.title
+
+    const result = await createTask({
+      title: 'Новая фича',
+      description: 'Добавить поддержку вложений',
+      link: 'https://example.com/task',
+      dueDate: '2024-12-31',
+      attachments: [],
+      assignee: project.value?.tasks[0]?.assignee,
+      status: 'in_progress',
+      priority: 'high',
+    })
+
+    expect(result.title).toBe('Новая фича')
+    expect(project.value?.total).toBe(initialTotal + 1)
+    expect(allTasks.value[0]?.id).toBe(result.id)
+    expect(allTasks.value[0]?.title).toBe('Новая фича')
+    expect(allTasks.value[1]?.title).toBe(initialFirstTaskTitle)
   })
 })

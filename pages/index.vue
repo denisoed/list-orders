@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { PROJECTS, type Project } from '~/data/projects'
-
-const DEFAULT_PROJECTS: Project[] = PROJECTS
+import { useAllProjects } from '~/composables/useProjectTasks'
+import type { Project } from '~/data/projects'
 
 const route = useRoute()
+const projects = useAllProjects()
 
 const visibleProjects = computed<Project[]>(() => {
-  return route.query.empty === 'true' ? [] : DEFAULT_PROJECTS
+  return route.query.empty === 'true' ? [] : projects.value
 })
 
 const hasProjects = computed(() => visibleProjects.value.length > 0)

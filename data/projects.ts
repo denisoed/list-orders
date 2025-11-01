@@ -1,6 +1,12 @@
 export type TaskStatus = 'in_progress' | 'overdue' | 'review' | 'done'
 export type TaskPriority = 'high' | 'medium' | 'low'
 
+export interface TaskAttachment {
+  id: string
+  name: string
+  previewUrl: string
+}
+
 export interface TaskAssignee {
   name: string
   avatarUrl: string
@@ -14,6 +20,9 @@ export interface ProjectTask {
   dueDate: string
   priority: TaskPriority
   overdueDays?: number
+  description?: string
+  link?: string
+  attachments?: TaskAttachment[]
 }
 
 export interface Project {
