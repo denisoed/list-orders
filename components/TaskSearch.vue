@@ -33,6 +33,7 @@ const handleInput = (event: Event) => {
         :placeholder="props.placeholder"
         autocomplete="off"
         aria-label="Поиск по задачам"
+        enterkeyhint="done"
         @input="handleInput"
       />
     </div>
