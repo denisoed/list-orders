@@ -1,4 +1,4 @@
-export type TaskStatus = 'in_progress' | 'overdue' | 'review' | 'done'
+export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done'
 export type TaskPriority = 'high' | 'medium' | 'low'
 
 export type TaskReminderOffset = '1h' | '3h' | '1d'
@@ -42,7 +42,6 @@ export interface ProjectTask {
   status: TaskStatus
   dueDate: string
   priority: TaskPriority
-  overdueDays?: number
   description?: string
   attachments?: TaskAttachment[]
   statusChips?: TaskStatusChip[]
@@ -140,44 +139,9 @@ export const PROJECTS: Project[] = [
           avatarUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuD_rqZAEsxNnMbhPSQFUkqcC0QYM6hjLUY7JQKcMDUT6m3qY9Tq4iRfwupfr9hHLwbFNtOzTK82bwTn86oLMKRIrmyvv2f1gZCJomwz7z-jkaPwgPRpA1ghQWh0JnJqyTelQLMsO3fkccFYGC0_p5dnzo_aOS_d8tTP5uPrdVukjx3oByTpnqBqHIKqauC_WngtAWU8mjv54373v2YF_5wWi_agmvNpZsvBPVIIQ0EgmC8MpZzHE2Uy8JcHEyLEguVHTU3197TbeHU',
         },
-        status: 'overdue',
+        status: 'pending',
         dueDate: '2024-10-01',
         priority: 'low',
-        overdueDays: 2,
-        description:
-          'Собрать и сверстать отчет по маркетинговым метрикам за третий квартал. Включить диаграммы по каждому каналу продвижения.',
-        attachments: [
-          {
-            id: 'attach-report-template',
-            name: 'report-template.xlsx',
-            previewUrl:
-              'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=320&q=80',
-          },
-        ],
-        items: [
-          { id: 'service-analytics', name: 'Сбор данных из BI', quantity: 1, price: 6000 },
-          { id: 'service-presentation', name: 'Подготовка презентации', quantity: 1, price: 4500 },
-        ],
-        history: [
-          {
-            id: 'history-report-01',
-            actor: 'Алексей Смирнов',
-            icon: 'add',
-            description: 'Создал задачу и прикрепил шаблон отчета.',
-            timestamp: '2024-09-25T10:00:00+03:00',
-          },
-          {
-            id: 'history-report-02',
-            actor: 'Мария Петрова',
-            icon: 'schedule',
-            description: 'Перенесла срок выполнения на 1 октября.',
-            timestamp: '2024-09-27T14:25:00+03:00',
-          },
-        ],
-        clientName: 'АО «ГлобалМаркет»',
-        clientPhone: '+7 (495) 456-78-90',
-        deliveryAddress: 'Удалённая сдача отчета',
-        remindBefore: '3h',
       },
       {
         id: 'design-review',
@@ -346,10 +310,9 @@ export const PROJECTS: Project[] = [
           avatarUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuBPcbapXe1Te39OfT5kbRUQTEThdKb1r1M70geJ_x0j8wl8K_wAJVSc73nJH7d64LzMc2DVRmW2Tc4ElWxWajKeTx2Uq4qTwmY0q6KXqYzCgY3g7NPr1_SovVx2KhTnL59uWaOCiThGfoWuzmfxYynQKb0t0n1B59JCyheB',
         },
-        status: 'overdue',
+        status: 'pending',
         dueDate: '2024-09-20',
         priority: 'low',
-        overdueDays: 5,
       },
     ],
   },
@@ -416,10 +379,9 @@ export const PROJECTS: Project[] = [
           avatarUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuBkBVOUCwrIi8PhUhun_KSn7ZEtgJ58Fph2X04ncsbkwc6dW5QN1zMAe1U86nLrakom7Amzj9LZsrJJ3-6VghK41g2H6m0PxpytkcbW0svyypO4NP2YFf0Vv2gQkfHEJfZFg83Pu_Z1IctLH2j4grXHP_gURAVrPBh8CuWb',
         },
-        status: 'overdue',
+        status: 'pending',
         dueDate: '2024-09-30',
         priority: 'high',
-        overdueDays: 7,
       },
     ],
   },
