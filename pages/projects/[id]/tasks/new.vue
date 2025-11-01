@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
-import type { TaskAttachment } from '~/data/projects'
+import type { TaskAttachment, TaskReminderOffset } from '~/data/projects'
 import { useProjectTasks } from '~/composables/useProjectTasks'
 
 interface FormAttachment extends TaskAttachment {
@@ -32,13 +32,19 @@ const returnPath = computed(() => {
 
 const title = ref('')
 const description = ref('')
-const link = ref('')
+const clientName = ref('')
+const clientPhone = ref('')
+const deliveryAddress = ref('')
+const isPickup = ref(false)
 const dueDate = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
+const reminderOffset = ref<TaskReminderOffset | null>(null)
 
 const titleTouched = ref(false)
-const linkTouched = ref(false)
+const clientNameTouched = ref(false)
+const clientPhoneTouched = ref(false)
+const deliveryAddressTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
 
@@ -79,29 +85,66 @@ const titleError = computed(() => {
   if (title.value.trim().length > 0) {
     return ''
   }
-  return 'Введите название задачи'
+  return 'Введите название заказа'
 })
 
-const linkError = computed(() => {
-  const value = link.value.trim()
-  if (value.length === 0) {
+const clientNameError = computed(() => {
+  if (clientName.value.trim().length > 0) {
+    return ''
+  }
+  return 'Введите имя клиента'
+})
+
+const clientPhoneError = computed(() => {
+  const digits = clientPhone.value.replace(/\D/g, '')
+  if (digits.length >= 10) {
+    return ''
+  }
+  return 'Введите номер телефона'
+})
+
+const deliveryAddressError = computed(() => {
+  if (isPickup.value) {
     return ''
   }
 
-  try {
-    const parsed = new URL(value)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? '' : 'Введите корректную ссылку'
-  } catch (error) {
-    return 'Введите корректную ссылку'
+  if (deliveryAddress.value.trim().length > 0) {
+    return ''
   }
+
+  return 'Введите адрес доставки'
 })
 
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
-const showLinkError = computed(() => (linkTouched.value || submitAttempted.value) && Boolean(linkError.value))
+const showClientNameError = computed(
+  () => (clientNameTouched.value || submitAttempted.value) && Boolean(clientNameError.value),
+)
+const showClientPhoneError = computed(
+  () => (clientPhoneTouched.value || submitAttempted.value) && Boolean(clientPhoneError.value),
+)
+const showDeliveryAddressError = computed(
+  () =>
+    !isPickup.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
+)
 
 const isFormValid = computed(() => {
-  return titleError.value.length === 0 && linkError.value.length === 0
+  return (
+    titleError.value.length === 0 &&
+    clientNameError.value.length === 0 &&
+    clientPhoneError.value.length === 0 &&
+    deliveryAddressError.value.length === 0
+  )
 })
+
+const reminderOptions: ReadonlyArray<{ label: string; value: TaskReminderOffset }> = [
+  { label: '1 час', value: '1h' },
+  { label: '3 часа', value: '3h' },
+  { label: '1 день', value: '1d' },
+]
+
+const handleToggleReminder = (value: TaskReminderOffset) => {
+  reminderOffset.value = reminderOffset.value === value ? null : value
+}
 
 const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value)
 
@@ -164,8 +207,12 @@ const handleSubmit = async () => {
     await createTask({
       title: title.value,
       description: description.value,
-      link: link.value.trim() || undefined,
+      clientName: clientName.value,
+      clientPhone: clientPhone.value,
+      deliveryAddress: deliveryAddress.value,
+      isPickup: isPickup.value,
       dueDate: dueDate.value || undefined,
+      remindBefore: reminderOffset.value || undefined,
       attachments: attachments.value.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
       assignee:
         selectedAssignee.value.id === DEFAULT_ASSIGNEE.id
@@ -175,6 +222,7 @@ const handleSubmit = async () => {
 
     attachments.value.forEach(revokeAttachmentPreview)
     attachments.value = []
+    reminderOffset.value = null
 
     await router.push(returnPath.value)
   } catch (error) {
@@ -186,12 +234,26 @@ const handleTitleBlur = () => {
   titleTouched.value = true
 }
 
-const handleLinkBlur = () => {
-  linkTouched.value = true
+const handleClientNameBlur = () => {
+  clientNameTouched.value = true
+}
+
+const handleClientPhoneBlur = () => {
+  clientPhoneTouched.value = true
+}
+
+const handleDeliveryAddressBlur = () => {
+  deliveryAddressTouched.value = true
 }
 
 onBeforeUnmount(() => {
   attachments.value.forEach(revokeAttachmentPreview)
+})
+
+watch(isPickup, (value) => {
+  if (value) {
+    deliveryAddressTouched.value = false
+  }
 })
 
 useHead({
@@ -235,12 +297,12 @@ useHead({
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
       <div v-if="project" class="flex flex-col space-y-6">
         <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Название задачи</p>
+          <p class="pb-2 text-base font-medium leading-normal">Название заказа</p>
           <input
             v-model="title"
             class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
             type="text"
-            placeholder="Введите короткое название задачи"
+            placeholder="Введите короткое название заказа"
             :aria-invalid="showTitleError"
             enterkeyhint="done"
             @blur="handleTitleBlur"
@@ -258,24 +320,79 @@ useHead({
           ></textarea>
         </label>
 
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
+          <input
+            v-model="clientName"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="text"
+            placeholder="Введите имя клиента"
+            :aria-invalid="showClientNameError"
+            enterkeyhint="done"
+            @blur="handleClientNameBlur"
+          />
+          <p v-if="showClientNameError" class="pt-1 text-sm text-red-400">{{ clientNameError }}</p>
+        </label>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Номер телефона клиента</p>
+          <input
+            v-model="clientPhone"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="tel"
+            inputmode="tel"
+            placeholder="Введите номер телефона"
+            :aria-invalid="showClientPhoneError"
+            enterkeyhint="done"
+            @blur="handleClientPhoneBlur"
+          />
+          <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
+        </label>
+
+        <div class="flex flex-col gap-4">
+          <label class="flex flex-col">
+            <p class="pb-2 text-base font-medium leading-normal">Адрес доставки</p>
+            <input
+              v-model="deliveryAddress"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              type="text"
+              placeholder="Введите адрес доставки"
+              :aria-invalid="showDeliveryAddressError"
+              :disabled="isPickup"
+              enterkeyhint="done"
+              @blur="handleDeliveryAddressBlur"
+            />
+            <p v-if="showDeliveryAddressError" class="pt-1 text-sm text-red-400">{{ deliveryAddressError }}</p>
+          </label>
+
+          <label class="flex items-center gap-3 text-base font-medium leading-normal">
+            <input
+              v-model="isPickup"
+              type="checkbox"
+              class="size-5 rounded border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+            />
+            <span>Самовывоз</span>
+          </label>
+        </div>
+
         <div class="flex flex-col space-y-4">
-          <p class="text-base font-medium leading-normal">Вложения</p>
+          <p class="text-base font-medium leading-normal">Фото</p>
           <div class="flex items-center gap-4">
             <button
               type="button"
               class="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-[#3b4354] bg-[#1c1f27] text-[#9da6b9] transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              aria-label="Добавить вложения"
+              aria-label="Добавить фото"
               @click="handleAddAttachment"
             >
               <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
             </button>
             <ul v-if="attachments.length" class="flex items-center gap-4" role="list">
               <li v-for="attachment in attachments" :key="attachment.id" role="listitem" class="relative">
-                <img :src="attachment.previewUrl" :alt="`Вложение ${attachment.name}`" class="h-20 w-20 rounded-lg object-cover" />
+                <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 rounded-lg object-cover" />
                 <button
                   type="button"
                   class="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
-                  :aria-label="`Удалить вложение ${attachment.name}`"
+                  :aria-label="`Удалить фото ${attachment.name}`"
                   @click="handleRemoveAttachment(attachment.id)"
                 >
                   <span class="material-symbols-outlined text-sm">close</span>
@@ -292,20 +409,6 @@ useHead({
             @change="handleFileChange"
           />
         </div>
-
-        <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Ссылка</p>
-          <input
-            v-model="link"
-            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
-            type="url"
-            placeholder="https://example.com"
-            :aria-invalid="showLinkError"
-            enterkeyhint="done"
-            @blur="handleLinkBlur"
-          />
-          <p v-if="showLinkError" class="pt-1 text-sm text-red-400">{{ linkError }}</p>
-        </label>
 
         <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
           <div class="flex min-h-14 items-center justify-between gap-4 p-4">
@@ -358,6 +461,27 @@ useHead({
                 <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col space-y-3">
+          <p class="text-base font-medium leading-normal">Напомнить за:</p>
+          <div class="flex items-center gap-3">
+            <button
+              v-for="option in reminderOptions"
+              :key="option.value"
+              type="button"
+              class="flex-1 rounded-xl px-4 py-3 text-base font-medium leading-normal transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              :class="
+                reminderOffset === option.value
+                  ? 'bg-primary text-white'
+                  : 'bg-[#282e39] text-white/80 hover:bg-[#323a47]'
+              "
+              :aria-pressed="reminderOffset === option.value"
+              @click="handleToggleReminder(option.value)"
+            >
+              {{ option.label }}
+            </button>
           </div>
         </div>
       </div>
