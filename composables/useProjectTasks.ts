@@ -57,7 +57,7 @@ const cloneProjects = (): Project[] => {
   }))
 }
 
-const useProjectsState = () => useState<Project[]>('projects-data', cloneProjects)
+export const useProjectsState = () => useState<Project[]>('projects-data', cloneProjects)
 
 const generateTaskId = () => `task-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`
 
