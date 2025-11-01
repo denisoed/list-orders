@@ -37,10 +37,9 @@ const mockTasks: ProjectTask[] = [
     id: 'task-3',
     title: 'Исправить просроченные баги',
     assignee: { name: 'Иван Петров', avatarUrl: '' },
-    status: 'overdue',
+    status: 'pending',
     dueDate: '2024-09-01',
     priority: 'high',
-    overdueDays: 3,
   },
 ]
 

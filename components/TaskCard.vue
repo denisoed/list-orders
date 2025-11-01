@@ -17,20 +17,20 @@ interface PriorityMeta {
 }
 
 const STATUS_META: Record<TaskStatus, StatusMeta> = {
+  pending: {
+    label: 'Ожидает',
+    badgeBg: 'bg-amber-500/20',
+    badgeText: 'text-amber-600 dark:text-amber-400',
+    dot: 'bg-amber-500 dark:bg-amber-400',
+  },
   in_progress: {
     label: 'В работе',
     badgeBg: 'bg-blue-500/20',
     badgeText: 'text-blue-500 dark:text-blue-400',
     dot: 'bg-blue-500 dark:bg-blue-400',
   },
-  overdue: {
-    label: 'Просрочено',
-    badgeBg: 'bg-red-500/20',
-    badgeText: 'text-red-500 dark:text-red-400',
-    dot: 'bg-red-500 dark:bg-red-400',
-  },
   review: {
-    label: 'На проверку',
+    label: 'Проверяется',
     badgeBg: 'bg-purple-500/20',
     badgeText: 'text-purple-500 dark:text-purple-400',
     dot: 'bg-purple-500 dark:bg-purple-400',
@@ -69,26 +69,26 @@ const props = defineProps<{
 const statusMeta = computed(() => STATUS_META[props.task.status])
 const priorityMeta = computed(() => PRIORITY_META[props.task.priority])
 const isCompleted = computed(() => props.task.status === 'done')
-const isOverdue = computed(() => props.task.status === 'overdue')
 
 const dueLabel = computed(() => {
-  if (isOverdue.value) {
-    const days = props.task.overdueDays ?? 0
-    if (days <= 0) {
-      return 'Просрочено'
-    }
-    return `Просрочено: ${days} ${formatDays(days)}`
+  if (!props.task.dueDate) {
+    return 'Срок не указан'
   }
 
   return `Срок: ${formatDate(props.task.dueDate)}`
 })
 
-const dueIcon = computed(() => (isOverdue.value ? 'error' : 'calendar_today'))
+const dueIcon = computed(() => (props.task.status === 'pending' ? 'schedule' : 'calendar_today'))
+
+const dueIconClass = computed(() =>
+  isCompleted.value ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400',
+)
 
 const dueTextClass = computed(() => {
-  if (isOverdue.value) {
-    return 'text-sm font-semibold text-red-500 dark:text-red-400'
+  if (isCompleted.value) {
+    return 'text-sm font-normal text-emerald-600 dark:text-emerald-400'
   }
+
   return 'text-sm font-normal text-zinc-600 dark:text-zinc-400'
 })
 
@@ -115,19 +115,6 @@ function formatDate(date: string) {
     return date
   }
 }
-
-function formatDays(days: number) {
-  const mod10 = days % 10
-  const mod100 = days % 100
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return 'день'
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return 'дня'
-  }
-  return 'дней'
-}
 </script>
 
 <template>
@@ -145,8 +132,8 @@ function formatDays(days: number) {
         />
         <span>{{ task.assignee.name }}</span>
       </div>
-      <div class="flex items-center gap-2" :class="isOverdue ? 'text-red-500 dark:text-red-400' : 'text-zinc-600 dark:text-zinc-400'">
-        <span class="material-symbols-outlined text-base" :class="isOverdue ? 'text-red-500 dark:text-red-400' : ''">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-base" :class="dueIconClass">
           {{ dueIcon }}
         </span>
         <p :class="dueTextClass">

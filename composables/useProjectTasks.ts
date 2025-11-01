@@ -11,9 +11,9 @@ import {
 
 export const TASK_STATUS_FILTERS = [
   { value: 'all', label: 'Все' },
+  { value: 'pending', label: 'Ожидает' },
   { value: 'in_progress', label: 'В работе' },
-  { value: 'overdue', label: 'Просрочено' },
-  { value: 'review', label: 'На проверку' },
+  { value: 'review', label: 'Проверяется' },
   { value: 'done', label: 'Сделано' },
 ] as const
 
@@ -128,7 +128,7 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
         title: input.title.trim(),
         description: input.description.trim(),
         dueDate: input.dueDate ?? new Date().toISOString().slice(0, 10),
-        status: input.status ?? 'in_progress',
+        status: input.status ?? 'pending',
         priority: input.priority ?? 'medium',
         assignee,
         attachments: input.attachments.map((attachment) => ({ ...attachment })),
