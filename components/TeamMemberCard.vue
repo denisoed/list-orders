@@ -76,7 +76,7 @@ const handleDelete = () => {
 
 <template>
   <article
-    class="flex items-center justify-between gap-4 rounded-lg p-3 text-zinc-900 dark:text-white"
+    class="flex items-center justify-between gap-4 rounded-lg bg-white p-3 text-zinc-900 dark:bg-[#1C2431] dark:text-white"
   >
     <div class="flex items-center gap-4">
       <img :src="props.avatarUrl" :alt="`Аватар ${props.name}`" class="size-12 rounded-full object-cover" loading="lazy" />
