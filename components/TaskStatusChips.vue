@@ -24,16 +24,16 @@ const STATUS_CHIP_THEMES: Record<TaskStatusFilter, { inactive: string; active: s
     active: 'bg-primary text-white',
   },
   pending: {
-    inactive: 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-100',
-    active: 'bg-amber-200 text-amber-900 dark:bg-amber-500/30 dark:text-amber-50',
+    inactive: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-100',
+    active: 'bg-red-200 text-red-900 dark:bg-red-500/30 dark:text-red-50',
   },
   in_progress: {
-    inactive: 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-100',
-    active: 'bg-blue-200 text-blue-900 dark:bg-blue-500/30 dark:text-blue-50',
+    inactive: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-100',
+    active: 'bg-yellow-200 text-yellow-900 dark:bg-yellow-500/30 dark:text-yellow-50',
   },
   review: {
-    inactive: 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-100',
-    active: 'bg-purple-200 text-purple-900 dark:bg-purple-500/30 dark:text-purple-50',
+    inactive: 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-100',
+    active: 'bg-blue-200 text-blue-900 dark:bg-blue-500/30 dark:text-blue-50',
   },
   done: {
     inactive: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-100',

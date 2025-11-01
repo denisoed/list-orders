@@ -20,25 +20,24 @@ interface PriorityMeta {
 const STATUS_META: Record<TaskStatus, StatusMeta> = {
   pending: {
     label: 'Ожидает',
-    badgeBg: 'bg-amber-500/20',
-    badgeText: 'text-amber-600 dark:text-amber-400',
-    dot: 'bg-amber-500 dark:bg-amber-400',
-    cardClass: 'bg-amber-50 border border-amber-100 dark:bg-amber-500/10 dark:border-amber-500/25',
+    badgeBg: 'bg-red-500/20',
+    badgeText: 'text-red-600 dark:text-red-400',
+    dot: 'bg-red-500 dark:bg-red-400',
+    cardClass: 'bg-red-50 border border-red-100 dark:bg-red-500/10 dark:border-red-500/25',
   },
   in_progress: {
     label: 'В работе',
+    badgeBg: 'bg-yellow-500/20',
+    badgeText: 'text-yellow-600 dark:text-yellow-400',
+    dot: 'bg-yellow-500 dark:bg-yellow-400',
+    cardClass: 'bg-yellow-50 border border-yellow-100 dark:bg-yellow-500/10 dark:border-yellow-500/25',
+  },
+  review: {
+    label: 'Проверяется',
     badgeBg: 'bg-blue-500/20',
     badgeText: 'text-blue-500 dark:text-blue-400',
     dot: 'bg-blue-500 dark:bg-blue-400',
     cardClass: 'bg-blue-50 border border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/25',
-  },
-  review: {
-    label: 'Проверяется',
-    badgeBg: 'bg-purple-500/20',
-    badgeText: 'text-purple-500 dark:text-purple-400',
-    dot: 'bg-purple-500 dark:bg-purple-400',
-    cardClass:
-      'bg-purple-50 border border-purple-100 dark:bg-purple-500/10 dark:border-purple-500/25',
   },
   done: {
     label: 'Сделано',
