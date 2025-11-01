@@ -78,7 +78,7 @@ useHead({
           v-for="project in visibleProjects"
           :key="project.id"
           :to="`/projects/${project.id}/tasks`"
-          class="flex cursor-pointer items-center gap-4 rounded-lg bg-white p-3 transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:hover:bg-white/5"
+          class="flex cursor-pointer items-center gap-4 rounded-xl bg-white p-3 transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:hover:bg-white/5"
           :aria-label="`Перейти к задачам проекта «${project.title}»`"
         >
           <div class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-gray-200 dark:bg-[#282e39]">

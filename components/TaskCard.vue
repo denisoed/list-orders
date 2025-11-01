@@ -95,7 +95,9 @@ const dueTextClass = computed(() => {
 const containerClasses = computed(() => {
   return [
     'flex flex-col gap-4 rounded-xl p-4 transition-shadow',
-    isCompleted.value ? 'bg-zinc-100/60 opacity-80 dark:bg-zinc-900/50' : 'bg-zinc-100 dark:bg-zinc-900',
+    isCompleted.value
+      ? 'bg-white/80 opacity-80 dark:bg-[#1C2431]/70'
+      : 'bg-white dark:bg-[#1C2431]',
   ]
 })
 
