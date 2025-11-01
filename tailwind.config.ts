@@ -5,7 +5,7 @@ import forms from '@tailwindcss/forms';
 export default {
   darkMode: 'class',
   content: [
-    './app/**/*.{vue,js,ts}',
+    './app.vue',
     './components/**/*.{vue,js,ts}',
     './layouts/**/*.{vue,js,ts}',
     './pages/**/*.{vue,js,ts}',
