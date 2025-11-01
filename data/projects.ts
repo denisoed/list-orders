@@ -21,8 +21,11 @@ export interface ProjectTask {
   priority: TaskPriority
   overdueDays?: number
   description?: string
-  link?: string
   attachments?: TaskAttachment[]
+  clientName?: string
+  clientPhone?: string
+  deliveryAddress?: string
+  isPickup?: boolean
 }
 
 export interface Project {

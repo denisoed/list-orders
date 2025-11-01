@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import type { TaskAttachment } from '~/data/projects'
 import { useProjectTasks } from '~/composables/useProjectTasks'
@@ -32,13 +32,18 @@ const returnPath = computed(() => {
 
 const title = ref('')
 const description = ref('')
-const link = ref('')
+const clientName = ref('')
+const clientPhone = ref('')
+const deliveryAddress = ref('')
+const isPickup = ref(false)
 const dueDate = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
 
 const titleTouched = ref(false)
-const linkTouched = ref(false)
+const clientNameTouched = ref(false)
+const clientPhoneTouched = ref(false)
+const deliveryAddressTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
 
@@ -82,25 +87,52 @@ const titleError = computed(() => {
   return 'Введите название задачи'
 })
 
-const linkError = computed(() => {
-  const value = link.value.trim()
-  if (value.length === 0) {
+const clientNameError = computed(() => {
+  if (clientName.value.trim().length > 0) {
+    return ''
+  }
+  return 'Введите имя клиента'
+})
+
+const clientPhoneError = computed(() => {
+  const digits = clientPhone.value.replace(/\D/g, '')
+  if (digits.length >= 10) {
+    return ''
+  }
+  return 'Введите номер телефона'
+})
+
+const deliveryAddressError = computed(() => {
+  if (isPickup.value) {
     return ''
   }
 
-  try {
-    const parsed = new URL(value)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? '' : 'Введите корректную ссылку'
-  } catch (error) {
-    return 'Введите корректную ссылку'
+  if (deliveryAddress.value.trim().length > 0) {
+    return ''
   }
+
+  return 'Введите адрес доставки'
 })
 
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
-const showLinkError = computed(() => (linkTouched.value || submitAttempted.value) && Boolean(linkError.value))
+const showClientNameError = computed(
+  () => (clientNameTouched.value || submitAttempted.value) && Boolean(clientNameError.value),
+)
+const showClientPhoneError = computed(
+  () => (clientPhoneTouched.value || submitAttempted.value) && Boolean(clientPhoneError.value),
+)
+const showDeliveryAddressError = computed(
+  () =>
+    !isPickup.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
+)
 
 const isFormValid = computed(() => {
-  return titleError.value.length === 0 && linkError.value.length === 0
+  return (
+    titleError.value.length === 0 &&
+    clientNameError.value.length === 0 &&
+    clientPhoneError.value.length === 0 &&
+    deliveryAddressError.value.length === 0
+  )
 })
 
 const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value)
@@ -164,7 +196,10 @@ const handleSubmit = async () => {
     await createTask({
       title: title.value,
       description: description.value,
-      link: link.value.trim() || undefined,
+      clientName: clientName.value,
+      clientPhone: clientPhone.value,
+      deliveryAddress: deliveryAddress.value,
+      isPickup: isPickup.value,
       dueDate: dueDate.value || undefined,
       attachments: attachments.value.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
       assignee:
@@ -186,12 +221,26 @@ const handleTitleBlur = () => {
   titleTouched.value = true
 }
 
-const handleLinkBlur = () => {
-  linkTouched.value = true
+const handleClientNameBlur = () => {
+  clientNameTouched.value = true
+}
+
+const handleClientPhoneBlur = () => {
+  clientPhoneTouched.value = true
+}
+
+const handleDeliveryAddressBlur = () => {
+  deliveryAddressTouched.value = true
 }
 
 onBeforeUnmount(() => {
   attachments.value.forEach(revokeAttachmentPreview)
+})
+
+watch(isPickup, (value) => {
+  if (value) {
+    deliveryAddressTouched.value = false
+  }
 })
 
 useHead({
@@ -258,6 +307,61 @@ useHead({
           ></textarea>
         </label>
 
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
+          <input
+            v-model="clientName"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="text"
+            placeholder="Введите имя клиента"
+            :aria-invalid="showClientNameError"
+            enterkeyhint="done"
+            @blur="handleClientNameBlur"
+          />
+          <p v-if="showClientNameError" class="pt-1 text-sm text-red-400">{{ clientNameError }}</p>
+        </label>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Номер телефона клиента</p>
+          <input
+            v-model="clientPhone"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="tel"
+            inputmode="tel"
+            placeholder="Введите номер телефона"
+            :aria-invalid="showClientPhoneError"
+            enterkeyhint="done"
+            @blur="handleClientPhoneBlur"
+          />
+          <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
+        </label>
+
+        <div class="flex flex-col gap-4">
+          <label class="flex flex-col">
+            <p class="pb-2 text-base font-medium leading-normal">Адрес доставки</p>
+            <input
+              v-model="deliveryAddress"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              type="text"
+              placeholder="Введите адрес доставки"
+              :aria-invalid="showDeliveryAddressError"
+              :disabled="isPickup"
+              enterkeyhint="done"
+              @blur="handleDeliveryAddressBlur"
+            />
+            <p v-if="showDeliveryAddressError" class="pt-1 text-sm text-red-400">{{ deliveryAddressError }}</p>
+          </label>
+
+          <label class="flex items-center gap-3 text-base font-medium leading-normal">
+            <input
+              v-model="isPickup"
+              type="checkbox"
+              class="size-5 rounded border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+            />
+            <span>Самовывоз</span>
+          </label>
+        </div>
+
         <div class="flex flex-col space-y-4">
           <p class="text-base font-medium leading-normal">Вложения</p>
           <div class="flex items-center gap-4">
@@ -292,20 +396,6 @@ useHead({
             @change="handleFileChange"
           />
         </div>
-
-        <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Ссылка</p>
-          <input
-            v-model="link"
-            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
-            type="url"
-            placeholder="https://example.com"
-            :aria-invalid="showLinkError"
-            enterkeyhint="done"
-            @blur="handleLinkBlur"
-          />
-          <p v-if="showLinkError" class="pt-1 text-sm text-red-400">{{ linkError }}</p>
-        </label>
 
         <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
           <div class="flex min-h-14 items-center justify-between gap-4 p-4">
