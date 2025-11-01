@@ -63,7 +63,10 @@ useHead({
 </script>
 
 <template>
-  <div class="relative flex min-h-screen w-full flex-col bg-background-light text-black dark:bg-background-dark dark:text-white">
+  <div
+    class="relative flex min-h-screen w-full flex-col bg-background-light text-black dark:bg-background-dark dark:text-white"
+    :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
+  >
     <ProjectsPageHeader title="Мои проекты" @search="handleSearch" />
 
     <main class="flex-1 px-4 pt-4">

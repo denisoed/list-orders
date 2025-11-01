@@ -18,7 +18,8 @@ const handleSearchClick = () => {
 
 <template>
   <header
-    class="sticky top-0 z-10 flex items-center justify-between bg-background-light/80 p-4 pb-2 backdrop-blur-sm dark:bg-background-dark/80"
+    class="sticky top-0 z-10 flex items-center justify-between p-4 pb-2 backdrop-blur-sm"
+    :style="{ backgroundColor: 'var(--telegram-header-color, #f6f6f8)' }"
   >
     <h1 class="flex-1 text-lg font-bold leading-tight tracking-[-0.015em] text-black dark:text-white">
       {{ title }}
