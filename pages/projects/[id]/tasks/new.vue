@@ -242,6 +242,7 @@ useHead({
             type="text"
             placeholder="Введите короткое название задачи"
             :aria-invalid="showTitleError"
+            enterkeyhint="done"
             @blur="handleTitleBlur"
           />
           <p v-if="showTitleError" class="pt-1 text-sm text-red-400">{{ titleError }}</p>
@@ -253,6 +254,7 @@ useHead({
             v-model="description"
             class="form-input min-h-36 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Добавьте детали, чек-лист и важные требования"
+            enterkeyhint="done"
           ></textarea>
         </label>
 
@@ -299,6 +301,7 @@ useHead({
             type="url"
             placeholder="https://example.com"
             :aria-invalid="showLinkError"
+            enterkeyhint="done"
             @blur="handleLinkBlur"
           />
           <p v-if="showLinkError" class="pt-1 text-sm text-red-400">{{ linkError }}</p>
