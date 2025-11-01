@@ -47,7 +47,7 @@ const handleBack = () => {
 }
 
 const handleAddTask = () => {
-  console.info('Создание задачи для проекта', projectId.value)
+  router.push(`/projects/${projectId.value}/tasks/new`)
 }
 
 const handleSearchUpdate = (value: string) => {

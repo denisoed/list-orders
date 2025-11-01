@@ -1,5 +1,19 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, reactive, ref, watch, type Ref } from 'vue'
 import { findProjectById, PROJECTS, type Project, type ProjectTask } from '~/data/projects'
+
+const createdProjectTasks = reactive<Record<string, ProjectTask[]>>({})
+
+export const registerCreatedProjectTask = (projectId: string, task: ProjectTask) => {
+  if (!createdProjectTasks[projectId]) {
+    createdProjectTasks[projectId] = []
+  }
+
+  createdProjectTasks[projectId] = [task, ...createdProjectTasks[projectId]!]
+}
+
+export const getCreatedProjectTasks = (projectId: string) => {
+  return createdProjectTasks[projectId] ?? []
+}
 
 export const TASK_STATUS_FILTERS = [
   { value: 'all', label: 'Все' },
@@ -42,7 +56,8 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
   const projectIdRef = computed(() => (typeof projectId === 'string' ? projectId : projectId.value))
 
   const project = computed(() => findProjectById(projectIdRef.value))
-  const allTasks = computed(() => project.value?.tasks ?? [])
+  const createdTasks = computed(() => createdProjectTasks[projectIdRef.value] ?? [])
+  const allTasks = computed(() => [...createdTasks.value, ...(project.value?.tasks ?? [])])
 
   const searchQuery = ref('')
   const activeStatus = ref<TaskStatusFilter>('all')
