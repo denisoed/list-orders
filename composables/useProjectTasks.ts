@@ -53,6 +53,9 @@ const cloneProjects = (): Project[] => {
       ...task,
       assignee: { ...task.assignee },
       attachments: task.attachments?.map((attachment) => ({ ...attachment })),
+      statusChips: task.statusChips?.map((chip) => ({ ...chip })),
+      items: task.items?.map((item) => ({ ...item })),
+      history: task.history?.map((entry) => ({ ...entry })),
     })),
   }))
 }

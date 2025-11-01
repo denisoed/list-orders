@@ -44,6 +44,13 @@ const pageTitle = computed(() => {
 
 const projectsListRoute = '/'
 
+const currentPath = computed(() => {
+  if (typeof route.fullPath === 'string' && route.fullPath.length > 0) {
+    return route.fullPath
+  }
+  return `/projects/${projectId.value}/tasks`
+})
+
 const handleBack = () => {
   router.push(projectsListRoute)
 }
@@ -64,6 +71,16 @@ const handleAddTask = () => {
       from: returnPath,
     },
   })
+}
+
+const buildOrderLink = (taskId: string) => {
+  return {
+    path: `/orders/${taskId}`,
+    query: {
+      project: projectId.value,
+      from: currentPath.value,
+    },
+  }
 }
 
 const handleEditProject = () => {
@@ -141,7 +158,13 @@ useHead({
           <template v-if="hasTasks">
             <ul v-if="hasFilteredTasks" class="flex flex-col gap-4" role="list">
               <li v-for="task in filteredTasks" :key="task.id" role="listitem">
-                <TaskCard :task="task" />
+                <NuxtLink
+                  :to="buildOrderLink(task.id)"
+                  class="group block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  :aria-label="`Открыть детали заказа ${task.title}`"
+                >
+                  <TaskCard :task="task" />
+                </NuxtLink>
               </li>
             </ul>
             <TaskEmptyState

@@ -14,6 +14,27 @@ export interface TaskAssignee {
   avatarUrl: string
 }
 
+export interface TaskStatusChip {
+  id: string
+  label: string
+  tone: 'info' | 'warning' | 'danger' | 'success'
+}
+
+export interface TaskItem {
+  id: string
+  name: string
+  quantity: number
+  price: number
+}
+
+export interface TaskTimelineEntry {
+  id: string
+  actor: string
+  icon: string
+  description: string
+  timestamp: string
+}
+
 export interface ProjectTask {
   id: string
   title: string
@@ -24,6 +45,9 @@ export interface ProjectTask {
   overdueDays?: number
   description?: string
   attachments?: TaskAttachment[]
+  statusChips?: TaskStatusChip[]
+  items?: TaskItem[]
+  history?: TaskTimelineEntry[]
   clientName?: string
   clientPhone?: string
   deliveryAddress?: string
@@ -59,6 +83,54 @@ export const PROJECTS: Project[] = [
         status: 'in_progress',
         dueDate: '2024-12-25',
         priority: 'high',
+        description:
+          'Подготовить концепцию и дизайн нового лендинга для зимней кампании. Учесть адаптивность, SEO-структуру и блок с отзывами клиентов.',
+        attachments: [
+          {
+            id: 'attach-landing-wireframe',
+            name: 'landing-wireframe.fig',
+            previewUrl:
+              'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=320&q=80',
+          },
+          {
+            id: 'attach-landing-brief',
+            name: 'client-brief.pdf',
+            previewUrl:
+              'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=320&q=80',
+          },
+        ],
+        items: [
+          { id: 'service-research', name: 'Исследование аудитории', quantity: 1, price: 12000 },
+          { id: 'service-design', name: 'Дизайн-макет страниц', quantity: 1, price: 24000 },
+          { id: 'service-assets', name: 'Подготовка графических материалов', quantity: 1, price: 9000 },
+        ],
+        history: [
+          {
+            id: 'history-landing-01',
+            actor: 'Мария Петрова',
+            icon: 'person',
+            description: 'Назначила задачу Ивану Иванову и загрузила бриф клиента.',
+            timestamp: '2024-10-12T09:15:00+03:00',
+          },
+          {
+            id: 'history-landing-02',
+            actor: 'Иван Иванов',
+            icon: 'edit',
+            description: 'Добавил черновой макет лендинга и запросил обратную связь.',
+            timestamp: '2024-10-18T16:40:00+03:00',
+          },
+          {
+            id: 'history-landing-03',
+            actor: 'Алексей Смирнов',
+            icon: 'rate_review',
+            description: 'Оставил комментарии по блоку отзывов и контактной форме.',
+            timestamp: '2024-10-20T11:05:00+03:00',
+          },
+        ],
+        clientName: 'ООО «Новые решения»',
+        clientPhone: '+7 (999) 123-45-67',
+        deliveryAddress: 'Москва, ул. Красная Пресня, д. 12',
+        remindBefore: '1d',
       },
       {
         id: 'q3-report',
@@ -72,6 +144,40 @@ export const PROJECTS: Project[] = [
         dueDate: '2024-10-01',
         priority: 'low',
         overdueDays: 2,
+        description:
+          'Собрать и сверстать отчет по маркетинговым метрикам за третий квартал. Включить диаграммы по каждому каналу продвижения.',
+        attachments: [
+          {
+            id: 'attach-report-template',
+            name: 'report-template.xlsx',
+            previewUrl:
+              'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=320&q=80',
+          },
+        ],
+        items: [
+          { id: 'service-analytics', name: 'Сбор данных из BI', quantity: 1, price: 6000 },
+          { id: 'service-presentation', name: 'Подготовка презентации', quantity: 1, price: 4500 },
+        ],
+        history: [
+          {
+            id: 'history-report-01',
+            actor: 'Алексей Смирнов',
+            icon: 'add',
+            description: 'Создал задачу и прикрепил шаблон отчета.',
+            timestamp: '2024-09-25T10:00:00+03:00',
+          },
+          {
+            id: 'history-report-02',
+            actor: 'Мария Петрова',
+            icon: 'schedule',
+            description: 'Перенесла срок выполнения на 1 октября.',
+            timestamp: '2024-09-27T14:25:00+03:00',
+          },
+        ],
+        clientName: 'АО «ГлобалМаркет»',
+        clientPhone: '+7 (495) 456-78-90',
+        deliveryAddress: 'Удалённая сдача отчета',
+        remindBefore: '3h',
       },
       {
         id: 'design-review',
@@ -84,6 +190,26 @@ export const PROJECTS: Project[] = [
         status: 'review',
         dueDate: '2024-11-15',
         priority: 'medium',
+        description:
+          'Провести проверку дизайн-макетов мобильного приложения и подготовить список финальных правок для разработчиков.',
+        attachments: [
+          {
+            id: 'attach-design-review',
+            name: 'app-design.fig',
+            previewUrl:
+              'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=320&q=80',
+          },
+        ],
+        history: [
+          {
+            id: 'history-review-01',
+            actor: 'Елена Волкова',
+            icon: 'person',
+            description: 'Назначила Алексея ответственным за проверку.',
+            timestamp: '2024-10-05T12:45:00+03:00',
+          },
+        ],
+        remindBefore: '1h',
       },
       {
         id: 'requirements-doc',
@@ -96,6 +222,27 @@ export const PROJECTS: Project[] = [
         status: 'done',
         dueDate: '2024-11-01',
         priority: 'medium',
+        description:
+          'Сформировать техническое задание для команды разработки, описав бизнес-логику, API и ограничения по безопасности.',
+        attachments: [
+          {
+            id: 'attach-requirements',
+            name: 'requirements-doc.docx',
+            previewUrl:
+              'https://images.unsplash.com/photo-1454166155302-ef4863c27e70?auto=format&fit=crop&w=320&q=80',
+          },
+        ],
+        history: [
+          {
+            id: 'history-requirements-01',
+            actor: 'Елена Волкова',
+            icon: 'check_circle',
+            description: 'Отметила задачу выполненной.',
+            timestamp: '2024-10-30T18:55:00+03:00',
+          },
+        ],
+        clientName: 'Команда разработки',
+        clientPhone: '+7 (812) 200-40-40',
       },
       {
         id: 'styleguide-update',
@@ -108,6 +255,17 @@ export const PROJECTS: Project[] = [
         status: 'done',
         dueDate: '2024-10-20',
         priority: 'high',
+        description:
+          'Привести UI Kit в соответствие с новым брендбуком и обновить компоненты для дизайн-системы.',
+        history: [
+          {
+            id: 'history-styleguide-01',
+            actor: 'Сергей Котов',
+            icon: 'brush',
+            description: 'Загрузил обновленные компоненты в библиотеку.',
+            timestamp: '2024-10-19T17:35:00+03:00',
+          },
+        ],
       },
       {
         id: 'animations',
@@ -120,6 +278,8 @@ export const PROJECTS: Project[] = [
         status: 'in_progress',
         dueDate: '2024-12-05',
         priority: 'medium',
+        description:
+          'Подготовить сценарии анимаций для главного экрана и согласовать с разработкой возможные ограничения.',
       },
     ],
   },
