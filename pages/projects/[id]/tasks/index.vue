@@ -42,8 +42,10 @@ const pageTitle = computed(() => {
   return `Задачи • ${project.value.title}`
 })
 
+const projectsListRoute = '/'
+
 const handleBack = () => {
-  router.back()
+  router.push(projectsListRoute)
 }
 
 const handleAddTask = () => {
