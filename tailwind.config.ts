@@ -1,6 +1,9 @@
 import type { Config } from 'tailwindcss';
+import containerQueries from '@tailwindcss/container-queries';
+import forms from '@tailwindcss/forms';
 
 export default {
+  darkMode: 'class',
   content: [
     './app/**/*.{vue,js,ts}',
     './components/**/*.{vue,js,ts}',
@@ -10,7 +13,22 @@ export default {
     './nuxt.config.{js,ts}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: '#135bec',
+        'background-light': '#f6f6f8',
+        'background-dark': '#101622',
+      },
+      fontFamily: {
+        display: ['Inter', 'sans-serif'],
+      },
+      borderRadius: {
+        DEFAULT: '0.25rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+        full: '9999px',
+      },
+    },
   },
-  plugins: [],
+  plugins: [forms, containerQueries],
 } satisfies Config;
