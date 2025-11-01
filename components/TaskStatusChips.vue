@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { TaskStatusFilter } from '~/composables/useProjectTasks'
+
 export interface StatusOption {
   value: string
   label: string
@@ -15,6 +17,34 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (event: 'update:modelValue', value: string): void
 }>()
+
+const STATUS_CHIP_THEMES: Record<TaskStatusFilter, { inactive: string; active: string }> = {
+  all: {
+    inactive: 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-white',
+    active: 'bg-primary text-white',
+  },
+  pending: {
+    inactive: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-100',
+    active: 'bg-red-200 text-red-900 dark:bg-red-500/30 dark:text-red-50',
+  },
+  in_progress: {
+    inactive: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-100',
+    active: 'bg-yellow-200 text-yellow-900 dark:bg-yellow-500/30 dark:text-yellow-50',
+  },
+  review: {
+    inactive: 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-100',
+    active: 'bg-blue-200 text-blue-900 dark:bg-blue-500/30 dark:text-blue-50',
+  },
+  done: {
+    inactive: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-100',
+    active: 'bg-emerald-200 text-emerald-900 dark:bg-emerald-500/30 dark:text-emerald-50',
+  },
+}
+
+const getChipClasses = (value: string, isActive: boolean) => {
+  const theme = STATUS_CHIP_THEMES[value as TaskStatusFilter] ?? STATUS_CHIP_THEMES.all
+  return isActive ? theme.active : theme.inactive
+}
 
 const handleSelect = (value: string) => {
   emit('update:modelValue', value)
@@ -33,12 +63,10 @@ const handleSelect = (value: string) => {
       type="button"
       role="radio"
       :aria-checked="option.value === props.modelValue"
-      class="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      :class="
-        option.value === props.modelValue
-          ? 'bg-primary text-white'
-          : 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-white'
-      "
+      :class="[
+        'flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+        getChipClasses(option.value, option.value === props.modelValue),
+      ]"
       @click="handleSelect(option.value)"
     >
       <span>{{ option.label }}</span>

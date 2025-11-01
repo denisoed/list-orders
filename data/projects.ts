@@ -1,4 +1,4 @@
-export type TaskStatus = 'in_progress' | 'overdue' | 'review' | 'done'
+export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done'
 export type TaskPriority = 'high' | 'medium' | 'low'
 
 export type TaskReminderOffset = '1h' | '3h' | '1d'
@@ -21,7 +21,6 @@ export interface ProjectTask {
   status: TaskStatus
   dueDate: string
   priority: TaskPriority
-  overdueDays?: number
   description?: string
   attachments?: TaskAttachment[]
   clientName?: string
@@ -68,10 +67,9 @@ export const PROJECTS: Project[] = [
           avatarUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuD_rqZAEsxNnMbhPSQFUkqcC0QYM6hjLUY7JQKcMDUT6m3qY9Tq4iRfwupfr9hHLwbFNtOzTK82bwTn86oLMKRIrmyvv2f1gZCJomwz7z-jkaPwgPRpA1ghQWh0JnJqyTelQLMsO3fkccFYGC0_p5dnzo_aOS_d8tTP5uPrdVukjx3oByTpnqBqHIKqauC_WngtAWU8mjv54373v2YF_5wWi_agmvNpZsvBPVIIQ0EgmC8MpZzHE2Uy8JcHEyLEguVHTU3197TbeHU',
         },
-        status: 'overdue',
+        status: 'pending',
         dueDate: '2024-10-01',
         priority: 'low',
-        overdueDays: 2,
       },
       {
         id: 'design-review',
@@ -186,10 +184,9 @@ export const PROJECTS: Project[] = [
           avatarUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuBPcbapXe1Te39OfT5kbRUQTEThdKb1r1M70geJ_x0j8wl8K_wAJVSc73nJH7d64LzMc2DVRmW2Tc4ElWxWajKeTx2Uq4qTwmY0q6KXqYzCgY3g7NPr1_SovVx2KhTnL59uWaOCiThGfoWuzmfxYynQKb0t0n1B59JCyheB',
         },
-        status: 'overdue',
+        status: 'pending',
         dueDate: '2024-09-20',
         priority: 'low',
-        overdueDays: 5,
       },
     ],
   },
@@ -256,10 +253,9 @@ export const PROJECTS: Project[] = [
           avatarUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuBkBVOUCwrIi8PhUhun_KSn7ZEtgJ58Fph2X04ncsbkwc6dW5QN1zMAe1U86nLrakom7Amzj9LZsrJJ3-6VghK41g2H6m0PxpytkcbW0svyypO4NP2YFf0Vv2gQkfHEJfZFg83Pu_Z1IctLH2j4grXHP_gURAVrPBh8CuWb',
         },
-        status: 'overdue',
+        status: 'pending',
         dueDate: '2024-09-30',
         priority: 'high',
-        overdueDays: 7,
       },
     ],
   },
