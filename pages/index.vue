@@ -1,16 +1,7 @@
 <script setup lang="ts">
-interface Project {
-  id: string
-  title: string
-  completed: number
-  total: number
-}
+import { PROJECTS, type Project } from '~/data/projects'
 
-const DEFAULT_PROJECTS: Project[] = [
-  { id: 'design-refresh', title: 'Разработка нового дизайна', completed: 5, total: 12 },
-  { id: 'marketing-q4', title: 'Маркетинговая кампания Q4', completed: 22, total: 25 },
-  { id: 'api-upgrade', title: 'Обновление API сервера', completed: 2, total: 10 },
-]
+const DEFAULT_PROJECTS: Project[] = PROJECTS
 
 const route = useRoute()
 
@@ -71,11 +62,12 @@ useHead({
 
     <main class="flex-1 px-4 pt-4">
       <div v-if="hasProjects" class="flex flex-col gap-2">
-        <a
+        <NuxtLink
           v-for="project in visibleProjects"
           :key="project.id"
-          href="#"
+          :to="`/projects/${project.id}/tasks`"
           class="flex cursor-pointer items-center gap-4 rounded-lg bg-white p-3 transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:hover:bg-white/5"
+          :aria-label="`Перейти к задачам проекта «${project.title}»`"
         >
           <div class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-gray-200 dark:bg-[#282e39]">
             <span class="material-symbols-outlined text-gray-600 dark:text-gray-300">folder</span>
@@ -92,7 +84,7 @@ useHead({
           <span class="shrink-0 text-gray-400 dark:text-gray-600">
             <span class="material-symbols-outlined">chevron_right</span>
           </span>
-        </a>
+        </NuxtLink>
       </div>
 
       <div
