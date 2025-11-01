@@ -48,14 +48,37 @@ const handleBack = () => {
   router.push(projectsListRoute)
 }
 
-const handleAddTask = () => {
+const getReturnPath = () => {
   const fallbackPath = `/projects/${projectId.value}/tasks`
   const returnPath = typeof route.fullPath === 'string' && route.fullPath.length > 0 ? route.fullPath : fallbackPath
+
+  return { fallbackPath, returnPath }
+}
+
+const handleAddTask = () => {
+  const { returnPath } = getReturnPath()
 
   router.push({
     path: `/projects/${projectId.value}/tasks/new`,
     query: {
       from: returnPath,
+    },
+  })
+}
+
+const handleEditProject = () => {
+  if (!project.value) {
+    return
+  }
+
+  const { fallbackPath, returnPath } = getReturnPath()
+
+  router.push({
+    path: '/projects/new',
+    query: {
+      from: returnPath,
+      edit: projectId.value,
+      fallback: fallbackPath,
     },
   })
 }
@@ -100,7 +123,7 @@ useHead({
       :title="project?.title ?? 'Задачи'"
       :subtitle="subtitle"
       @back="handleBack"
-      @add="handleAddTask"
+      @edit="handleEditProject"
     />
 
     <main class="flex-1 px-4 pb-24">

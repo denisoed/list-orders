@@ -11,15 +11,15 @@ withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (event: 'back'): void
-  (event: 'add'): void
+  (event: 'edit'): void
 }>()
 
 const handleBack = () => {
   emit('back')
 }
 
-const handleAdd = () => {
-  emit('add')
+const handleEdit = () => {
+  emit('edit')
 }
 </script>
 
@@ -48,10 +48,10 @@ const handleAdd = () => {
       <button
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary transition hover:bg-primary/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-primary/30 dark:text-white"
-        aria-label="Добавить задачу"
-        @click="handleAdd"
+        aria-label="Редактировать проект"
+        @click="handleEdit"
       >
-        <span class="material-symbols-outlined">add</span>
+        <span class="material-symbols-outlined">edit</span>
       </button>
     </div>
   </header>
