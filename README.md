@@ -73,3 +73,10 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Страницы проектов
+
+- `/projects/new` — форма создания и редактирования проекта. Под полем названия размещается компонент `ProjectInviteLink`,
+  отображающий ссылку приглашения коллег с названием проекта и количеством участников.
+- `/projects/[id]/team` — страница «Управление командой» с поиском и списком коллег, доступная по ссылке приглашения из формы
+  проекта.
