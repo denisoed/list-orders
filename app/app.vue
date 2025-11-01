@@ -6,13 +6,19 @@ interface Project {
   total: number
 }
 
-const projects = ref<Project[]>([
+const DEFAULT_PROJECTS: Project[] = [
   { id: 'design-refresh', title: 'Разработка нового дизайна', completed: 5, total: 12 },
   { id: 'marketing-q4', title: 'Маркетинговая кампания Q4', completed: 22, total: 25 },
   { id: 'api-upgrade', title: 'Обновление API сервера', completed: 2, total: 10 },
-])
+]
 
-const hasProjects = computed(() => projects.value.length > 0)
+const route = useRoute()
+
+const visibleProjects = computed<Project[]>(() => {
+  return route.query.empty === 'true' ? [] : DEFAULT_PROJECTS
+})
+
+const hasProjects = computed(() => visibleProjects.value.length > 0)
 
 const calculateProgress = (project: Project) => {
   if (project.total === 0) {
@@ -69,10 +75,10 @@ useHead({
       </div>
     </header>
 
-    <main class="flex-1 px-4 pt-4 pb-24">
+    <main class="flex-1 px-4 pt-4">
       <div v-if="hasProjects" class="flex flex-col gap-2">
         <a
-          v-for="project in projects"
+          v-for="project in visibleProjects"
           :key="project.id"
           href="#"
           class="flex cursor-pointer items-center gap-4 rounded-lg bg-white p-3 transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:hover:bg-white/5"
