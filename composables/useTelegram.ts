@@ -122,28 +122,19 @@ export const useTelegram = () => {
     }
 
     try {
-      await $fetch('/api/telegram/validate-init-data', {
+      const response = await $fetch<{ success: boolean; telegram_id: number | null }>('/api/telegram/validate-init-data', {
         method: 'POST',
         body: { initData },
       })
 
-      // After successful validation, fetch user data
-      const { parse } = await import('@telegram-apps/init-data-node')
-      const { useUserStore } = await import('~/stores/user')
-      
-      try {
-        const parsedData = parse(initData)
-        const telegramId = parsedData.user?.id
-        
-        if (telegramId && typeof telegramId === 'number') {
-          const userStore = useUserStore()
-          // Fetch user in background, errors are logged but don't block initialization
-          userStore.fetchUser(telegramId).catch((error: unknown) => {
-            console.warn('[Telegram] Failed to fetch user after validation:', error)
-          })
-        }
-      } catch (parseError) {
-        console.warn('[Telegram] Failed to parse initData for user fetch:', parseError)
+      // After successful validation, fetch user data using telegram_id from response
+      if (response.telegram_id && typeof response.telegram_id === 'number') {
+        const { useUserStore } = await import('~/stores/user')
+        const userStore = useUserStore()
+        // Fetch user in background, errors are logged but don't block initialization
+        userStore.fetchUser(response.telegram_id).catch((error: unknown) => {
+          console.warn('[Telegram] Failed to fetch user after validation:', error)
+        })
       }
     } catch (error) {
       console.warn('[Telegram] Failed to send initData to server', error)
