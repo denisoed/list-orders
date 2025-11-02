@@ -1,4 +1,5 @@
 import { validate, isAuthDateInvalidError, isSignatureInvalidError, isExpiredError } from '@telegram-apps/init-data-node'
+import { parseInitDataUser, saveUserToSupabase } from '~/server/utils/telegram'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -26,6 +27,16 @@ export default defineEventHandler(async (event) => {
     try {
       validate(initData, botToken)
       console.log('[Telegram InitData Validation] Success: InitData is valid')
+      
+      // Parse and save user to Supabase asynchronously without blocking the response
+      const user = parseInitDataUser(initData)
+      if (user) {
+        // Save user in the background, errors are logged but don't affect the response
+        saveUserToSupabase(user).catch((error: unknown) => {
+          console.log('[Telegram User Save] Error in background save:', error)
+        })
+      }
+      
       return { success: true }
     } catch (error) {
       let errorMessage = 'Unknown error'
