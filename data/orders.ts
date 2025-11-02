@@ -35,7 +35,6 @@ export interface OrderDetail {
   statusChips: OrderStatusChip[]
   assignee: OrderAssignee
   dueDateLabel: string
-  priorityLabel: string
   projectName: string
   description: string
   attachments: OrderAttachment[]
@@ -57,7 +56,6 @@ const defaultOrder: OrderDetail = {
     avatarUrl: 'https://i.pravatar.cc/96?img=12',
   },
   dueDateLabel: '26 октября 2024',
-  priorityLabel: 'Высокий',
   projectName: 'Открытие нового офиса',
   description:
     'Необходимо подготовить поставку оборудования для переговорных комнат и рабочих мест. В задачи входит согласование с подрядчиком, проверка спецификаций и организация монтажных работ на площадке.',
@@ -108,7 +106,6 @@ const ordersMock: Record<string, OrderDetail> = {
       avatarUrl: 'https://i.pravatar.cc/96?img=32',
     },
     dueDateLabel: '21 октября 2024',
-    priorityLabel: 'Критический',
     projectName: 'Осенняя рекламная кампания',
     description:
       'Оформить заказ на доставку печатных материалов (буклеты, плакаты) в 12 филиалов. Контролировать движение курьерской службы и подтвердить получение в каждом офисе.',

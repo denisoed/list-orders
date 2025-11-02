@@ -10,13 +10,6 @@ interface StatusMeta {
   cardClass: string
 }
 
-interface PriorityMeta {
-  label: string
-  icon: string
-  textClass: string
-  iconClass?: string
-}
-
 const STATUS_META: Record<TaskStatus, StatusMeta> = {
   pending: {
     label: 'Ожидает',
@@ -49,31 +42,11 @@ const STATUS_META: Record<TaskStatus, StatusMeta> = {
   },
 }
 
-const PRIORITY_META: Record<ProjectTask['priority'], PriorityMeta> = {
-  high: {
-    label: 'Высокий',
-    icon: 'priority_high',
-    textClass: 'text-amber-500',
-  },
-  medium: {
-    label: 'Средний',
-    icon: 'horizontal_rule',
-    textClass: 'text-zinc-500 dark:text-zinc-300',
-  },
-  low: {
-    label: 'Низкий',
-    icon: 'signal_cellular_4_bar',
-    textClass: 'text-green-500',
-    iconClass: '-rotate-90',
-  },
-}
-
 const props = defineProps<{
   task: ProjectTask
 }>()
 
 const statusMeta = computed(() => STATUS_META[props.task.status])
-const priorityMeta = computed(() => PRIORITY_META[props.task.priority])
 const isCompleted = computed(() => props.task.status === 'done')
 
 const orderDetailsRoute = computed(() => `/orders/${props.task.id}`)
@@ -156,10 +129,6 @@ function formatDate(date: string) {
       >
         <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
         <span>{{ statusMeta.label }}</span>
-      </div>
-      <div class="flex items-center gap-1" :class="priorityMeta.textClass">
-        <span class="material-symbols-outlined !text-xl" :class="priorityMeta.iconClass">{{ priorityMeta.icon }}</span>
-        <span class="text-sm font-medium">{{ priorityMeta.label }}</span>
       </div>
     </div>
   </NuxtLink>
