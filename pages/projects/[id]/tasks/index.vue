@@ -108,11 +108,6 @@ const canGoToNextMonth = computed(
   () => selectedMonthIndex.value >= 0 && selectedMonthIndex.value < monthOptions.value.length - 1,
 )
 
-const hasCurrentMonth = computed(() => monthOptions.value.some((option) => option.value === currentMonthId.value))
-const isCurrentMonthSelected = computed(
-  () => selectedMonth.value !== null && selectedMonthId.value === currentMonthId.value,
-)
-
 const handlePreviousMonth = () => {
   if (!canGoToPreviousMonth.value) {
     return
@@ -133,14 +128,6 @@ const handleNextMonth = () => {
   if (next) {
     selectedMonthId.value = next.value
   }
-}
-
-const handleResetToCurrentMonth = () => {
-  if (!hasCurrentMonth.value) {
-    return
-  }
-
-  selectedMonthId.value = currentMonthId.value
 }
 
 const filteredTasksByMonth = computed(() => {
@@ -320,7 +307,7 @@ useHead({
           class="rounded-3xl border border-black/5 bg-white/80 px-5 py-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
         >
           <div class="flex flex-col gap-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500 dark:text-[#9da6b9]">
+            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">
               {{ selectedPeriodLabel }}
             </p>
             <div class="flex items-center gap-3">
@@ -334,7 +321,7 @@ useHead({
                 <span class="material-symbols-outlined text-2xl">chevron_left</span>
               </button>
               <div
-                class="flex flex-1 items-center justify-center rounded-full bg-black px-6 py-2 text-base font-semibold tracking-tight text-white shadow-inner dark:bg-white/10"
+                class="flex flex-1 items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-medium text-white shadow-inner dark:bg-white/10"
               >
                 <span class="truncate">
                   {{ selectedMonth?.label ?? 'Месяц не выбран' }}
@@ -349,15 +336,6 @@ useHead({
               >
                 <span class="material-symbols-outlined text-2xl">chevron_right</span>
               </button>
-              <button
-                type="button"
-                class="flex size-12 items-center justify-center rounded-full bg-black text-white transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-40 disabled:hover:brightness-100 dark:bg-white dark:text-black"
-                :disabled="!hasCurrentMonth || isCurrentMonthSelected"
-                aria-label="Показать текущий месяц"
-                @click="handleResetToCurrentMonth"
-              >
-                <span class="material-symbols-outlined text-2xl">calendar_month</span>
-              </button>
             </div>
           </div>
         </div>
@@ -370,10 +348,10 @@ useHead({
                 <div v-for="group in groupedTasks" :key="group.key" class="flex gap-4">
                   <div class="flex flex-col items-center">
                     <div
-                      class="flex h-20 w-20 flex-col items-center justify-center rounded-3xl bg-black text-white shadow-inner dark:bg-white/10"
+                      class="flex h-16 w-16 flex-col items-center justify-center rounded-2xl bg-black text-white shadow-inner dark:bg-white/10"
                     >
                       <span class="text-[11px] font-semibold uppercase tracking-[0.5em]">{{ group.weekday }}</span>
-                      <span class="text-3xl font-bold leading-none">{{ group.dayNumber }}</span>
+                      <span class="text-2xl font-bold leading-none">{{ group.dayNumber }}</span>
                     </div>
                     <div
                       v-if="!group.isLast"
@@ -381,7 +359,7 @@ useHead({
                     ></div>
                   </div>
                   <div class="flex flex-1 flex-col gap-3">
-                    <p class="text-sm font-medium uppercase tracking-[0.3em] text-gray-500 dark:text-[#9da6b9]">
+                    <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">
                       {{ group.fullDate }}
                     </p>
                     <ul class="flex flex-col gap-3" role="list">
