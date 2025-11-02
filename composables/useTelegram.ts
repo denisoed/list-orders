@@ -102,7 +102,6 @@ export const useTelegram = () => {
   }
 
   const getInitData = (): string | null => {
-    return 'query_id=AAEGKqcZAAAAAAYqpxku0PM7&user=%7B%22id%22%3A430385670%2C%22first_name%22%3A%22Denis%22%2C%22last_name%22%3A%22Grushkin%22%2C%22username%22%3A%22denisoed%22%2C%22language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F0QNTtSzVHfToFiuf4VCj4UwrYIEdpgws7z-5_fz128c.svg%22%7D&auth_date=1762100119&signature=4mcDkjhY-tFWTWKDH--W7vbxybyjatkc8U9RNLwE_L809X2OKVcvjrmKd2n1im6bNTPuuXTulGzkOYEZgLEzCQ&hash=51e7398cf5c5e5b9bcdcd5082ac6ffb52e0bb2b17ee54cf6e5ca49f2ea522400'
     if (!import.meta.client) {
       return null
     }
@@ -127,6 +126,25 @@ export const useTelegram = () => {
         method: 'POST',
         body: { initData },
       })
+
+      // After successful validation, fetch user data
+      const { parse } = await import('@telegram-apps/init-data-node')
+      const { useUserStore } = await import('~/stores/user')
+      
+      try {
+        const parsedData = parse(initData)
+        const telegramId = parsedData.user?.id
+        
+        if (telegramId && typeof telegramId === 'number') {
+          const userStore = useUserStore()
+          // Fetch user in background, errors are logged but don't block initialization
+          userStore.fetchUser(telegramId).catch((error: unknown) => {
+            console.warn('[Telegram] Failed to fetch user after validation:', error)
+          })
+        }
+      } catch (parseError) {
+        console.warn('[Telegram] Failed to parse initData for user fetch:', parseError)
+      }
     } catch (error) {
       console.warn('[Telegram] Failed to send initData to server', error)
     }
