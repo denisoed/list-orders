@@ -23,6 +23,7 @@ export interface CreateProjectTaskInput {
   title: string
   description: string
   dueDate?: string
+  dueTime?: string
   attachments: TaskAttachment[]
   assignee?: TaskAssignee
   status?: ProjectTask['status']
@@ -127,6 +128,7 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
         title: input.title.trim(),
         description: input.description.trim(),
         dueDate: input.dueDate ?? new Date().toISOString().slice(0, 10),
+        dueTime: input.dueTime,
         status: input.status ?? 'pending',
         assignee,
         attachments: input.attachments.map((attachment) => ({ ...attachment })),
