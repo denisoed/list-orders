@@ -27,9 +27,7 @@ const userProfile = computed(() => {
   const avatarUrl = showEmptyAvatar ? null : (user?.photo_url ?? null)
 
   // Build profile URL using telegram_id
-  const profileUrl = user?.telegram_id
-    ? `/profile/${user.telegram_id}`
-    : '/profile'
+  const profileUrl = '/profile/edit'
 
   return {
     name: userName,

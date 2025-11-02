@@ -9,7 +9,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   title: 'Мои проекты',
-  profileUrl: '/profile',
+  profileUrl: '/profile/edit',
   avatarUrl: null,
   userName: undefined,
 })
@@ -37,7 +37,7 @@ const avatarAltText = computed(() => {
       <NuxtLink
         :to="profileUrl"
         class="flex size-10 items-center justify-center overflow-hidden rounded-full border border-transparent bg-gray-200 text-black transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#282e39] dark:text-white"
-        aria-label="Перейти в профиль"
+        aria-label="Перейти к редактированию профиля"
       >
         <img
           v-if="avatarUrl"
