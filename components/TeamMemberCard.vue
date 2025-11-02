@@ -12,16 +12,21 @@ const props = defineProps({
   },
   avatarUrl: {
     type: String,
-    required: true,
+    default: null,
   },
   actionAriaLabel: {
     type: String,
     default: 'Дополнительные действия участника',
   },
+  profileAriaLabel: {
+    type: String,
+    default: 'Открыть профиль участника',
+  },
 })
 
 const emit = defineEmits<{
   (e: 'delete'): void
+  (e: 'open-profile'): void
 }>()
 
 const isMenuOpen = ref(false)
@@ -78,13 +83,29 @@ const handleDelete = () => {
   <article
     class="flex items-center justify-between gap-4 rounded-lg bg-white p-3 text-zinc-900 dark:bg-[#1C2431] dark:text-white"
   >
-    <div class="flex items-center gap-4">
-      <img :src="props.avatarUrl" :alt="`Аватар ${props.name}`" class="size-12 rounded-full object-cover" loading="lazy" />
-      <div class="flex flex-col gap-0.5">
-        <p class="text-base font-medium leading-tight text-zinc-900 dark:text-white">{{ props.name }}</p>
-        <p class="text-sm leading-normal text-zinc-500 dark:text-[#9da6b9]">{{ props.role }}</p>
+    <button
+      type="button"
+      class="group flex flex-1 items-center gap-4 rounded-xl p-2 text-left transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:hover:bg-white/5"
+      :aria-label="props.profileAriaLabel"
+      @click="emit('open-profile')"
+    >
+      <div
+        class="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-gray-500 transition group-hover:ring-2 group-hover:ring-primary/50 dark:bg-[#282e39] dark:text-gray-300"
+      >
+        <img
+          v-if="props.avatarUrl"
+          :src="props.avatarUrl"
+          :alt="`Аватар ${props.name}`"
+          class="size-full object-cover"
+          loading="lazy"
+        />
+        <span v-else class="material-symbols-outlined text-2xl">person</span>
       </div>
-    </div>
+      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p class="truncate text-base font-medium leading-tight text-zinc-900 dark:text-white">{{ props.name }}</p>
+        <p class="truncate text-sm leading-normal text-zinc-500 dark:text-[#9da6b9]">{{ props.role }}</p>
+      </div>
+    </button>
     <div class="relative shrink-0">
       <button
         type="button"

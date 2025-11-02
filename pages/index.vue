@@ -17,7 +17,7 @@ const userProfile = computed(() => {
 
   return {
     name: 'Анна Смирнова',
-    profileUrl: '/profile',
+    profileUrl: '/profile/anna-smirnova',
     avatarUrl: showEmptyAvatar ? null : 'https://i.pravatar.cc/160?img=5',
   }
 })
