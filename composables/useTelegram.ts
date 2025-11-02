@@ -111,36 +111,6 @@ export const useTelegram = () => {
     return instance?.initData ?? null
   }
 
-  const sendInitDataToServer = async (): Promise<void> => {
-    if (!import.meta.client) {
-      return
-    }
-
-    const initData = getInitData()
-    if (!initData) {
-      return
-    }
-
-    try {
-      const response = await $fetch<{ success: boolean; telegram_id: number | null }>('/api/telegram/validate-init-data', {
-        method: 'POST',
-        body: { initData },
-      })
-
-      // After successful validation, fetch user data using telegram_id from response
-      if (response.telegram_id && typeof response.telegram_id === 'number') {
-        const { useUserStore } = await import('~/stores/user')
-        const userStore = useUserStore()
-        // Fetch user in background, errors are logged but don't block initialization
-        userStore.fetchUser(response.telegram_id).catch((error: unknown) => {
-          console.warn('[Telegram] Failed to fetch user after validation:', error)
-        })
-      }
-    } catch (error) {
-      console.warn('[Telegram] Failed to send initData to server', error)
-    }
-  }
-
   const initTelegram = async (overrides?: Partial<TelegramThemeSettings>) => {
     if (!import.meta.client) {
       return
@@ -167,9 +137,6 @@ export const useTelegram = () => {
     } catch (error) {
       console.warn('[Telegram] Unable to initialize WebApp', error)
     }
-
-    // Send initData to server after initialization
-    await sendInitDataToServer()
   }
 
   return {
@@ -178,6 +145,5 @@ export const useTelegram = () => {
     initTelegram,
     applyTheme,
     getInitData,
-    sendInitDataToServer,
   }
 }
