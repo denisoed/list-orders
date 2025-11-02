@@ -4,41 +4,40 @@ import type { ProjectTask, TaskStatus } from '~/data/projects'
 
 interface StatusMeta {
   label: string
+  gradient: string
+  accentDot: string
   badgeBg: string
   badgeText: string
-  dot: string
-  cardClass: string
 }
 
 const STATUS_META: Record<TaskStatus, StatusMeta> = {
   pending: {
     label: 'Ожидает',
-    badgeBg: 'bg-red-500/20',
-    badgeText: 'text-red-600 dark:text-red-400',
-    dot: 'bg-red-500 dark:bg-red-400',
-    cardClass: 'bg-red-50 border border-red-100 dark:bg-red-500/10 dark:border-red-500/25',
+    gradient: 'bg-gradient-to-r from-rose-500 via-rose-500 to-orange-400',
+    accentDot: 'bg-white/80',
+    badgeBg: 'bg-white/15',
+    badgeText: 'text-white/80',
   },
   in_progress: {
     label: 'В работе',
-    badgeBg: 'bg-yellow-500/20',
-    badgeText: 'text-yellow-600 dark:text-yellow-400',
-    dot: 'bg-yellow-500 dark:bg-yellow-400',
-    cardClass: 'bg-yellow-50 border border-yellow-100 dark:bg-yellow-500/10 dark:border-yellow-500/25',
+    gradient: 'bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500',
+    accentDot: 'bg-white/75',
+    badgeBg: 'bg-white/15',
+    badgeText: 'text-white/80',
   },
   review: {
     label: 'Проверяется',
-    badgeBg: 'bg-blue-500/20',
-    badgeText: 'text-blue-500 dark:text-blue-400',
-    dot: 'bg-blue-500 dark:bg-blue-400',
-    cardClass: 'bg-blue-50 border border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/25',
+    gradient: 'bg-gradient-to-r from-indigo-500 via-indigo-500 to-blue-500',
+    accentDot: 'bg-white/80',
+    badgeBg: 'bg-white/15',
+    badgeText: 'text-white/80',
   },
   done: {
     label: 'Сделано',
-    badgeBg: 'bg-green-500/20',
-    badgeText: 'text-green-500 dark:text-green-400',
-    dot: 'bg-green-500 dark:bg-green-400',
-    cardClass:
-      'bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/25',
+    gradient: 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600',
+    accentDot: 'bg-white/85',
+    badgeBg: 'bg-white/15',
+    badgeText: 'text-white/80',
   },
 }
 
@@ -47,88 +46,108 @@ const props = defineProps<{
 }>()
 
 const statusMeta = computed(() => STATUS_META[props.task.status])
-const isCompleted = computed(() => props.task.status === 'done')
 
 const orderDetailsRoute = computed(() => `/orders/${props.task.id}`)
 const orderAriaLabel = computed(() => `Открыть детали заказа «${props.task.title}»`)
 
-const dueLabel = computed(() => {
-  if (!props.task.dueDate) {
+const parsedDueDate = computed(() => parseDueDate(props.task.dueDate))
+
+const dueTimeLabel = computed(() => {
+  if (!parsedDueDate.value) {
     return 'Срок не указан'
   }
 
-  return `Срок: ${formatDate(props.task.dueDate)}`
+  return `до ${formatDayMonth(parsedDueDate.value)}`
 })
 
 const dueIcon = computed(() => (props.task.status === 'pending' ? 'schedule' : 'calendar_today'))
 
-const dueIconClass = computed(() =>
-  isCompleted.value ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400',
-)
+const containerClasses = computed(() => [
+  'group relative block overflow-hidden rounded-3xl p-4 text-white shadow-[0_28px_60px_-30px_rgba(0,0,0,0.8)] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/80',
+  statusMeta.value.gradient,
+])
 
-const dueTextClass = computed(() => {
-  if (isCompleted.value) {
-    return 'text-sm font-normal text-emerald-600 dark:text-emerald-400'
+const statusBadgeClasses = computed(() => [
+  'inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]',
+  statusMeta.value.badgeBg,
+  statusMeta.value.badgeText,
+])
+
+const statusDotClass = computed(() => ['h-2 w-2 rounded-full', statusMeta.value.accentDot])
+
+const dueBadgeClasses =
+  'inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-medium text-white/90 backdrop-blur'
+
+function parseDueDate(value: ProjectTask['dueDate']) {
+  if (!value) {
+    return null
   }
 
-  return 'text-sm font-normal text-zinc-600 dark:text-zinc-400'
+  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10))
+
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return null
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+const dayMonthFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'short',
 })
 
-const containerClasses = computed(() => {
-  return [
-    'block flex flex-col gap-4 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-    statusMeta.value.cardClass,
-    isCompleted.value ? 'opacity-95' : '',
-  ]
-})
-
-const titleClasses = computed(() => {
-  return [
-    'text-base font-bold leading-tight text-zinc-900 dark:text-white',
-    isCompleted.value ? 'line-through' : '',
-  ]
-})
-
-function formatDate(date: string) {
+function formatDayMonth(date: Date) {
   try {
-    return new Intl.DateTimeFormat('ru-RU').format(new Date(date))
+    return dayMonthFormatter.format(date)
   } catch (error) {
-    return date
+    return date.toISOString().slice(0, 10)
   }
 }
 </script>
 
 <template>
   <NuxtLink :to="orderDetailsRoute" :aria-label="orderAriaLabel" :class="containerClasses">
-    <div class="flex flex-col gap-2">
-      <p :class="titleClasses">
-        {{ task.title }}
-      </p>
-      <div class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-        <img
-          :src="task.assignee.avatarUrl"
-          :alt="`Аватар ${task.assignee.name}`"
-          class="h-6 w-6 rounded-full object-cover"
-          loading="lazy"
-        />
-        <span>{{ task.assignee.name }}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-base" :class="dueIconClass">
-          {{ dueIcon }}
-        </span>
-        <p :class="dueTextClass">
-          {{ dueLabel }}
-        </p>
-      </div>
-    </div>
-    <div class="flex items-center justify-between">
-      <div
-        class="flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
-        :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
-      >
-        <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
-        <span>{{ statusMeta.label }}</span>
+    <div class="flex flex-col gap-4">
+      <div class="flex items-start gap-3">
+        <div class="relative shrink-0">
+          <img
+            :src="task.assignee.avatarUrl"
+            :alt="`Аватар ${task.assignee.name}`"
+            class="size-12 rounded-full border-2 border-white/70 object-cover transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105"
+            loading="lazy"
+          />
+          <span class="absolute -bottom-1 -right-1 inline-flex size-5 items-center justify-center rounded-full bg-white/20 text-white">
+            <span class="material-symbols-outlined text-[14px] leading-none">person</span>
+          </span>
+        </div>
+
+        <div class="flex flex-1 flex-col gap-3">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex flex-col gap-2">
+              <span :class="statusBadgeClasses">
+                <span :class="statusDotClass"></span>
+                <span>{{ statusMeta.label }}</span>
+              </span>
+              <p class="text-lg font-semibold leading-snug tracking-[-0.015em] text-white">
+                {{ task.title }}
+              </p>
+            </div>
+            <div :class="dueBadgeClasses">
+              <span class="material-symbols-outlined text-base leading-none">{{ dueIcon }}</span>
+              <span>{{ dueTimeLabel }}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 text-sm text-white/85">
+            <span class="material-symbols-outlined text-base leading-none text-white/70">account_circle</span>
+            <span>{{ task.assignee.name }}</span>
+          </div>
+
+          <p v-if="task.description" class="text-sm leading-6 text-white/85">
+            {{ task.description }}
+          </p>
+        </div>
       </div>
     </div>
   </NuxtLink>
