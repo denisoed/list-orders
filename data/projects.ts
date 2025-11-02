@@ -18,6 +18,7 @@ export interface ProjectTask {
   assignee: TaskAssignee
   status: TaskStatus
   dueDate: string
+  dueTime?: string
   description?: string
   attachments?: TaskAttachment[]
   clientName?: string

@@ -37,6 +37,7 @@ const clientPhone = ref('')
 const deliveryAddress = ref('')
 const deliveryOption = ref<'pickup' | 'delivery' | ''>('')
 const dueDate = ref('')
+const dueTime = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
 const reminderOffset = ref<TaskReminderOffset | null>(null)
@@ -135,6 +136,20 @@ const shouldShowDeliveryAddress = computed(() => isDeliverySelected.value)
 
 const isPaymentAmountDisabled = computed(() => paymentOption.value === '')
 
+const dueDateLabel = computed(() => {
+  if (!dueDate.value) {
+    return 'Не задан'
+  }
+
+  const dateLabel = new Date(dueDate.value).toLocaleDateString('ru-RU')
+
+  if (dueTime.value) {
+    return `${dateLabel}, ${dueTime.value}`
+  }
+
+  return dateLabel
+})
+
 const isFormValid = computed(() => {
   return (
     titleError.value.length === 0 &&
@@ -220,6 +235,7 @@ const handleSubmit = async () => {
       deliveryAddress: deliveryAddress.value,
       isPickup: deliveryOption.value === 'pickup',
       dueDate: dueDate.value || undefined,
+      dueTime: dueTime.value || undefined,
       remindBefore: reminderOffset.value || undefined,
       attachments: attachments.value.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
       assignee:
@@ -261,6 +277,12 @@ onBeforeUnmount(() => {
 watch(deliveryOption, (value) => {
   if (value !== 'delivery') {
     deliveryAddressTouched.value = false
+  }
+})
+
+watch(dueDate, (value) => {
+  if (!value) {
+    dueTime.value = ''
   }
 })
 
@@ -510,9 +532,7 @@ useHead({
               </div>
               <div>
                 <p class="text-base font-normal leading-normal">Дедлайн</p>
-                <p class="text-sm text-[#9da6b9]">
-                  {{ dueDate ? new Date(dueDate).toLocaleDateString('ru-RU') : 'Не задан' }}
-                </p>
+                <p class="text-sm text-[#9da6b9]">{{ dueDateLabel }}</p>
               </div>
             </div>
             <div class="relative">
@@ -524,6 +544,29 @@ useHead({
               />
               <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
                 <span>{{ dueDate ? 'Изменить дату' : 'Установить дату' }}</span>
+                <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+            <div class="flex items-center gap-4">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
+                <span class="material-symbols-outlined">schedule</span>
+              </div>
+              <div>
+                <p class="text-base font-normal leading-normal">Время</p>
+                <p class="text-sm text-[#9da6b9]">{{ dueTime ? dueTime : 'Не задано' }}</p>
+              </div>
+            </div>
+            <div class="relative">
+              <input
+                v-model="dueTime"
+                type="time"
+                class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                aria-label="Установите время выполнения"
+              />
+              <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
+                <span>{{ dueTime ? 'Изменить время' : 'Установить время' }}</span>
                 <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
               </div>
             </div>
