@@ -50,7 +50,7 @@ export function parseInitDataUser(initData: string): TelegramUser | null {
     const userData = parsedData.user
 
     // Validate required fields
-    if (typeof userData.id !== 'number' || typeof userData.firstName !== 'string') {
+    if (typeof userData.id !== 'number' || typeof userData.first_name !== 'string') {
       console.log('[Telegram User Save] Error: Required user fields (id, firstName) are missing or invalid')
       return null
     }
@@ -58,12 +58,12 @@ export function parseInitDataUser(initData: string): TelegramUser | null {
     // Map camelCase fields from parsed data to snake_case format for database
     return {
       id: userData.id,
-      first_name: userData.firstName,
-      last_name: typeof userData.lastName === 'string' ? userData.lastName : undefined,
+      first_name: userData.first_name,
+      last_name: typeof userData.last_name === 'string' ? userData.last_name : undefined,
       username: typeof userData.username === 'string' ? userData.username : undefined,
-      language_code: typeof userData.languageCode === 'string' ? userData.languageCode : undefined,
-      is_premium: typeof userData.isPremium === 'boolean' ? userData.isPremium : undefined,
-      photo_url: typeof userData.photoUrl === 'string' ? userData.photoUrl : undefined,
+      language_code: typeof userData.language_code === 'string' ? userData.language_code : undefined,
+      is_premium: typeof userData.is_premium === 'boolean' ? userData.is_premium : undefined,
+      photo_url: typeof userData.photo_url === 'string' ? userData.photo_url : undefined,
     }
   } catch (error) {
     console.log('[Telegram User Save] Error: Unexpected error during initData parsing', error)

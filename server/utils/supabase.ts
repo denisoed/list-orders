@@ -27,25 +27,26 @@ export function getSupabaseClient(): SupabaseClient {
   }
 
   // Check for required environment variables
+  // Use new format (SUPABASE_SECRET with sb_* tokens)
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NUXT_SUPABASE_URL
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NUXT_SUPABASE_SERVICE_ROLE_KEY
+  const supabaseSecret = process.env.SUPABASE_SECRET || process.env.NUXT_SUPABASE_SECRET
 
   if (!supabaseUrl) {
     console.warn('[Supabase] Warning: SUPABASE_URL is not set. Supabase client will not be available.')
     throw new Error('SUPABASE_URL environment variable is required')
   }
 
-  if (!supabaseServiceRoleKey) {
-    console.warn('[Supabase] Warning: SUPABASE_SERVICE_ROLE_KEY is not set. Supabase client will not be available.')
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required')
+  if (!supabaseSecret) {
+    console.warn('[Supabase] Warning: SUPABASE_SECRET is not set. Supabase client will not be available.')
+    throw new Error('SUPABASE_SECRET environment variable is required')
   }
 
   // Create and cache the client
-  supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  supabaseClient = createClient(supabaseUrl, supabaseSecret, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
-    }
+    },
   })
 
   console.log('[Supabase] Client initialized successfully')
