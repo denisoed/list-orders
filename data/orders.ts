@@ -17,6 +17,7 @@ export interface OrderAttachment {
   name: string
   size: string
   icon: string
+  previewUrl: string
 }
 
 export interface OrderHistoryItem {
@@ -61,8 +62,20 @@ const defaultOrder: OrderDetail = {
   description:
     'Необходимо подготовить поставку оборудования для переговорных комнат и рабочих мест. В задачи входит согласование с подрядчиком, проверка спецификаций и организация монтажных работ на площадке.',
   attachments: [
-    { id: 'attachment-brief', name: 'спецификация-оборудования.fig', size: '12.5 МБ', icon: 'image' },
-    { id: 'attachment-contract', name: 'договор-поставки.docx', size: '256 КБ', icon: 'description' },
+    {
+      id: 'attachment-brief',
+      name: 'спецификация-оборудования.fig',
+      size: '12.5 МБ',
+      icon: 'image',
+      previewUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=240&q=80',
+    },
+    {
+      id: 'attachment-contract',
+      name: 'договор-поставки.docx',
+      size: '256 КБ',
+      icon: 'description',
+      previewUrl: 'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=240&q=80',
+    },
   ],
   history: [
     {
@@ -100,7 +113,13 @@ const ordersMock: Record<string, OrderDetail> = {
     description:
       'Оформить заказ на доставку печатных материалов (буклеты, плакаты) в 12 филиалов. Контролировать движение курьерской службы и подтвердить получение в каждом офисе.',
     attachments: [
-      { id: 'attachment-route', name: 'маршрут-доставки.xlsx', size: '84 КБ', icon: 'table' },
+      {
+        id: 'attachment-route',
+        name: 'маршрут-доставки.xlsx',
+        size: '84 КБ',
+        icon: 'table',
+        previewUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=240&q=80',
+      },
     ],
     history: [
       {
