@@ -136,6 +136,48 @@ const shouldShowDeliveryAddress = computed(() => isDeliverySelected.value)
 
 const isPaymentAmountDisabled = computed(() => paymentOption.value === '')
 
+const formatTimeTo24Hours = (value: string) => {
+  const match = value.match(/^(\d{1,2}):(\d{2})$/)
+
+  if (!match) {
+    return ''
+  }
+
+  const hours = Number.parseInt(match[1] ?? '', 10)
+  const minutes = Number.parseInt(match[2] ?? '', 10)
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return ''
+  }
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return ''
+  }
+
+  const date = new Date()
+  date.setHours(hours, minutes, 0, 0)
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
+const dueTimeLabel = computed(() => {
+  if (!dueTime.value) {
+    return 'Не задано'
+  }
+
+  const formatted = formatTimeTo24Hours(dueTime.value)
+
+  if (!formatted) {
+    return 'Не задано'
+  }
+
+  return formatted
+})
+
 const dueDateLabel = computed(() => {
   if (!dueDate.value) {
     return 'Не задан'
@@ -144,7 +186,7 @@ const dueDateLabel = computed(() => {
   const dateLabel = new Date(dueDate.value).toLocaleDateString('ru-RU')
 
   if (dueTime.value) {
-    return `${dateLabel}, ${dueTime.value}`
+    return `${dateLabel}, ${dueTimeLabel.value}`
   }
 
   return dateLabel
@@ -283,6 +325,25 @@ watch(deliveryOption, (value) => {
 watch(dueDate, (value) => {
   if (!value) {
     dueTime.value = ''
+  }
+})
+
+watch(dueTime, (value) => {
+  if (!value) {
+    return
+  }
+
+  const formatted = formatTimeTo24Hours(value)
+
+  if (!formatted) {
+    dueTime.value = ''
+    return
+  }
+
+  const [hours, minutes] = formatted.split(':')
+
+  if (value !== `${hours}:${minutes}`) {
+    dueTime.value = `${hours}:${minutes}`
   }
 })
 
@@ -555,7 +616,7 @@ useHead({
               </div>
               <div>
                 <p class="text-base font-normal leading-normal">Время</p>
-                <p class="text-sm text-[#9da6b9]">{{ dueTime ? dueTime : 'Не задано' }}</p>
+                <p class="text-sm text-[#9da6b9]">{{ dueTimeLabel }}</p>
               </div>
             </div>
             <div class="relative">
