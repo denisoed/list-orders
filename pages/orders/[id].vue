@@ -95,6 +95,16 @@ const handleBack = () => {
   router.back()
 }
 
+const handleImageClick = (attachmentId: string) => {
+  router.push({
+    path: `/images/${attachmentId}`,
+    query: {
+      orderId: orderId.value,
+      source: 'order-details',
+    },
+  })
+}
+
 useHead({
   title: order.value.title,
   htmlAttrs: {
@@ -230,7 +240,8 @@ useHead({
               v-for="attachment in order.attachments"
               :key="attachment.id"
               role="listitem"
-              class="relative"
+              class="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
+              @click="handleImageClick(attachment.id)"
             >
               <img
                 :src="attachment.previewUrl"

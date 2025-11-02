@@ -229,6 +229,22 @@ const handleRemoveAttachment = (attachmentId: string) => {
   attachments.value = attachments.value.filter((item) => item.id !== attachmentId)
 }
 
+const handleImageClick = (attachmentId: string) => {
+  const attachment = attachments.value.find((item) => item.id === attachmentId)
+  if (!attachment) {
+    return
+  }
+
+  // Use previewUrl as imageId for blob URLs
+  router.push({
+    path: `/images/${encodeURIComponent(attachment.previewUrl)}`,
+    query: {
+      projectId: projectId.value,
+      source: 'task-create',
+    },
+  })
+}
+
 const handleSubmit = async () => {
   submitAttempted.value = true
   submitError.value = ''
@@ -492,12 +508,17 @@ useHead({
             </button>
             <ul v-if="attachments.length" class="flex items-center gap-4 overflow-x-auto" role="list">
               <li v-for="attachment in attachments" :key="attachment.id" role="listitem" class="relative">
-                <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 min-h-20 min-w-20 rounded-lg object-cover" />
+                <div
+                  class="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                  @click="handleImageClick(attachment.id)"
+                >
+                  <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 min-h-20 min-w-20 rounded-lg object-cover" />
+                </div>
                 <button
                   type="button"
-                  class="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+                  class="absolute right-1.5 top-1.5 z-10 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
                   :aria-label="`Удалить фото ${attachment.name}`"
-                  @click="handleRemoveAttachment(attachment.id)"
+                  @click.stop="handleRemoveAttachment(attachment.id)"
                 >
                   <span class="material-symbols-outlined text-sm">close</span>
                 </button>
