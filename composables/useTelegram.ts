@@ -1,9 +1,6 @@
 import { useState } from '#imports'
 import { computed } from 'vue'
 
-const TELEGRAM_SCRIPT_SRC = 'https://telegram.org/js/telegram-web-app.js'
-const TELEGRAM_SCRIPT_ID = 'telegram-webapp-script'
-
 interface TelegramThemeSettings {
   headerColor: string
   backgroundColor: string
@@ -37,58 +34,6 @@ const LIGHT_THEME: TelegramThemeSettings = {
 const DARK_THEME: TelegramThemeSettings = {
   headerColor: '#101622',
   backgroundColor: '#101622',
-}
-
-let scriptPromise: Promise<void> | null = null
-
-const loadTelegramScript = (): Promise<void> => {
-  if (!import.meta.client) {
-    return Promise.resolve()
-  }
-
-  if (window.Telegram?.WebApp) {
-    return Promise.resolve()
-  }
-
-  if (scriptPromise) {
-    return scriptPromise
-  }
-
-  scriptPromise = new Promise<void>((resolve, reject) => {
-    const existingScript = document.getElementById(TELEGRAM_SCRIPT_ID) as HTMLScriptElement | null
-
-    if (existingScript?.dataset.loaded === 'true') {
-      resolve()
-      return
-    }
-
-    const script = existingScript ?? document.createElement('script')
-    script.id = TELEGRAM_SCRIPT_ID
-    script.src = TELEGRAM_SCRIPT_SRC
-    script.async = true
-
-    const handleLoad = () => {
-      script.dataset.loaded = 'true'
-      script.removeEventListener('load', handleLoad)
-      script.removeEventListener('error', handleError)
-      resolve()
-    }
-
-    const handleError = () => {
-      script.removeEventListener('load', handleLoad)
-      script.removeEventListener('error', handleError)
-      reject(new Error('Failed to load Telegram WebApp script'))
-    }
-
-    script.addEventListener('load', handleLoad)
-    script.addEventListener('error', handleError)
-
-    if (!existingScript) {
-      document.head.appendChild(script)
-    }
-  })
-
-  return scriptPromise
 }
 
 const pickTheme = (): TelegramThemeSettings => {
@@ -191,13 +136,7 @@ export const useTelegram = () => {
       return
     }
 
-    try {
-      setCssVariables(themeSettings.value)
-      await loadTelegramScript()
-    } catch (error) {
-      console.warn('[Telegram] Script loading failed', error)
-      return
-    }
+    setCssVariables(themeSettings.value)
 
     applyTheme(overrides)
 
