@@ -21,12 +21,6 @@ const quickInfoItems = computed(() => [
     value: order.value.dueDateLabel,
   },
   {
-    id: 'priority',
-    icon: 'flag',
-    label: 'Приоритет',
-    value: order.value.priorityLabel,
-  },
-  {
     id: 'project',
     icon: 'folder',
     label: 'Проект',

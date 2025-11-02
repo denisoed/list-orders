@@ -23,7 +23,6 @@ const mockTasks: ProjectTask[] = [
     assignee: { name: 'Иван Петров', avatarUrl: '' },
     status: 'in_progress',
     dueDate: '2024-10-10',
-    priority: 'high',
   },
   {
     id: 'task-2',
@@ -31,7 +30,6 @@ const mockTasks: ProjectTask[] = [
     assignee: { name: 'Мария Смирнова', avatarUrl: '' },
     status: 'done',
     dueDate: '2024-09-30',
-    priority: 'medium',
   },
   {
     id: 'task-3',
@@ -39,7 +37,6 @@ const mockTasks: ProjectTask[] = [
     assignee: { name: 'Иван Петров', avatarUrl: '' },
     status: 'pending',
     dueDate: '2024-09-01',
-    priority: 'high',
   },
 ]
 
@@ -89,7 +86,6 @@ describe('useProjectTasks createTask', () => {
       attachments: [],
       assignee: project.value?.tasks[0]?.assignee,
       status: 'in_progress',
-      priority: 'high',
     })
 
     expect(result.title).toBe('Новая фича')

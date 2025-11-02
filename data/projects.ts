@@ -1,6 +1,4 @@
 export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done'
-export type TaskPriority = 'high' | 'medium' | 'low'
-
 export type TaskReminderOffset = '1h' | '3h' | '1d'
 
 export interface TaskAttachment {
@@ -20,7 +18,6 @@ export interface ProjectTask {
   assignee: TaskAssignee
   status: TaskStatus
   dueDate: string
-  priority: TaskPriority
   description?: string
   attachments?: TaskAttachment[]
   clientName?: string
@@ -57,7 +54,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-12-25',
-        priority: 'high',
       },
       {
         id: 'q3-report',
@@ -69,7 +65,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'pending',
         dueDate: '2024-10-01',
-        priority: 'low',
       },
       {
         id: 'design-review',
@@ -81,7 +76,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'review',
         dueDate: '2024-11-15',
-        priority: 'medium',
       },
       {
         id: 'requirements-doc',
@@ -93,7 +87,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'done',
         dueDate: '2024-11-01',
-        priority: 'medium',
       },
       {
         id: 'styleguide-update',
@@ -105,7 +98,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'done',
         dueDate: '2024-10-20',
-        priority: 'high',
       },
       {
         id: 'animations',
@@ -117,7 +109,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-12-05',
-        priority: 'medium',
       },
     ],
   },
@@ -138,7 +129,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-10-30',
-        priority: 'high',
       },
       {
         id: 'landing-copy',
@@ -150,7 +140,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'review',
         dueDate: '2024-10-18',
-        priority: 'medium',
       },
       {
         id: 'influencer-contracts',
@@ -162,7 +151,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-11-05',
-        priority: 'high',
       },
       {
         id: 'promo-assets',
@@ -174,7 +162,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'done',
         dueDate: '2024-09-28',
-        priority: 'medium',
       },
       {
         id: 'email-series',
@@ -186,7 +173,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'pending',
         dueDate: '2024-09-20',
-        priority: 'low',
       },
     ],
   },
@@ -207,7 +193,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-11-12',
-        priority: 'high',
       },
       {
         id: 'rate-limits',
@@ -219,7 +204,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'review',
         dueDate: '2024-10-25',
-        priority: 'medium',
       },
       {
         id: 'observability',
@@ -231,7 +215,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-11-30',
-        priority: 'medium',
       },
       {
         id: 'deprecated-endpoints',
@@ -243,7 +226,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'done',
         dueDate: '2024-09-10',
-        priority: 'low',
       },
       {
         id: 'load-testing',
@@ -255,7 +237,6 @@ export const PROJECTS: Project[] = [
         },
         status: 'pending',
         dueDate: '2024-09-30',
-        priority: 'high',
       },
     ],
   },
