@@ -76,6 +76,9 @@ const statusMeta = computed(() => STATUS_META[props.task.status])
 const priorityMeta = computed(() => PRIORITY_META[props.task.priority])
 const isCompleted = computed(() => props.task.status === 'done')
 
+const orderDetailsRoute = computed(() => `/orders/${props.task.id}`)
+const orderAriaLabel = computed(() => `Открыть детали заказа «${props.task.title}»`)
+
 const dueLabel = computed(() => {
   if (!props.task.dueDate) {
     return 'Срок не указан'
@@ -100,7 +103,7 @@ const dueTextClass = computed(() => {
 
 const containerClasses = computed(() => {
   return [
-    'flex flex-col gap-4 rounded-xl p-4 transition-shadow',
+    'block flex flex-col gap-4 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
     statusMeta.value.cardClass,
     isCompleted.value ? 'opacity-95' : '',
   ]
@@ -123,7 +126,7 @@ function formatDate(date: string) {
 </script>
 
 <template>
-  <article :class="containerClasses" class="shadow-sm hover:shadow-lg">
+  <NuxtLink :to="orderDetailsRoute" :aria-label="orderAriaLabel" :class="containerClasses">
     <div class="flex flex-col gap-2">
       <p :class="titleClasses">
         {{ task.title }}
@@ -159,5 +162,5 @@ function formatDate(date: string) {
         <span class="text-sm font-medium">{{ priorityMeta.label }}</span>
       </div>
     </div>
-  </article>
+  </NuxtLink>
 </template>
