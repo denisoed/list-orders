@@ -16,6 +16,7 @@ interface TelegramWebApp {
   setHeaderColor: (color: string) => void
   setBackgroundColor: (color: string) => void
   disableVerticalSwipes?: () => void
+  initData?: string
 }
 
 declare global {
@@ -155,6 +156,36 @@ export const useTelegram = () => {
     }
   }
 
+  const getInitData = (): string | null => {
+    if (!import.meta.client) {
+      return null
+    }
+
+    // Always get fresh instance to ensure initData is available
+    const instance = window.Telegram?.WebApp ?? null
+    return instance?.initData ?? null
+  }
+
+  const sendInitDataToServer = async (): Promise<void> => {
+    if (!import.meta.client) {
+      return
+    }
+
+    const initData = getInitData()
+    if (!initData) {
+      return
+    }
+
+    try {
+      await $fetch('/api/telegram/validate-init-data', {
+        method: 'POST',
+        body: { initData },
+      })
+    } catch (error) {
+      console.warn('[Telegram] Failed to send initData to server', error)
+    }
+  }
+
   const initTelegram = async (overrides?: Partial<TelegramThemeSettings>) => {
     if (!import.meta.client) {
       return
@@ -187,6 +218,9 @@ export const useTelegram = () => {
     } catch (error) {
       console.warn('[Telegram] Unable to initialize WebApp', error)
     }
+
+    // Send initData to server after initialization
+    await sendInitDataToServer()
   }
 
   return {
@@ -194,5 +228,7 @@ export const useTelegram = () => {
     theme: computed(() => themeSettings.value),
     initTelegram,
     applyTheme,
+    getInitData,
+    sendInitDataToServer,
   }
 }

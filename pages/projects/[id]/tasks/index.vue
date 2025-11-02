@@ -348,10 +348,10 @@ useHead({
                 <div v-for="group in groupedTasks" :key="group.key" class="flex gap-4">
                   <div class="flex flex-col items-center">
                     <div
-                      class="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-black text-white shadow-inner dark:bg-white/10"
+                      class="flex px-3 py-2 flex-col items-center justify-center rounded-xl bg-black text-white shadow-inner dark:bg-white/10"
                     >
-                      <span class="text-[12px] font-semibold uppercase tracking-[0.25em]">{{ group.weekday }}</span>
-                      <span class="text-[12px] font-bold leading-none">{{ group.dayNumber }}</span>
+                      <span class="text-[12px] font-semibold uppercase">{{ group.weekday }}</span>
+                      <span class="text-[14px] font-bold leading-none">{{ group.dayNumber }}</span>
                     </div>
                     <div
                       v-if="!group.isLast"
