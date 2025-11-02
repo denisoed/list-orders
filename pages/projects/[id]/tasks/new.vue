@@ -229,6 +229,22 @@ const handleRemoveAttachment = (attachmentId: string) => {
   attachments.value = attachments.value.filter((item) => item.id !== attachmentId)
 }
 
+const handleImageClick = (attachmentId: string) => {
+  const attachment = attachments.value.find((item) => item.id === attachmentId)
+  if (!attachment) {
+    return
+  }
+
+  // Use previewUrl as imageId for blob URLs
+  router.push({
+    path: `/images/${encodeURIComponent(attachment.previewUrl)}`,
+    query: {
+      projectId: projectId.value,
+      source: 'task-create',
+    },
+  })
+}
+
 const handleSubmit = async () => {
   submitAttempted.value = true
   submitError.value = ''
@@ -480,24 +496,29 @@ useHead({
         </div>
 
         <div class="flex flex-col space-y-4">
-          <p class="text-base font-medium leading-normal">Фото</p>
+          <p class="text-base font-medium leading-normal">Фото примеров</p>
           <div class="flex items-center gap-4">
             <button
               type="button"
-              class="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-dashed border-[#3b4354] bg-[#1c1f27] text-[#9da6b9] transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              class="flex h-20 w-20 min-h-20 min-w-20 items-center justify-center rounded-lg border-2 border-dashed border-[#3b4354] bg-[#1c1f27] text-[#9da6b9] transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               aria-label="Добавить фото"
               @click="handleAddAttachment"
             >
               <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
             </button>
-            <ul v-if="attachments.length" class="flex items-center gap-4" role="list">
+            <ul v-if="attachments.length" class="flex items-center gap-4 overflow-x-auto" role="list">
               <li v-for="attachment in attachments" :key="attachment.id" role="listitem" class="relative">
-                <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 rounded-lg object-cover" />
+                <div
+                  class="relative cursor-pointer"
+                  @click="handleImageClick(attachment.id)"
+                >
+                  <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 min-h-20 min-w-20 rounded-lg object-cover" />
+                </div>
                 <button
                   type="button"
-                  class="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+                  class="absolute right-1.5 top-1.5 z-10 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
                   :aria-label="`Удалить фото ${attachment.name}`"
-                  @click="handleRemoveAttachment(attachment.id)"
+                  @click.stop="handleRemoveAttachment(attachment.id)"
                 >
                   <span class="material-symbols-outlined text-sm">close</span>
                 </button>

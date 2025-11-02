@@ -95,6 +95,16 @@ const handleBack = () => {
   router.back()
 }
 
+const handleImageClick = (attachmentId: string) => {
+  router.push({
+    path: `/images/${attachmentId}`,
+    query: {
+      orderId: orderId.value,
+      source: 'order-details',
+    },
+  })
+}
+
 useHead({
   title: order.value.title,
   htmlAttrs: {
@@ -195,22 +205,48 @@ useHead({
       </section>
 
       <section class="space-y-3">
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
+          >
+            Клиент
+            <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
+          </summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
+            <div>
+              <p class="font-medium text-gray-700 dark:text-gray-300">Имя клиента</p>
+              <p class="mt-1">{{ order.client.name }}</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-700 dark:text-gray-300">Номер телефона</p>
+              <p class="mt-1">{{ order.client.phone }}</p>
+            </div>
+            <div>
+              <p class="font-medium text-gray-700 dark:text-gray-300">Оплата</p>
+              <p class="mt-1">{{ order.client.payment }}</p>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-base font-semibold">Примеры</h2>
           <span class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ examplesCountLabel }}</span>
         </div>
         <div v-if="order.attachments.length" class="flex items-center gap-4">
-          <ul class="flex items-center gap-4" role="list">
+          <ul class="flex items-center gap-4 overflow-x-auto" role="list">
             <li
               v-for="attachment in order.attachments"
               :key="attachment.id"
               role="listitem"
-              class="relative"
+              class="relative cursor-pointer"
+              @click="handleImageClick(attachment.id)"
             >
               <img
                 :src="attachment.previewUrl"
                 :alt="`Пример ${attachment.name}`"
-                class="h-24 w-24 rounded-xl object-cover"
+                class="h-24 w-24 min-h-24 min-w-24 rounded-xl object-cover"
               />
             </li>
           </ul>
