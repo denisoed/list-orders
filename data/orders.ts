@@ -49,7 +49,6 @@ const defaultOrder: OrderDetail = {
   summary: 'Организовать поставку и монтаж оборудования в новом офисе на Ленинградском проспекте.',
   statusChips: [
     { id: 'status-progress', label: 'В работе', tone: 'warning' },
-    { id: 'status-overdue', label: 'Просрочен', tone: 'danger' },
   ],
   assignee: {
     name: 'Иван Смирнов',
@@ -89,10 +88,7 @@ const ordersMock: Record<string, OrderDetail> = {
     code: 'ORD-5102',
     title: 'Экспресс-доставка рекламных материалов',
     summary: 'Срочно доставить печатные материалы в региональные офисы до запуска кампании.',
-    statusChips: [
-      { id: 'status-progress', label: 'В работе', tone: 'warning' },
-      { id: 'status-risk', label: 'Требует внимания', tone: 'info' },
-    ],
+    statusChips: [{ id: 'status-progress', label: 'В работе', tone: 'warning' }],
     assignee: {
       name: 'Мария Соколова',
       role: 'Координатор логистики',
