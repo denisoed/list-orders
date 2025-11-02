@@ -83,7 +83,7 @@ useHead({
     :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
   >
     <header
-      class="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-black/5 bg-background-light/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
+      class="sticky top-0 z-20 flex items-center gap-3 border-b border-black/5 bg-background-light/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
         type="button"
@@ -99,14 +99,6 @@ useHead({
           {{ order.title }}
         </h1>
       </div>
-
-      <button
-        type="button"
-        class="flex size-11 items-center justify-center rounded-full text-gray-700 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
-        aria-label="Дополнительные действия"
-      >
-        <span class="material-symbols-outlined text-2xl">more_vert</span>
-      </button>
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
