@@ -36,6 +36,16 @@ const handleSearchUpdate = (value: string) => {
   setSearchQuery(value)
 }
 
+const handleOpenProfile = (memberId: string) => {
+  router.push({
+    path: `/profile/${memberId}`,
+    query: {
+      from: route.fullPath,
+      projectId: projectId.value,
+    },
+  })
+}
+
 useHead({
   title: 'Управление командой',
   htmlAttrs: {
@@ -109,6 +119,8 @@ useHead({
               :role="member.role"
               :avatar-url="member.avatarUrl"
               :action-aria-label="`Открыть действия для ${member.name}`"
+              :profile-aria-label="`Открыть профиль ${member.name}`"
+              @open-profile="handleOpenProfile(member.id)"
             />
           </div>
           <div v-else class="mt-12 text-center text-gray-500 dark:text-[#9da6b9]">
