@@ -47,8 +47,55 @@ const statusToneClass = (tone: OrderStatusTone) => {
 
 const primaryStatusChip = computed(() => order.value.statusChips[0] ?? null)
 
-const iconContainerClass =
+const baseIconContainerClass =
   'flex size-12 shrink-0 items-center justify-center rounded-xl bg-gray-200 text-gray-700 dark:bg-[#282e39] dark:text-white'
+
+const quickInfoCardClass = (itemId: string) =>
+  [
+    'flex items-center gap-4 rounded-2xl p-4 shadow-sm',
+    itemId === 'due-date'
+      ? 'bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-100'
+      : 'bg-white text-black dark:bg-[#1C2431] dark:text-white',
+  ]
+
+const quickInfoLabelClass = (itemId: string) =>
+  itemId === 'due-date'
+    ? 'text-sm font-medium text-red-500 dark:text-red-200'
+    : 'text-sm font-medium text-gray-500 dark:text-[#9da6b9]'
+
+const quickInfoValueClass = (itemId: string) =>
+  itemId === 'due-date'
+    ? 'mt-1 text-base font-semibold leading-tight text-red-700 dark:text-red-50'
+    : 'mt-1 text-base font-semibold leading-tight'
+
+const quickInfoIconClass = (itemId: string) =>
+  [
+    baseIconContainerClass,
+    itemId === 'due-date'
+      ? 'bg-red-500 text-white dark:bg-red-400 dark:text-white'
+      : '',
+  ]
+
+const examplesCountLabel = computed(() => {
+  const count = order.value.attachments.length
+
+  if (count === 0) {
+    return '0 примеров'
+  }
+
+  const mod10 = count % 10
+  const mod100 = count % 100
+
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${count} пример`
+  }
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return `${count} примера`
+  }
+
+  return `${count} примеров`
+})
 
 const handleBack = () => {
   router.back()
@@ -128,17 +175,13 @@ useHead({
           </div>
         </article>
 
-        <article
-          v-for="item in quickInfoItems"
-          :key="item.id"
-          class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]"
-        >
-          <div :class="iconContainerClass">
+        <article v-for="item in quickInfoItems" :key="item.id" :class="quickInfoCardClass(item.id)">
+          <div :class="quickInfoIconClass(item.id)">
             <span class="material-symbols-outlined text-2xl">{{ item.icon }}</span>
           </div>
           <div class="flex flex-1 flex-col">
-            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">{{ item.label }}</p>
-            <p class="mt-1 text-base font-semibold leading-tight">{{ item.value }}</p>
+            <p :class="quickInfoLabelClass(item.id)">{{ item.label }}</p>
+            <p :class="quickInfoValueClass(item.id)">{{ item.value }}</p>
           </div>
         </article>
       </section>
@@ -159,33 +202,27 @@ useHead({
 
       <section class="space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold">Вложения</h2>
-          <span class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ order.attachments.length }} файла</span>
+          <h2 class="text-base font-semibold">Примеры</h2>
+          <span class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ examplesCountLabel }}</span>
         </div>
-        <div v-if="order.attachments.length" class="space-y-3">
-          <article
-            v-for="attachment in order.attachments"
-            :key="attachment.id"
-            class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]"
-          >
-            <div :class="iconContainerClass">
-              <span class="material-symbols-outlined">{{ attachment.icon }}</span>
-            </div>
-            <div class="flex flex-1 flex-col">
-              <p class="text-sm font-semibold leading-tight">{{ attachment.name }}</p>
-              <p class="text-xs text-gray-500 dark:text-[#9da6b9]">{{ attachment.size }}</p>
-            </div>
-            <button
-              type="button"
-              class="flex size-11 items-center justify-center rounded-full text-gray-600 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
-              aria-label="Скачать вложение"
+        <div v-if="order.attachments.length" class="flex items-center gap-4">
+          <ul class="flex items-center gap-4" role="list">
+            <li
+              v-for="attachment in order.attachments"
+              :key="attachment.id"
+              role="listitem"
+              class="relative"
             >
-              <span class="material-symbols-outlined">download</span>
-            </button>
-          </article>
+              <img
+                :src="attachment.previewUrl"
+                :alt="`Пример ${attachment.name}`"
+                class="h-24 w-24 rounded-xl object-cover"
+              />
+            </li>
+          </ul>
         </div>
         <p v-else class="rounded-2xl bg-white p-4 text-sm text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]">
-          Вложения пока отсутствуют.
+          Примеры пока отсутствуют.
         </p>
       </section>
 
@@ -194,7 +231,7 @@ useHead({
         <div class="space-y-4">
           <div v-for="entry in order.history" :key="entry.id" class="flex gap-4">
             <div class="flex flex-col items-center">
-              <div :class="iconContainerClass">
+              <div :class="baseIconContainerClass">
                 <span class="material-symbols-outlined">{{ entry.icon }}</span>
               </div>
               <div
