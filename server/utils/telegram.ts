@@ -1,5 +1,4 @@
 import { parse } from '@telegram-apps/init-data-node'
-import { getSupabaseClient } from './supabase'
 
 /**
  * TypeScript interface for Telegram user data extracted from initData
@@ -70,77 +69,3 @@ export function parseInitDataUser(initData: string): TelegramUser | null {
     return null
   }
 }
-
-/**
- * Saves Telegram user to Supabase users table.
- * Checks if user already exists by telegram_id before inserting.
- * If user exists, the function completes without action.
- * 
- * @param user - TelegramUser object containing user data from initData
- * @returns Promise that resolves when the operation completes (successfully or not)
- * 
- * @example
- * ```ts
- * const user = { id: 123, first_name: 'John', last_name: 'Doe' }
- * await saveUserToSupabase(user)
- * ```
- */
-export async function saveUserToSupabase(user: TelegramUser): Promise<void> {
-  try {
-    const supabase = getSupabaseClient()
-
-    // Check if user already exists
-    const { data: existingUser, error: selectError } = await supabase
-      .from('users')
-      .select('telegram_id')
-      .eq('telegram_id', user.id)
-      .single()
-
-    // Handle select errors
-    if (selectError) {
-      // PGRST116 is the error code when no rows are found - this is expected for new users
-      if (selectError.code === 'PGRST116' || selectError.message?.includes('No rows')) {
-        // User doesn't exist, proceed with insertion
-        console.log(`[Telegram User Save] User with telegram_id ${user.id} not found, proceeding with insertion`)
-      } else {
-        // Other error occurred during check
-        console.log(`[Telegram User Save] Error checking user existence:`, selectError)
-        return
-      }
-    } else if (existingUser) {
-      // User already exists
-      console.log(`[Telegram User Save] User with telegram_id ${user.id} already exists, skipping insertion`)
-      return
-    }
-
-    // Insert new user if not found
-    const userData = {
-      telegram_id: user.id,
-      first_name: user.first_name,
-      last_name: user.last_name ?? null,
-      username: user.username ?? null,
-      language_code: user.language_code ?? null,
-      is_premium: user.is_premium ?? null,
-      photo_url: user.photo_url ?? null,
-    }
-
-    const { error: insertError } = await supabase
-      .from('users')
-      .insert([userData])
-
-    if (insertError) {
-      // Check if error is due to unique constraint violation (race condition)
-      if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
-        console.log(`[Telegram User Save] User with telegram_id ${user.id} was already inserted (race condition), skipping`)
-        return
-      }
-      console.log(`[Telegram User Save] Error inserting user:`, insertError)
-      return
-    }
-
-    console.log(`[Telegram User Save] Successfully saved user with telegram_id ${user.id}`)
-  } catch (error) {
-    console.log('[Telegram User Save] Error: Unexpected error during user save', error)
-  }
-}
-
