@@ -31,7 +31,7 @@
 
 ## Assumptions
 
-- Bot Token будет храниться в переменных окружения сервера (например, `TELEGRAM_BOT_TOKEN` или `NUXT_TELEGRAM_BOT_TOKEN` для Nuxt).
+- Bot Token будет храниться в переменных окружения сервера (например, `TELEGRAM_BOT_TOKEN` для Nuxt).
 - Приложение работает в контексте Nuxt 3, серверные роуты создаются в директории `server/api/`.
 - Пакет `@telegram-apps/init-data-node` совместим с Node.js версией, используемой в проекте.
 - Telegram WebApp SDK уже загружен и доступен в приложении через существующий composable `useTelegram`.

@@ -18,7 +18,7 @@
 
 - [ ] Создать серверный route `server/api/telegram/validate-init-data.post.ts` (или использовать GET метод, если требуется).
 - [ ] В handler endpoint получить `initData` из body запроса (или query параметра, если используется GET).
-- [ ] Получить Bot Token из переменных окружения (например, `process.env.NUXT_TELEGRAM_BOT_TOKEN` или `process.env.TELEGRAM_BOT_TOKEN`).
+- [ ] Получить Bot Token из переменных окружения (например, `process.env.TELEGRAM_BOT_TOKEN`).
 - [ ] Импортировать функцию `validate` из пакета `@telegram-apps/init-data-node`.
 - [ ] Обернуть вызов `validate(initData, botToken)` в try-catch блок.
 - [ ] При успешной валидации вывести в `console.log` сообщение: `[Telegram InitData Validation] Success: InitData is valid`.

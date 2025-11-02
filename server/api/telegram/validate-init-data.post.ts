@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    const botToken = process.env.NUXT_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN
+    const botToken = process.env.TELEGRAM_BOT_TOKEN
 
     if (!botToken) {
       console.log('[Telegram InitData Validation] Error: Bot Token is not configured')

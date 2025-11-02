@@ -5,7 +5,7 @@
 ## Data sources / schemas
 
 - InitData получается на клиенте из `window.Telegram.WebApp.initData` в виде строки (search parameters format: `query_id=...&user=...&auth_date=...&hash=...`).
-- Bot Token для валидации берется из переменных окружения сервера (например, `NUXT_TELEGRAM_BOT_TOKEN` или `TELEGRAM_BOT_TOKEN`).
+- Bot Token для валидации берется из переменных окружения сервера (например, `TELEGRAM_BOT_TOKEN`).
 - Данные передаются через HTTP запрос с телом запроса (POST) или query параметром (GET). Рекомендуется использовать POST для безопасности.
 - На сервере initData принимается как строка и передается в функцию `validate` из пакета `@telegram-apps/init-data-node`.
 - Не требуется создание специальных схем базы данных или миграций для этой функциональности.
