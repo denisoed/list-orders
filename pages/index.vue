@@ -91,12 +91,9 @@ useHead({
             >
               <span class="material-symbols-outlined text-2xl">folder</span>
             </div>
-            <div class="flex-1 space-y-1">
+            <div class="flex-1">
               <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
                 {{ project.title }}
-              </p>
-              <p class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
-                {{ project.description }}
               </p>
             </div>
             <span
