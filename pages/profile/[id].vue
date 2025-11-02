@@ -71,24 +71,8 @@ const filterButtonClass = (status: TeamMemberTaskStatus) => {
   ]
 }
 
-const backPath = computed(() => {
-  const from = route.query.from
-
-  if (typeof from === 'string' && from.length > 0) {
-    return from
-  }
-
-  const projectId = route.query.projectId
-
-  if (typeof projectId === 'string' && projectId.length > 0) {
-    return `/projects/${projectId}/team`
-  }
-
-  return '/projects'
-})
-
 const handleBack = () => {
-  router.push(backPath.value)
+  router.back()
 }
 
 const contactTarget = (type: TeamMemberContact['type']) => (type === 'telegram' ? '_blank' : undefined)
@@ -180,13 +164,8 @@ useHead(() => ({
             </div>
             <div class="flex flex-col items-center gap-1 text-center">
               <p class="text-2xl font-semibold leading-tight tracking-[-0.015em]">{{ profile.name }}</p>
-              <p class="text-base text-gray-600 dark:text-[#9da6b9]">{{ profile.role }}</p>
-              <p class="text-sm text-gray-500 dark:text-[#7f889d]">{{ profile.department }}</p>
             </div>
           </div>
-          <p v-if="profile.bio" class="mt-4 max-w-2xl text-center text-sm text-gray-600 dark:text-[#9da6b9]">
-            {{ profile.bio }}
-          </p>
         </section>
 
         <section class="space-y-3">

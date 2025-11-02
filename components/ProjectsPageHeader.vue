@@ -36,7 +36,7 @@ const avatarAltText = computed(() => {
     <div class="flex items-center">
       <NuxtLink
         :to="profileUrl"
-        class="flex size-12 items-center justify-center overflow-hidden rounded-full border border-transparent bg-gray-200 text-black transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#282e39] dark:text-white"
+        class="flex size-10 items-center justify-center overflow-hidden rounded-full border border-transparent bg-gray-200 text-black transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#282e39] dark:text-white"
         aria-label="Перейти в профиль"
       >
         <img

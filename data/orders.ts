@@ -27,6 +27,12 @@ export interface OrderHistoryItem {
   timestamp: string
 }
 
+export interface OrderClient {
+  name: string
+  phone: string
+  payment: string
+}
+
 export interface OrderDetail {
   id: string
   code: string
@@ -37,6 +43,7 @@ export interface OrderDetail {
   dueDateLabel: string
   projectName: string
   description: string
+  client: OrderClient
   attachments: OrderAttachment[]
   history: OrderHistoryItem[]
   actionLabel: string
@@ -59,6 +66,11 @@ const defaultOrder: OrderDetail = {
   projectName: 'Открытие нового офиса',
   description:
     'Необходимо подготовить поставку оборудования для переговорных комнат и рабочих мест. В задачи входит согласование с подрядчиком, проверка спецификаций и организация монтажных работ на площадке.',
+  client: {
+    name: 'ООО "ТехноПром"',
+    phone: '+7 (495) 123-45-67',
+    payment: 'Предоплата 50%',
+  },
   attachments: [
     {
       id: 'attachment-brief',
@@ -109,6 +121,11 @@ const ordersMock: Record<string, OrderDetail> = {
     projectName: 'Осенняя рекламная кампания',
     description:
       'Оформить заказ на доставку печатных материалов (буклеты, плакаты) в 12 филиалов. Контролировать движение курьерской службы и подтвердить получение в каждом офисе.',
+    client: {
+      name: 'ИП Петров А.В.',
+      phone: '+7 (812) 456-78-90',
+      payment: 'Оплата по факту',
+    },
     attachments: [
       {
         id: 'attachment-route',
@@ -138,6 +155,7 @@ const ordersMock: Record<string, OrderDetail> = {
 
 const cloneOrderDetail = (order: OrderDetail): OrderDetail => ({
   ...order,
+  client: { ...order.client },
   statusChips: order.statusChips.map((chip) => ({ ...chip })),
   attachments: order.attachments.map((attachment) => ({ ...attachment })),
   history: order.history.map((history) => ({ ...history })),
