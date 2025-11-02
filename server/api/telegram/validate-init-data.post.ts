@@ -37,7 +37,9 @@ export default defineEventHandler(async (event) => {
         })
       }
       
-      return { success: true }
+      // Return telegram_id for client to fetch user data
+      const telegramId = user?.id ?? null
+      return { success: true, telegram_id: telegramId }
     } catch (error) {
       let errorMessage = 'Unknown error'
       let errorType = ''

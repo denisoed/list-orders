@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useAllProjects } from '~/composables/useProjectTasks'
 import type { Project } from '~/data/projects'
+import { useUserStore } from '~/stores/user'
 
 const route = useRoute()
 const projects = useAllProjects()
 const router = useRouter()
+const userStore = useUserStore()
 
 const visibleProjects = computed<Project[]>(() => {
   return route.query.empty === 'true' ? [] : projects.value
@@ -13,12 +15,26 @@ const visibleProjects = computed<Project[]>(() => {
 const hasProjects = computed(() => visibleProjects.value.length > 0)
 
 const userProfile = computed(() => {
+  const user = userStore.user
   const showEmptyAvatar = route.query.noAvatar === 'true'
 
+  // Build user name from first_name and last_name
+  const userName = user
+    ? [user.first_name, user.last_name].filter(Boolean).join(' ') || undefined
+    : undefined
+
+  // Get avatar URL from user data
+  const avatarUrl = showEmptyAvatar ? null : (user?.photo_url ?? null)
+
+  // Build profile URL using telegram_id
+  const profileUrl = user?.telegram_id
+    ? `/profile/${user.telegram_id}`
+    : '/profile'
+
   return {
-    name: 'Анна Смирнова',
-    profileUrl: '/profile/anna-smirnova',
-    avatarUrl: showEmptyAvatar ? null : 'https://i.pravatar.cc/160?img=5',
+    name: userName,
+    profileUrl,
+    avatarUrl,
   }
 })
 
