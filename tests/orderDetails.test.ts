@@ -8,6 +8,7 @@ describe('getOrderDetailMock', () => {
     expect(order.id).toBe('express-delivery')
     expect(order.title).toContain('Экспресс-доставка')
     expect(order.attachments).toHaveLength(1)
+    expect(order.statusChips).toHaveLength(1)
   })
 
   it('provides fallback order and keeps id when unknown id passed', () => {
@@ -15,7 +16,7 @@ describe('getOrderDetailMock', () => {
 
     expect(order.id).toBe('custom-order-77')
     expect(order.code).toBe('CUSTOM-ORDER-77')
-    expect(order.statusChips.length).toBeGreaterThan(0)
+    expect(order.statusChips).toHaveLength(1)
   })
 
   it('returns a new object on each call to avoid shared mutations', () => {

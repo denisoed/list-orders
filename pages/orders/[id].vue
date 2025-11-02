@@ -45,6 +45,8 @@ const statusToneClass = (tone: OrderStatusTone) => {
   return toneClasses[tone]
 }
 
+const primaryStatusChip = computed(() => order.value.statusChips[0] ?? null)
+
 const iconContainerClass =
   'flex size-12 shrink-0 items-center justify-center rounded-xl bg-gray-200 text-gray-700 dark:bg-[#282e39] dark:text-white'
 
@@ -81,46 +83,33 @@ useHead({
     :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
   >
     <header
-      class="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background-light/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
+      class="sticky top-0 z-20 flex items-center gap-3 border-b border-black/5 bg-background-light/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
         type="button"
-        class="flex size-11 items-center justify-center rounded-full text-gray-700 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться назад"
         @click="handleBack"
       >
-        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
 
-      <div class="flex min-w-0 flex-1 flex-col items-center px-4 text-center">
-        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-[#9da6b9]">{{ order.code }}</p>
-        <h1 class="mt-1 line-clamp-2 text-lg font-semibold leading-tight">{{ order.title }}</h1>
+      <div class="flex min-w-0 flex-1 flex-col items-start text-left">
+        <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
+          {{ order.title }}
+        </h1>
       </div>
-
-      <button
-        type="button"
-        class="flex size-11 items-center justify-center rounded-full text-gray-700 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
-        aria-label="Дополнительные действия"
-      >
-        <span class="material-symbols-outlined text-2xl">more_vert</span>
-      </button>
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
-      <section class="space-y-4">
-        <p class="text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
-          {{ order.summary }}
-        </p>
-
+      <section v-if="primaryStatusChip" class="space-y-3">
         <div class="flex flex-wrap gap-2">
           <span
-            v-for="status in order.statusChips"
-            :key="status.id"
             class="inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-medium"
-            :class="statusToneClass(status.tone)"
+            :class="statusToneClass(primaryStatusChip.tone)"
           >
             <span class="material-symbols-outlined text-base">adjust</span>
-            <span>{{ status.label }}</span>
+            <span>{{ primaryStatusChip.label }}</span>
           </span>
         </div>
       </section>
