@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import TaskCard from '~/components/TaskCard.vue'
 import TaskEmptyState from '~/components/TaskEmptyState.vue'
 import TaskPageHeader from '~/components/TaskPageHeader.vue'
-import SearchField from '~/components/SearchField.vue'
 import TaskStatusChips from '~/components/TaskStatusChips.vue'
 import { TASK_STATUS_FILTERS, useProjectTasks, type TaskStatusFilter } from '~/composables/useProjectTasks'
 
@@ -13,7 +12,7 @@ const router = useRouter()
 
 const projectId = computed(() => String(route.params.id ?? ''))
 
-const { project, allTasks, filteredTasks, searchQuery, activeStatus, setSearchQuery, setActiveStatus } = useProjectTasks(projectId)
+const { project, allTasks, filteredTasks, activeStatus, setActiveStatus } = useProjectTasks(projectId)
 
 const statusOptions = computed(() =>
   TASK_STATUS_FILTERS.map((option) => ({
@@ -27,6 +26,199 @@ const statusOptions = computed(() =>
 
 const hasTasks = computed(() => allTasks.value.length > 0)
 const hasFilteredTasks = computed(() => filteredTasks.value.length > 0)
+
+const monthNameFormatter = new Intl.DateTimeFormat('ru-RU', { month: 'long' })
+const periodFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
+const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'short' })
+const dayNumberFormatter = new Intl.DateTimeFormat('ru-RU', { day: '2-digit' })
+
+const capitalize = (value: string) => value.charAt(0).toLocaleUpperCase('ru-RU') + value.slice(1)
+
+const formatMonthLabel = (date: Date) => `${capitalize(monthNameFormatter.format(date))} ${date.getFullYear()}`
+
+const formatMonthId = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+const formatDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+const parseTaskDate = (value: string | undefined) => {
+  if (!value) {
+    return null
+  }
+
+  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10))
+
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return null
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+const monthOptions = computed(() => {
+  const monthMap = new Map<string, Date>()
+
+  allTasks.value.forEach((task) => {
+    const date = parseTaskDate(task.dueDate)
+    if (!date) {
+      return
+    }
+
+    const monthId = formatMonthId(date)
+    if (!monthMap.has(monthId) || monthMap.get(monthId)!.getTime() > date.getTime()) {
+      monthMap.set(monthId, date)
+    }
+  })
+
+  return Array.from(monthMap.entries())
+    .map(([value, date]) => ({
+      value,
+      label: formatMonthLabel(date),
+      date,
+    }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+})
+
+const currentMonthId = computed(() => formatMonthId(new Date()))
+const selectedMonthId = ref('')
+
+watch(
+  monthOptions,
+  (options) => {
+    if (options.length === 0) {
+      selectedMonthId.value = ''
+      return
+    }
+
+    if (options.some((option) => option.value === selectedMonthId.value)) {
+      return
+    }
+
+    const currentOption = options.find((option) => option.value === currentMonthId.value)
+    selectedMonthId.value = currentOption ? currentOption.value : options[0].value
+  },
+  { immediate: true },
+)
+
+const selectedMonth = computed(() => monthOptions.value.find((option) => option.value === selectedMonthId.value) ?? null)
+const selectedMonthIndex = computed(() => monthOptions.value.findIndex((option) => option.value === selectedMonthId.value))
+
+const canGoToPreviousMonth = computed(() => selectedMonthIndex.value > 0)
+const canGoToNextMonth = computed(
+  () => selectedMonthIndex.value >= 0 && selectedMonthIndex.value < monthOptions.value.length - 1,
+)
+
+const hasCurrentMonth = computed(() => monthOptions.value.some((option) => option.value === currentMonthId.value))
+const isCurrentMonthSelected = computed(
+  () => selectedMonth.value !== null && selectedMonthId.value === currentMonthId.value,
+)
+
+const handlePreviousMonth = () => {
+  if (!canGoToPreviousMonth.value) {
+    return
+  }
+
+  const previous = monthOptions.value[selectedMonthIndex.value - 1]
+  if (previous) {
+    selectedMonthId.value = previous.value
+  }
+}
+
+const handleNextMonth = () => {
+  if (!canGoToNextMonth.value) {
+    return
+  }
+
+  const next = monthOptions.value[selectedMonthIndex.value + 1]
+  if (next) {
+    selectedMonthId.value = next.value
+  }
+}
+
+const handleResetToCurrentMonth = () => {
+  if (!hasCurrentMonth.value) {
+    return
+  }
+
+  selectedMonthId.value = currentMonthId.value
+}
+
+const filteredTasksByMonth = computed(() => {
+  if (!selectedMonthId.value) {
+    return filteredTasks.value
+  }
+
+  return filteredTasks.value.filter((task) => {
+    const date = parseTaskDate(task.dueDate)
+    return date && formatMonthId(date) === selectedMonthId.value
+  })
+})
+
+const groupedTasks = computed(() => {
+  const groups = new Map<
+    string,
+    {
+      date: Date
+      tasks: typeof filteredTasksByMonth.value
+    }
+  >()
+
+  filteredTasksByMonth.value.forEach((task) => {
+    const date = parseTaskDate(task.dueDate)
+
+    if (!date) {
+      return
+    }
+
+    const key = formatDateKey(date)
+    const entry = groups.get(key)
+
+    if (entry) {
+      entry.tasks.push(task)
+    } else {
+      groups.set(key, { date, tasks: [task] })
+    }
+  })
+
+  return Array.from(groups.values())
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .map((entry, index, array) => {
+      const weekdayRaw = weekdayFormatter.format(entry.date).replace('.', '')
+
+      return {
+        key: formatDateKey(entry.date),
+        tasks: entry.tasks,
+        dayNumber: dayNumberFormatter.format(entry.date),
+        weekday: weekdayRaw.toLocaleUpperCase('ru-RU'),
+        fullDate: capitalize(periodFormatter.format(entry.date)),
+        isLast: index === array.length - 1,
+      }
+    })
+})
+
+const hasTasksInSelectedMonth = computed(() => groupedTasks.value.length > 0)
+
+const selectedPeriodLabel = computed(() => {
+  if (!hasTasksInSelectedMonth.value) {
+    if (selectedMonth.value) {
+      return `Нет заказов в ${selectedMonth.value.label.toLocaleLowerCase('ru-RU')}`
+    }
+    return 'Нет заказов'
+  }
+
+  const first = groupedTasks.value[0]
+  const last = groupedTasks.value[groupedTasks.value.length - 1]
+
+  if (!first || !last) {
+    return ''
+  }
+
+  if (first.key === last.key) {
+    return first.fullDate
+  }
+
+  return `${first.fullDate} — ${last.fullDate}`
+})
 
 const subtitle = computed(() => {
   if (!project.value) {
@@ -83,10 +275,6 @@ const handleEditProject = () => {
   })
 }
 
-const handleSearchUpdate = (value: string) => {
-  setSearchQuery(value)
-}
-
 const handleStatusChange = (value: string) => {
   setActiveStatus(value as TaskStatusFilter)
 }
@@ -128,27 +316,94 @@ useHead({
 
     <main class="flex-1 px-4 pb-24">
       <section v-if="project" class="space-y-4 py-4">
-        <SearchField
-          :model-value="searchQuery"
-          placeholder="Найти по названию или исполнителю…"
-          aria-label="Поиск по задачам"
-          enter-key-hint="done"
-          @update:model-value="handleSearchUpdate"
-        />
+        <div
+          class="rounded-3xl border border-black/5 bg-white/80 px-5 py-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
+        >
+          <div class="flex flex-col gap-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500 dark:text-[#9da6b9]">
+              {{ selectedPeriodLabel }}
+            </p>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                :disabled="!canGoToPreviousMonth"
+                aria-label="Предыдущий месяц"
+                @click="handlePreviousMonth"
+              >
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+              </button>
+              <div
+                class="flex flex-1 items-center justify-center rounded-full bg-black px-6 py-2 text-base font-semibold tracking-tight text-white shadow-inner dark:bg-white/10"
+              >
+                <span class="truncate">
+                  {{ selectedMonth?.label ?? 'Месяц не выбран' }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                :disabled="!canGoToNextMonth"
+                aria-label="Следующий месяц"
+                @click="handleNextMonth"
+              >
+                <span class="material-symbols-outlined text-2xl">chevron_right</span>
+              </button>
+              <button
+                type="button"
+                class="flex size-12 items-center justify-center rounded-full bg-black text-white transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-40 disabled:hover:brightness-100 dark:bg-white dark:text-black"
+                :disabled="!hasCurrentMonth || isCurrentMonthSelected"
+                aria-label="Показать текущий месяц"
+                @click="handleResetToCurrentMonth"
+              >
+                <span class="material-symbols-outlined text-2xl">calendar_month</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <TaskStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
 
         <div class="flex flex-col gap-4 pt-2">
           <template v-if="hasTasks">
-            <ul v-if="hasFilteredTasks" class="flex flex-col gap-4" role="list">
-              <li v-for="task in filteredTasks" :key="task.id" role="listitem">
-                <TaskCard :task="task" />
-              </li>
-            </ul>
+            <template v-if="hasFilteredTasks">
+              <template v-if="hasTasksInSelectedMonth">
+                <div v-for="group in groupedTasks" :key="group.key" class="flex gap-4">
+                  <div class="flex flex-col items-center">
+                    <div
+                      class="flex h-10 w-10 flex-col items-center justify-center rounded-3xl bg-black text-white shadow-inner dark:bg-white/10"
+                    >
+                      <span class="text-[6px] font-semibold uppercase tracking-[0.4em]">{{ group.weekday }}</span>
+                      <span class="text-[15px] font-bold leading-none">{{ group.dayNumber }}</span>
+                    </div>
+                    <div
+                      v-if="!group.isLast"
+                      class="mt-1.5 h-full w-px flex-1 bg-black/10 dark:bg-white/15"
+                    ></div>
+                  </div>
+                  <div class="flex flex-1 flex-col gap-3">
+                    <p class="text-sm font-medium uppercase tracking-[0.3em] text-gray-500 dark:text-[#9da6b9]">
+                      {{ group.fullDate }}
+                    </p>
+                    <ul class="flex flex-col gap-3" role="list">
+                      <li v-for="task in group.tasks" :key="task.id" role="listitem">
+                        <TaskCard :task="task" />
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </template>
+              <TaskEmptyState
+                v-else
+                icon="calendar_month"
+                title="Нет заказов в выбранном месяце"
+                description="Попробуйте переключить месяц или изменить фильтр статуса."
+              />
+            </template>
             <TaskEmptyState
               v-else
               icon="manage_search"
-              title="Нет задач по выбранным параметрам"
-              description="Измените фильтры или попробуйте другой запрос."
+              title="Нет заказов по выбранным фильтрам"
+              description="Измените статус или покажите все заказы."
             />
           </template>
           <TaskEmptyState v-else />
