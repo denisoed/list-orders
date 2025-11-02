@@ -148,5 +148,6 @@ describe('Order components rendering', () => {
     const link = wrapper.getComponent(RouterLinkStub)
     expect(link.props('to')).toEqual({ path: `/orders/${order.id}`, query: { state: 'encoded-state' } })
     expect(wrapper.text()).toContain('Заказ ORD-1')
+    expect(wrapper.text()).toContain('Детали заказа')
   })
 })

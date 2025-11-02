@@ -19,6 +19,7 @@ const formattedTotal = computed(() => formatCurrency(props.order.pricing.total, 
   <NuxtLink
     :to="props.to"
     class="group flex flex-col gap-4 rounded-2xl border border-transparent bg-white/70 p-4 transition hover:border-primary/50 hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:hover:bg-white/10"
+    :aria-label="`Открыть детали заказа ${props.order.orderNumber}`"
   >
     <div class="flex items-start justify-between gap-3">
       <div class="space-y-1">
@@ -32,8 +33,11 @@ const formattedTotal = computed(() => formatCurrency(props.order.pricing.total, 
           Проект: <span class="font-medium text-gray-700 dark:text-gray-200">{{ props.order.projectName }}</span>
         </p>
       </div>
-      <span class="material-symbols-outlined text-gray-400 transition group-hover:text-primary dark:text-gray-500">
-        chevron_right
+      <span
+        class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition group-hover:bg-primary/15 group-hover:text-primary dark:bg-primary/15"
+      >
+        <span>Детали заказа</span>
+        <span class="material-symbols-outlined text-base leading-none">chevron_right</span>
       </span>
     </div>
 
