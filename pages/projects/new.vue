@@ -11,6 +11,7 @@ const projectsState = useProjectsState()
 const { createProject, updateProject, isCreating, isUpdating } = useProjects()
 
 const title = ref('')
+const description = ref('')
 const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
@@ -116,6 +117,7 @@ const handleSubmit = async () => {
       const updatedProject = await updateProject({
         id: editableProject.value.id,
         title: title.value,
+        description: description.value,
       })
 
       await router.push(returnPath.value || `/projects/${updatedProject.id}/tasks`)
@@ -124,6 +126,7 @@ const handleSubmit = async () => {
 
     const project = await createProject({
       title: title.value,
+      description: description.value,
     })
 
     await router.push(`/projects/${project.id}/tasks`)
@@ -166,6 +169,16 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  () => editableProject.value?.description,
+  (projectDescription) => {
+    if (isEditing.value) {
+      description.value = projectDescription ?? ''
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -203,6 +216,15 @@ watch(
             @blur="handleTitleBlur"
           />
           <p v-if="showTitleError" class="pt-1 text-sm text-red-400">{{ titleError }}</p>
+        </label>
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Описание</p>
+          <textarea
+            v-model="description"
+            class="form-input min-h-36 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Добавьте детали о проекте, цели и задачи"
+            enterkeyhint="done"
+          ></textarea>
         </label>
         <ProjectInviteLink
           :project-id="inviteProjectId"
