@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { RouterLinkStub, mount } from '@vue/test-utils'
 import OrderAttachmentsList from '../components/orders/OrderAttachmentsList.vue'
 import OrderItemsList from '../components/orders/OrderItemsList.vue'
 import OrderStatusChips from '../components/orders/OrderStatusChips.vue'
 import OrderTimeline from '../components/orders/OrderTimeline.vue'
+import OrderListCard from '../components/orders/OrderListCard.vue'
 
 const currency = 'RUB'
 
@@ -83,5 +84,69 @@ describe('Order components rendering', () => {
     expect(textContent).toContain('Товар 1')
     expect(textContent).toContain('Итого')
     expect(textContent.replace(/\s/g, '')).toContain('2750')
+  })
+
+  it('links order card to detail page', () => {
+    const order = {
+      id: 'order-1',
+      orderNumber: 'ORD-1',
+      title: 'Тестовый заказ',
+      statuses: [
+        { id: 'in_progress', label: 'В работе', appearance: 'warning' },
+      ],
+      description: 'Описание заказа',
+      createdAt: '2024-01-02T10:00:00+03:00',
+      dueDate: '2024-01-05T10:00:00+03:00',
+      priority: 'high',
+      projectName: 'Проект А',
+      customer: {
+        name: 'Иван Иванов',
+        avatarUrl: null,
+        email: 'ivan@example.com',
+        phone: '+7 900 000-00-00',
+        location: 'Москва',
+      },
+      items: [],
+      attachments: [],
+      timeline: [],
+      pricing: {
+        subtotal: 1000,
+        shipping: 0,
+        discount: 0,
+        tax: 0,
+        total: 1000,
+        currency,
+      },
+      shippingAddress: {
+        line1: 'ул. Ленина, 1',
+        city: 'Москва',
+        postalCode: '101000',
+        country: 'Россия',
+      },
+      billingAddress: {
+        line1: 'ул. Ленина, 1',
+        city: 'Москва',
+        postalCode: '101000',
+        country: 'Россия',
+      },
+      notes: '',
+      allowCompletion: true,
+    }
+
+    const wrapper = mount(OrderListCard, {
+      props: {
+        order,
+        to: { path: `/orders/${order.id}`, query: { state: 'encoded-state' } },
+      },
+      global: {
+        stubs: {
+          NuxtLink: RouterLinkStub,
+        },
+      },
+    })
+
+    const link = wrapper.getComponent(RouterLinkStub)
+    expect(link.props('to')).toEqual({ path: `/orders/${order.id}`, query: { state: 'encoded-state' } })
+    expect(wrapper.text()).toContain('Заказ ORD-1')
   })
 })
