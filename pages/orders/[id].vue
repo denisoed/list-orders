@@ -240,7 +240,7 @@ useHead({
               v-for="attachment in order.attachments"
               :key="attachment.id"
               role="listitem"
-              class="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
+              class="relative cursor-pointer"
               @click="handleImageClick(attachment.id)"
             >
               <img

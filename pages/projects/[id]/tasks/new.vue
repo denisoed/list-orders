@@ -509,7 +509,7 @@ useHead({
             <ul v-if="attachments.length" class="flex items-center gap-4 overflow-x-auto" role="list">
               <li v-for="attachment in attachments" :key="attachment.id" role="listitem" class="relative">
                 <div
-                  class="relative cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                  class="relative cursor-pointer"
                   @click="handleImageClick(attachment.id)"
                 >
                   <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 min-h-20 min-w-20 rounded-lg object-cover" />
