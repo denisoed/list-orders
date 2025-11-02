@@ -74,6 +74,20 @@ bun run preview
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
 
+## Environment Variables
+
+The application requires the following environment variables:
+
+- `NUXT_TELEGRAM_BOT_TOKEN` or `TELEGRAM_BOT_TOKEN` — Telegram Bot Token obtained from [@BotFather](https://t.me/botfather). This token is used on the server side to validate Telegram Mini App initialization data (initData).
+
+To set up the environment variable, create a `.env` file in the root of the project:
+
+```bash
+NUXT_TELEGRAM_BOT_TOKEN=your_bot_token_here
+```
+
+The initData validation happens automatically when the Telegram Mini App initializes. Validation results are logged to the server console.
+
 ## Страницы проектов
 
 - `/projects/new` — форма создания и редактирования проекта. Под полем названия размещается компонент `ProjectInviteLink`,
