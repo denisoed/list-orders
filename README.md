@@ -78,6 +78,8 @@ Check out the [deployment documentation](https://nuxt.com/docs/getting-started/d
 
 The application requires the following environment variables:
 
+### Telegram
+
 - `NUXT_TELEGRAM_BOT_TOKEN` or `TELEGRAM_BOT_TOKEN` — Telegram Bot Token obtained from [@BotFather](https://t.me/botfather). This token is used on the server side to validate Telegram Mini App initialization data (initData).
 
 To set up the environment variable, create a `.env` file in the root of the project:
@@ -87,6 +89,36 @@ NUXT_TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
 The initData validation happens automatically when the Telegram Mini App initializes. Validation results are logged to the server console.
+
+### Supabase
+
+- `SUPABASE_URL` — Your Supabase project URL (e.g., `https://xxx.supabase.co`). Get it from your [Supabase project settings](https://app.supabase.com/project/_/settings/api).
+- `SUPABASE_SERVICE_ROLE_KEY` — Service Role Key with full database access. **WARNING**: This key has admin privileges. Keep it secret and never expose it to client-side code.
+
+Add these variables to your `.env` file:
+
+```bash
+SUPABASE_URL=your_supabase_project_url_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+```
+
+**Note**: See `.env.example` for a complete list of required environment variables.
+
+### Using Supabase Client
+
+The Supabase client is available on the server side through the utility function:
+
+```typescript
+import { getSupabaseClient } from '~/server/utils/supabase'
+
+export default defineEventHandler(async (event) => {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase.from('your_table').select('*')
+  // ...
+})
+```
+
+The client is initialized once and reused for all requests (singleton pattern).
 
 ## Страницы проектов
 
