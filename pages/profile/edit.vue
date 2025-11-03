@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useHead, useRouter } from '#imports'
 import { useUserStore, type UserProfileUpdates } from '~/stores/user'
 
-type FormField = 'firstName' | 'lastName' | 'username' | 'languageCode'
+type FormField = 'firstName' | 'lastName'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -13,22 +13,16 @@ const { user, isLoading, isSaving, saveError } = storeToRefs(userStore)
 const form = reactive({
   firstName: '',
   lastName: '',
-  username: '',
-  languageCode: '',
 })
 
 const touched = reactive<Record<FormField, boolean>>({
   firstName: false,
   lastName: false,
-  username: false,
-  languageCode: false,
 })
 
 const errors = reactive<Record<FormField, string>>({
   firstName: '',
   lastName: '',
-  username: '',
-  languageCode: '',
 })
 
 const submitAttempted = ref(false)
@@ -41,15 +35,11 @@ watch(
     if (!value) {
       form.firstName = ''
       form.lastName = ''
-      form.username = ''
-      form.languageCode = ''
       return
     }
 
     form.firstName = value.first_name ?? ''
     form.lastName = value.last_name ?? ''
-    form.username = value.username ?? ''
-    form.languageCode = value.language_code ?? ''
   },
   { immediate: true },
 )
@@ -66,18 +56,43 @@ const displayName = computed(() => {
 
 const avatarAltText = computed(() => `Аватар пользователя ${displayName.value}`)
 
-const premiumStatus = computed(() => user.value?.is_premium === true)
+const telegramIdText = computed(() => (user.value?.telegram_id ? String(user.value.telegram_id) : ''))
 
-const premiumStatusLabel = computed(() => (premiumStatus.value ? 'Активен' : 'Неактивен'))
+const canCopyTelegramId = computed(() => telegramIdText.value.length > 0)
 
-const premiumDescription = computed(() =>
-  premiumStatus.value
-    ? 'У пользователя активна подписка Telegram Premium'
-    : 'Подписка Telegram Premium не активна',
-)
+const isCopyingTelegramId = ref(false)
 
-const usernamePattern = /^[a-zA-Z0-9_]{3,32}$/
-const languagePattern = /^[a-z]{2}$/i
+const telegramIdCopyStatus = ref<'idle' | 'copied' | 'error'>('idle')
+
+const resetTelegramIdStatus = () => {
+  telegramIdCopyStatus.value = 'idle'
+}
+
+const handleCopyTelegramId = async () => {
+  if (!canCopyTelegramId.value || isCopyingTelegramId.value) {
+    return
+  }
+
+  if (typeof navigator === 'undefined' || typeof navigator.clipboard === 'undefined') {
+    telegramIdCopyStatus.value = 'error'
+    return
+  }
+
+  try {
+    isCopyingTelegramId.value = true
+    await navigator.clipboard.writeText(telegramIdText.value)
+    telegramIdCopyStatus.value = 'copied'
+  }
+  catch (error) {
+    console.error('[ProfileEdit] Failed to copy Telegram ID', error)
+    telegramIdCopyStatus.value = 'error'
+  }
+  finally {
+    isCopyingTelegramId.value = false
+  }
+}
+
+watch(telegramIdText, resetTelegramIdStatus)
 
 const validateField = (field: FormField) => {
   const value = form[field].trim()
@@ -86,28 +101,6 @@ const validateField = (field: FormField) => {
     case 'firstName':
       errors.firstName = value.length > 0 ? '' : 'Введите имя'
       break
-    case 'username':
-      if (value.length === 0) {
-        errors.username = ''
-      }
-      else if (!usernamePattern.test(value)) {
-        errors.username = 'Используйте 3–32 символа: латиница, цифры и нижнее подчёркивание'
-      }
-      else {
-        errors.username = ''
-      }
-      break
-    case 'languageCode':
-      if (value.length === 0) {
-        errors.languageCode = ''
-      }
-      else if (!languagePattern.test(value)) {
-        errors.languageCode = 'Используйте двухбуквенный код, например «ru»'
-      }
-      else {
-        errors.languageCode = ''
-      }
-      break
     case 'lastName':
       errors.lastName = ''
       break
@@ -115,11 +108,11 @@ const validateField = (field: FormField) => {
 }
 
 const validateForm = () => {
-  ;(['firstName', 'lastName', 'username', 'languageCode'] as FormField[]).forEach((field) => {
+  ;(['firstName', 'lastName'] as FormField[]).forEach((field) => {
     validateField(field)
   })
 
-  return !errors.firstName && !errors.username && !errors.languageCode
+  return !errors.firstName
 }
 
 const hasChanges = computed(() => {
@@ -130,14 +123,9 @@ const hasChanges = computed(() => {
 
   const firstName = form.firstName.trim()
   const lastName = form.lastName.trim()
-  const username = form.username.trim()
-  const language = form.languageCode.trim()
-
   return (
     firstName !== (current.first_name ?? '') ||
-    lastName !== (current.last_name ?? '') ||
-    username !== (current.username ?? '') ||
-    language !== (current.language_code ?? '')
+    lastName !== (current.last_name ?? '')
   )
 })
 
@@ -156,7 +144,7 @@ const resetFeedback = () => {
 }
 
 watch(
-  () => [form.firstName, form.lastName, form.username, form.languageCode],
+  () => [form.firstName, form.lastName],
   resetFeedback,
 )
 
@@ -169,41 +157,19 @@ watch(
   },
 )
 
-watch(
-  () => form.username,
-  () => {
-    if (touched.username || submitAttempted.value) {
-      validateField('username')
-    }
-  },
-)
-
-watch(
-  () => form.languageCode,
-  () => {
-    if (touched.languageCode || submitAttempted.value) {
-      validateField('languageCode')
-    }
-  },
-)
-
 const prepareUpdates = (): UserProfileUpdates => {
   const firstName = form.firstName.trim()
   const lastName = form.lastName.trim()
-  const username = form.username.trim()
-  const language = form.languageCode.trim().toLowerCase()
 
   return {
     first_name: firstName,
     last_name: lastName.length > 0 ? lastName : null,
-    username: username.length > 0 ? username : null,
-    language_code: language.length > 0 ? language : null,
   }
 }
 
 const handleSubmit = async () => {
   submitAttempted.value = true
-  ;(['firstName', 'lastName', 'username', 'languageCode'] as FormField[]).forEach((field) => {
+  ;(['firstName', 'lastName'] as FormField[]).forEach((field) => {
     touched[field] = true
   })
 
@@ -293,18 +259,10 @@ useHead({
         <p class="text-sm text-gray-500 dark:text-[#9da6b9]">Обновите личные данные и настройки аккаунта</p>
       </div>
 
-      <NuxtLink
-        v-if="user?.telegram_id"
-        :to="`/profile/${user.telegram_id}`"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition hover:bg-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        <span class="material-symbols-outlined text-2xl">person_search</span>
-        <span class="sr-only">Посмотреть публичный профиль</span>
-      </NuxtLink>
-      <div v-else class="flex size-12 shrink-0 items-center justify-center"></div>
+      <div class="flex w-12 shrink-0 items-center justify-end"></div>
     </header>
 
-    <main class="flex-1 space-y-6 px-4 py-6 pb-24">
+    <main class="flex-1 space-y-6 px-4 py-6 pb-40">
       <section v-if="isLoading" class="mt-16 flex flex-col items-center gap-4 text-center">
         <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
         <p class="text-sm text-gray-600 dark:text-[#9da6b9]">Загружаем профиль пользователя…</p>
@@ -356,27 +314,42 @@ useHead({
                 />
                 <span v-else class="material-symbols-outlined text-4xl">person</span>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-2">
                 <p class="text-lg font-semibold leading-tight text-zinc-900 dark:text-white">{{ displayName }}</p>
-                <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
-                  ID в Telegram: {{ user.telegram_id }}
-                </p>
-              </div>
-            </div>
-
-            <div
-              class="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-primary dark:border-primary/30 dark:bg-primary/10"
-            >
-              <span class="material-symbols-outlined text-2xl">workspace_premium</span>
-              <div class="flex flex-col">
-                <span>Премиум статус: {{ premiumStatusLabel }}</span>
-                <span class="text-xs font-normal text-primary/80 dark:text-primary/70">{{ premiumDescription }}</span>
+                <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-[#9da6b9]" aria-live="polite">
+                  <span class="text-sm">ID в Telegram:</span>
+                  <button
+                    v-if="canCopyTelegramId"
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-black/5 px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-primary/40 dark:hover:bg-primary/10"
+                    :disabled="isCopyingTelegramId"
+                    @click="handleCopyTelegramId"
+                  >
+                    <span>{{ telegramIdText }}</span>
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
+                    <span class="sr-only">Скопировать ID в Telegram</span>
+                  </button>
+                  <span v-else class="text-sm font-medium text-zinc-900 dark:text-white">нет данных</span>
+                  <span
+                    v-if="telegramIdCopyStatus === 'copied'"
+                    class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                  >
+                    Скопировано
+                  </span>
+                  <span
+                    v-else-if="telegramIdCopyStatus === 'error'"
+                    class="text-xs font-medium text-red-500"
+                  >
+                    Не удалось скопировать
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <form
+          id="profile-form"
           class="space-y-5 rounded-2xl bg-white p-6 shadow-sm dark:bg-[#1C2431]"
           novalidate
           @submit.prevent="handleSubmit"
@@ -421,124 +394,43 @@ useHead({
               />
             </label>
           </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <label class="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">
-              Имя пользователя Telegram
-              <input
-                v-model="form.username"
-                type="text"
-                inputmode="text"
-                name="username"
-                autocomplete="username"
-                placeholder="username"
-                class="h-11 rounded-xl border border-black/10 bg-white px-4 text-base text-zinc-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-transparent dark:text-white"
-                @blur="handleBlur('username')"
-              />
-              <span
-                v-if="showFieldError('username')"
-                class="text-xs font-normal text-red-500"
-                role="alert"
-              >
-                {{ errors.username }}
-              </span>
-            </label>
-
-            <label class="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">
-              Язык интерфейса
-              <input
-                v-model="form.languageCode"
-                type="text"
-                name="languageCode"
-                maxlength="5"
-                autocomplete="off"
-                placeholder="ru"
-                class="h-11 rounded-xl border border-black/10 bg-white px-4 text-base text-zinc-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-transparent dark:text-white"
-                @blur="handleBlur('languageCode')"
-              />
-              <span
-                v-if="showFieldError('languageCode')"
-                class="text-xs font-normal text-red-500"
-                role="alert"
-              >
-                {{ errors.languageCode }}
-              </span>
-            </label>
-          </div>
-
-          <div class="space-y-3">
-            <h3 class="text-lg font-semibold leading-tight text-zinc-900 dark:text-white">Аватар</h3>
-            <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
-              Изображение берётся из Telegram и обновляется автоматически. Чтобы изменить его, обновите фото в Telegram.
-            </p>
-            <div class="flex items-center gap-4">
-              <div
-                class="flex size-16 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-gray-500 dark:bg-[#282e39] dark:text-gray-300"
-              >
-                <img
-                  v-if="user.photo_url"
-                  :src="user.photo_url"
-                  :alt="avatarAltText"
-                  class="size-full object-cover"
-                />
-                <span v-else class="material-symbols-outlined text-3xl">person</span>
-              </div>
-              <p class="text-xs text-gray-500 dark:text-[#9da6b9]">
-                Для обновления изображения откройте настройки Telegram. После синхронизации изменения появятся автоматически.
-              </p>
-            </div>
-          </div>
-
-          <div class="space-y-3">
-            <h3 class="text-lg font-semibold leading-tight text-zinc-900 dark:text-white">Уведомления</h3>
-            <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
-              Уведомления отправляются через Telegram. Настройки канала доставки будут доступны после подключения CRM.
-            </p>
-          </div>
-
-          <div class="space-y-3">
-            <h3 class="text-lg font-semibold leading-tight text-zinc-900 dark:text-white">Сохранение</h3>
-            <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
-              Проверьте данные перед сохранением. Изменения применяются мгновенно и отображаются для всей команды.
-            </p>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="submit"
-                class="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow-lg transition hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
-                :disabled="isSaving || !hasChanges"
-              >
-                <span class="material-symbols-outlined text-base" aria-hidden="true">
-                  {{ isSaving ? 'progress_activity' : 'save' }}
-                </span>
-                {{ isSaving ? 'Сохраняем…' : 'Сохранить изменения' }}
-              </button>
-
-              <span class="text-xs text-gray-500 dark:text-[#9da6b9]">
-                Последнее обновление: {{ user.updated_at ? new Date(user.updated_at).toLocaleString('ru-RU') : 'нет данных' }}
-              </span>
-            </div>
-
-            <div class="space-y-2" aria-live="polite">
-              <div
-                v-if="submitSuccess"
-                class="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300"
-              >
-                <span class="material-symbols-outlined text-base">check_circle</span>
-                {{ submitSuccess }}
-              </div>
-
-              <div
-                v-if="submitError || saveError"
-                class="flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:bg-red-500/15 dark:text-red-300"
-                role="alert"
-              >
-                <span class="material-symbols-outlined text-base">error</span>
-                {{ submitError || saveError }}
-              </div>
-            </div>
-          </div>
         </form>
       </section>
     </main>
+    <footer
+      class="fixed bottom-0 left-0 z-20 w-full border-t border-black/10 bg-background-light/90 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/90"
+    >
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
+        <div class="space-y-2" aria-live="polite">
+          <div
+            v-if="submitSuccess"
+            class="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300"
+          >
+            <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
+            {{ submitSuccess }}
+          </div>
+
+          <div
+            v-if="submitError || saveError"
+            class="flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:bg-red-500/15 dark:text-red-300"
+            role="alert"
+          >
+            <span class="material-symbols-outlined text-base" aria-hidden="true">error</span>
+            {{ submitError || saveError }}
+          </div>
+        </div>
+        <button
+          type="submit"
+          form="profile-form"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-4 text-base font-semibold text-white transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-primary/50"
+          :disabled="isSaving || !hasChanges"
+        >
+          <span class="material-symbols-outlined text-base" aria-hidden="true">
+            {{ isSaving ? 'progress_activity' : 'save' }}
+          </span>
+          {{ isSaving ? 'Сохраняем…' : 'Сохранить изменения' }}
+        </button>
+      </div>
+    </footer>
   </div>
 </template>
