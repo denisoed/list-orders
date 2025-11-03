@@ -258,7 +258,7 @@ useHead({
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
           >
-            Оплата как Клиент
+            Оплата
             <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
           </summary>
           <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
