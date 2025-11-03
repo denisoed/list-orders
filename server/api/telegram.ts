@@ -21,7 +21,7 @@ bot.start((ctx) => {
     ctx.replyWithHTML(
       createWelcomeMessage(ctx),
       Markup.inlineKeyboard([
-        [Markup.button.webApp('Открыть', 'https://t.me/list_orders_bot/app')],
+        [Markup.button.webApp('Открыть', 'https://list-orders.vercel.app')],
       ]),
     )
   })
