@@ -44,7 +44,7 @@ export const PROJECTS: Project[] = [
     title: 'Бета Сторе 2',
     description: '',
     completed: 5,
-    total: 12,
+    total: 13,
     color: '#3B82F6',
     tasks: [
       {
@@ -112,6 +112,19 @@ export const PROJECTS: Project[] = [
         },
         status: 'in_progress',
         dueDate: '2024-12-05',
+      },
+      {
+        id: 'no-assignee-order',
+        title: 'Тестовый заказ без исполнителя',
+        assignee: {
+          name: 'Не назначен',
+          avatarUrl: 'https://i.pravatar.cc/96?img=12',
+        },
+        status: 'pending',
+        dueDate: '2024-10-20',
+        description: 'Этот заказ используется для проверки функциональности назначения исполнителя. Нажмите "Взять в работу", чтобы стать исполнителем.',
+        clientName: 'Тестовый клиент',
+        clientPhone: '+7 (999) 000-00-00',
       },
     ],
   },

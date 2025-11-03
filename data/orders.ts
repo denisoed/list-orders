@@ -41,14 +41,13 @@ export interface OrderDetail {
   title: string
   summary: string
   statusChips: OrderStatusChip[]
-  assignee: OrderAssignee
+  assignee: OrderAssignee | null
   dueDateLabel: string
   projectName: string
   description: string
   client: OrderClient
   attachments: OrderAttachment[]
   history: OrderHistoryItem[]
-  actionLabel: string
 }
 
 const defaultOrder: OrderDetail = {
@@ -104,8 +103,7 @@ const defaultOrder: OrderDetail = {
       description: 'Алексей Иванов создал заказ и прикрепил спецификацию.',
       timestamp: '23 октября 2024, 14:15',
     },
-  ],
-  actionLabel: 'Отметить выполненным',
+  ]
 }
 
 const ordersMock: Record<string, OrderDetail> = {
@@ -154,14 +152,41 @@ const ordersMock: Record<string, OrderDetail> = {
         description: 'Мария Соколова добавила комментарий о задержке поставщика в Санкт-Петербурге.',
         timestamp: '20 октября 2024, 11:42',
       },
+    ]
+  },
+  'no-assignee-order': {
+    id: 'no-assignee-order',
+    code: 'ORD-9999',
+    title: 'Тестовый заказ без исполнителя',
+    summary: 'Этот заказ создан для тестирования функции "Взять в работу".',
+    statusChips: [{ id: 'status-new', label: 'Новый', tone: 'info' }],
+    assignee: null,
+    dueDateLabel: '30 октября 2024, 18:00',
+    projectName: 'Тестовый проект',
+    description: 'Этот заказ используется для проверки функциональности назначения исполнителя. Нажмите "Взять в работу", чтобы стать исполнителем.',
+    client: {
+      name: 'Тестовый клиент',
+      phone: '+7 (999) 000-00-00',
+      payment: 'Оплата по факту',
+      prepayment: '0 ₽',
+      totalAmount: '10 000 ₽',
+    },
+    attachments: [],
+    history: [
+      {
+        id: 'history-created',
+        icon: 'add',
+        description: 'Заказ создан для тестирования.',
+        timestamp: '25 октября 2024, 12:00',
+      },
     ],
-    actionLabel: 'Завершить доставку',
   },
 }
 
 const cloneOrderDetail = (order: OrderDetail): OrderDetail => ({
   ...order,
   client: { ...order.client },
+  assignee: order.assignee ? { ...order.assignee } : null,
   statusChips: order.statusChips.map((chip) => ({ ...chip })),
   attachments: order.attachments.map((attachment) => ({ ...attachment })),
   history: order.history.map((history) => ({ ...history })),
@@ -170,7 +195,7 @@ const cloneOrderDetail = (order: OrderDetail): OrderDetail => ({
 export const getOrderDetailMock = (orderId: string | undefined): OrderDetail => {
   const normalizedId = orderId?.toString().trim()
 
-  if (normalizedId && normalizedId in ordersMock) {
+  if (normalizedId && normalizedId in ordersMock && ordersMock[normalizedId]) {
     return cloneOrderDetail(ordersMock[normalizedId])
   }
 

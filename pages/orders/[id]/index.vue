@@ -1,17 +1,27 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { getOrderDetailMock } from '~/data/orders'
 import type { OrderDetail, OrderStatusTone } from '~/data/orders'
+import { useUserStore } from '~/stores/user'
+import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const orderId = computed(() => {
   const raw = route.params.id
   return Array.isArray(raw) ? raw[0] ?? '' : raw?.toString() ?? ''
 })
 
-const order = computed<OrderDetail>(() => getOrderDetailMock(orderId.value))
+const order = ref<OrderDetail>(getOrderDetailMock(orderId.value))
+
+// Update order when route changes
+watch(orderId, () => {
+  order.value = getOrderDetailMock(orderId.value)
+})
+
+const hasAssignee = computed(() => Boolean(order.value.assignee))
 
 const isPhoneCopied = ref(false)
 let copyResetTimeout: ReturnType<typeof setTimeout> | null = null
@@ -79,7 +89,28 @@ const statusToneClass = (tone: OrderStatusTone) => {
   return toneClasses[tone]
 }
 
-const primaryStatusChip = computed(() => order.value.statusChips[0] ?? null)
+const primaryStatusChip = computed(() => {
+  // If no assignee, show "Ожидает" status
+  if (!hasAssignee.value) {
+    return {
+      id: 'status-pending',
+      label: 'Ожидает',
+      tone: 'danger' as OrderStatusTone,
+      classes: STATUS_CHIP_THEMES.pending.inactive,
+    }
+  }
+
+  // Otherwise use the status from order
+  const chip = order.value.statusChips[0]
+  if (!chip) {
+    return null
+  }
+
+  return {
+    ...chip,
+    classes: statusToneClass(chip.tone),
+  }
+})
 
 const baseIconContainerClass =
   'flex size-12 shrink-0 items-center justify-center rounded-xl bg-gray-200 text-gray-700 dark:bg-[#282e39] dark:text-white'
@@ -139,6 +170,34 @@ const handleImageClick = (attachmentId: string) => {
       source: 'order-details',
     },
   })
+}
+
+const handleTakeInWork = () => {
+  const currentUser = userStore.user
+
+  if (!currentUser) {
+    console.warn('Пользователь не загружен')
+    return
+  }
+
+  // Build user name from first_name and last_name
+  const userName = [currentUser.first_name, currentUser.last_name]
+    .filter(Boolean)
+    .join(' ') || 'Пользователь'
+
+  // Set current user as assignee and update status to "В работе" if not set
+  order.value = {
+    ...order.value,
+    assignee: {
+      name: userName,
+      role: 'Исполнитель',
+      avatarUrl: currentUser.photo_url || 'https://i.pravatar.cc/96?img=12',
+    },
+    // If no status chips, add "В работе" status
+    statusChips: order.value.statusChips.length > 0
+      ? order.value.statusChips
+      : [{ id: 'status-in-progress', label: 'В работе', tone: 'warning' }],
+  }
 }
 
 const handleMarkCompleted = () => {
@@ -211,7 +270,7 @@ useHead({
         <div class="flex flex-wrap gap-2">
           <span
             class="inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-medium"
-            :class="statusToneClass(primaryStatusChip.tone)"
+            :class="primaryStatusChip.classes"
           >
             <span class="material-symbols-outlined text-base">adjust</span>
             <span>{{ primaryStatusChip.label }}</span>
@@ -220,16 +279,16 @@ useHead({
       </section>
 
       <section class="grid gap-4 lg:grid-cols-2">
-        <article class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+        <article v-if="hasAssignee" class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <img
-            :src="order.assignee.avatarUrl"
-            :alt="`Аватар ответственного ${order.assignee.name}`"
+            :src="order.assignee!.avatarUrl"
+            :alt="`Аватар ответственного ${order.assignee!.name}`"
             class="size-14 rounded-full object-cover"
           />
           <div class="flex flex-1 flex-col">
             <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Ответственный</p>
-            <p class="mt-1 text-base font-semibold leading-tight">{{ order.assignee.name }}</p>
-            <p class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ order.assignee.role }}</p>
+            <p class="mt-1 text-base font-semibold leading-tight">{{ order.assignee!.name }}</p>
+            <p class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ order.assignee!.role }}</p>
           </div>
         </article>
 
@@ -385,12 +444,20 @@ useHead({
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
+        v-if="hasAssignee"
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         @click="handleMarkCompleted"
       >
-        <span>{{ order.actionLabel }}</span>
-        <span class="material-symbols-outlined">check_circle</span>
+        <span>Отдать на проверку</span>
+      </button>
+      <button
+        v-else
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        @click="handleTakeInWork"
+      >
+        <span>Взять в работу</span>
       </button>
     </footer>
   </div>
