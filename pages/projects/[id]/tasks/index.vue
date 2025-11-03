@@ -211,7 +211,7 @@ const subtitle = computed(() => {
   if (!project.value) {
     return undefined
   }
-  return `${project.value.completed} из ${project.value.total} задач выполнено`
+  return ''
 })
 
 const pageTitle = computed(() => {

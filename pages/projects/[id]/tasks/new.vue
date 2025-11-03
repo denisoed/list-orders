@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
-import type { TaskAttachment, TaskReminderOffset } from '~/data/projects'
+import type { TaskReminderOffset } from '~/data/projects'
 import { useProjectTasks } from '~/composables/useProjectTasks'
-
-interface FormAttachment extends TaskAttachment {
-  file: File
-}
+import type { ImageAttachment } from '~/components/ImageUploader.vue'
 
 interface AssigneeOption {
   id: string
@@ -39,7 +36,7 @@ const deliveryOption = ref<'pickup' | 'delivery' | ''>('')
 const dueDate = ref('')
 const dueTime = ref('')
 const selectedAssigneeId = ref('unassigned')
-const attachments = ref<FormAttachment[]>([])
+const attachments = ref<ImageAttachment[]>([])
 const reminderOffset = ref<TaskReminderOffset | null>(null)
 const hasPrepayment = ref(false)
 const paymentAmount = ref('')
@@ -51,8 +48,6 @@ const clientPhoneTouched = ref(false)
 const deliveryAddressTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
-
-const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const DEFAULT_ASSIGNEE: AssigneeOption = {
   id: 'unassigned',
@@ -142,10 +137,6 @@ const dueDateLabel = computed(() => {
 
   const dateLabel = new Date(dueDate.value).toLocaleDateString('ru-RU')
 
-  if (dueTime.value) {
-    return `${dateLabel}, ${dueTime.value}`
-  }
-
   return dateLabel
 })
 
@@ -186,54 +177,11 @@ const handleToggleReminder = (value: TaskReminderOffset) => {
 
 const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value)
 
-const revokeAttachmentPreview = (attachment: FormAttachment) => {
-  if (attachment.previewUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(attachment.previewUrl)
-  }
-}
-
 const handleClose = () => {
   router.push(returnPath.value)
 }
 
-const handleAddAttachment = () => {
-  fileInputRef.value?.click()
-}
-
-const handleFileChange = (event: Event) => {
-  const target = event.target as HTMLInputElement | null
-  if (!target?.files?.length) {
-    return
-  }
-
-  const files = Array.from(target.files)
-  const nextAttachments = files.map<FormAttachment>((file) => ({
-    id: `file-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`,
-    name: file.name,
-    previewUrl: URL.createObjectURL(file),
-    file,
-  }))
-
-  attachments.value = [...attachments.value, ...nextAttachments]
-  target.value = ''
-}
-
-const handleRemoveAttachment = (attachmentId: string) => {
-  const attachment = attachments.value.find((item) => item.id === attachmentId)
-  if (!attachment) {
-    return
-  }
-
-  revokeAttachmentPreview(attachment)
-  attachments.value = attachments.value.filter((item) => item.id !== attachmentId)
-}
-
-const handleImageClick = (attachmentId: string) => {
-  const attachment = attachments.value.find((item) => item.id === attachmentId)
-  if (!attachment) {
-    return
-  }
-
+const handleImageClick = (attachment: ImageAttachment) => {
   // Use previewUrl as imageId for blob URLs
   router.push({
     path: `/images/${encodeURIComponent(attachment.previewUrl)}`,
@@ -275,7 +223,6 @@ const handleSubmit = async () => {
           : { name: selectedAssignee.value.name, avatarUrl: selectedAssignee.value.avatarUrl },
     })
 
-    attachments.value.forEach(revokeAttachmentPreview)
     attachments.value = []
     reminderOffset.value = null
 
@@ -300,10 +247,6 @@ const handleClientPhoneBlur = () => {
 const handleDeliveryAddressBlur = () => {
   deliveryAddressTouched.value = true
 }
-
-onBeforeUnmount(() => {
-  attachments.value.forEach(revokeAttachmentPreview)
-})
 
 watch(deliveryOption, (value) => {
   if (value !== 'delivery') {
@@ -499,45 +442,20 @@ useHead({
 
         <div class="flex flex-col space-y-4">
           <p class="text-base font-medium leading-normal">Фото примеров</p>
-          <div class="flex items-center gap-4">
-            <button
-              type="button"
-              class="flex h-20 w-20 min-h-20 min-w-20 items-center justify-center rounded-lg border-2 border-dashed border-[#3b4354] bg-[#1c1f27] text-[#9da6b9] transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              aria-label="Добавить фото"
-              @click="handleAddAttachment"
-            >
-              <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
-            </button>
-            <ul v-if="attachments.length" class="flex items-center gap-4 overflow-x-auto" role="list">
-              <li v-for="attachment in attachments" :key="attachment.id" role="listitem" class="relative">
-                <div
-                  class="relative cursor-pointer"
-                  @click="handleImageClick(attachment.id)"
-                >
-                  <img :src="attachment.previewUrl" :alt="`Фото ${attachment.name}`" class="h-20 w-20 min-h-20 min-w-20 rounded-lg object-cover" />
-                </div>
-                <button
-                  type="button"
-                  class="absolute right-1.5 top-1.5 z-10 flex size-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
-                  :aria-label="`Удалить фото ${attachment.name}`"
-                  @click.stop="handleRemoveAttachment(attachment.id)"
-                >
-                  <span class="material-symbols-outlined text-sm">close</span>
-                </button>
-              </li>
-            </ul>
-          </div>
-          <input
-            ref="fileInputRef"
-            type="file"
-            multiple
-            accept="image/*"
-            class="sr-only"
-            @change="handleFileChange"
+          <ImageUploader
+            v-model="attachments"
+            button-size="md"
+            variant="dark"
+            :clickable="true"
+            @image-click="handleImageClick"
           />
+          <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
+            Поддерживаются изображения в форматах JPEG, PNG и SVG.
+          </p>
         </div>
 
         <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
+          <!-- Assignee -->
           <div class="flex min-h-14 items-center justify-between gap-4 p-4">
             <div class="flex items-center gap-4">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
@@ -545,7 +463,7 @@ useHead({
               </div>
               <div>
                 <p class="text-base font-normal leading-normal">Исполнитель</p>
-                <p class="text-sm text-[#9da6b9]">{{ selectedAssignee.name }}</p>
+                <p class="text-sm text-[#9da6b9]" :class="{ 'text-emerald-600 dark:text-emerald-400': selectedAssignee.id !== DEFAULT_ASSIGNEE.id }">{{ selectedAssignee.name }}</p>
               </div>
             </div>
             <div class="relative">
@@ -559,19 +477,21 @@ useHead({
                 </option>
               </select>
               <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
-                <span>{{ selectedAssignee.id === DEFAULT_ASSIGNEE.id ? 'Выбрать исполнителя' : 'Изменить' }}</span>
+                <span>{{ selectedAssignee.id === DEFAULT_ASSIGNEE.id ? 'Выбрать' : 'Изменить' }}</span>
                 <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
               </div>
             </div>
           </div>
+
+          <!-- Due Date -->
           <div class="flex min-h-14 items-center justify-between gap-4 p-4">
             <div class="flex items-center gap-4">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
                 <span class="material-symbols-outlined">calendar_today</span>
               </div>
               <div>
-                <p class="text-base font-normal leading-normal">Дедлайн</p>
-                <p class="text-sm text-[#9da6b9]">{{ dueDateLabel }}</p>
+                <p class="text-base font-normal leading-normal">Дата</p>
+                <p class="text-sm text-[#9da6b9]" :class="{ 'text-emerald-600 dark:text-emerald-400': dueDate }">{{ dueDateLabel }}</p>
               </div>
             </div>
             <div class="relative">
@@ -582,11 +502,13 @@ useHead({
                 aria-label="Установите срок выполнения"
               />
               <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
-                <span>{{ dueDate ? 'Изменить дату' : 'Установить дату' }}</span>
+                <span>{{ dueDate ? 'Изменить' : 'Установить' }}</span>
                 <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
               </div>
             </div>
           </div>
+
+          <!-- Due Time -->
           <div class="flex min-h-14 items-center justify-between gap-4 p-4">
             <div class="flex items-center gap-4">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
@@ -594,7 +516,7 @@ useHead({
               </div>
               <div>
                 <p class="text-base font-normal leading-normal">Время</p>
-                <p class="text-sm text-[#9da6b9]">{{ dueTime ? dueTime : 'Не задано' }}</p>
+                <p class="text-sm text-[#9da6b9]" :class="{ 'text-emerald-600 dark:text-emerald-400': dueTime }">{{ dueTime ? dueTime : 'Не задано' }}</p>
               </div>
             </div>
             <div class="relative">
@@ -609,7 +531,7 @@ useHead({
                 </option>
               </select>
               <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
-                <span>{{ dueTime ? 'Изменить время' : 'Установить время' }}</span>
+                <span>{{ dueTime ? 'Изменить' : 'Установить' }}</span>
                 <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
               </div>
             </div>

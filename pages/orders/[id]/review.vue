@@ -1,14 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { getOrderDetailMock } from '~/data/orders'
 import { submitOrderReview } from '~/utils/orderReviewSubmission'
-
-interface AttachmentPreview {
-  id: string
-  name: string
-  previewUrl: string
-  file: File
-}
+import type { ImageAttachment } from '~/components/ImageUploader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,58 +14,10 @@ const orderId = computed(() => {
 
 const order = computed(() => getOrderDetailMock(orderId.value))
 
-const attachments = ref<AttachmentPreview[]>([])
+const attachments = ref<ImageAttachment[]>([])
 const comment = ref('')
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
-const MAX_FILENAME_LENGTH = 26
-
-const createAttachmentPreview = (file: File): AttachmentPreview => {
-  const identifier =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2, 11)
-
-  const previewUrl = typeof URL !== 'undefined' ? URL.createObjectURL(file) : ''
-
-  return {
-    id: identifier,
-    name: file.name,
-    previewUrl,
-    file,
-  }
-}
-
-const revokePreviewUrl = (url: string) => {
-  if (!url) {
-    return
-  }
-
-  if (typeof URL !== 'undefined') {
-    URL.revokeObjectURL(url)
-  }
-}
-
-const formatFileName = (name: string, maxLength = MAX_FILENAME_LENGTH) => {
-  if (name.length <= maxLength) {
-    return name
-  }
-
-  const extensionIndex = name.lastIndexOf('.')
-
-  if (extensionIndex <= 0 || extensionIndex === name.length - 1) {
-    return `${name.slice(0, Math.max(1, maxLength - 3))}...`
-  }
-
-  const extension = name.slice(extensionIndex)
-  const baseName = name.slice(0, extensionIndex)
-  const available = Math.max(1, maxLength - extension.length - 3)
-  const truncated = baseName.slice(0, available)
-
-  return `${truncated}...${extension}`
-}
 
 const handleBack = () => {
   if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -85,39 +31,6 @@ const handleBack = () => {
     router.push({ path: '/' })
   }
 }
-
-const handleAddAttachments = () => {
-  fileInputRef.value?.click()
-}
-
-const handleFileChange = (event: Event) => {
-  const target = event.target as HTMLInputElement | null
-  const fileList = target?.files
-
-  if (!fileList?.length) {
-    return
-  }
-
-  const newAttachments = Array.from(fileList).map(createAttachmentPreview)
-  attachments.value = [...attachments.value, ...newAttachments]
-
-  if (target) {
-    target.value = ''
-  }
-}
-
-const handleRemoveAttachment = (attachmentId: string) => {
-  const index = attachments.value.findIndex((item) => item.id === attachmentId)
-
-  if (index === -1) {
-    return
-  }
-
-  const [removed] = attachments.value.splice(index, 1)
-  revokePreviewUrl(removed.previewUrl)
-}
-
-const hasAttachments = computed(() => attachments.value.length > 0)
 
 const isSubmitDisabled = computed(() => {
   const trimmedComment = comment.value.trim()
@@ -145,9 +58,6 @@ const handleSubmit = async () => {
       attachments: response.attachments.length,
     })
 
-    attachments.value.forEach((attachment) => {
-      revokePreviewUrl(attachment.previewUrl)
-    })
     attachments.value = []
     comment.value = ''
 
@@ -165,10 +75,6 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
-
-onBeforeUnmount(() => {
-  attachments.value.forEach((attachment) => revokePreviewUrl(attachment.previewUrl))
-})
 
 const pageTitle = computed(() => {
   const orderTitle = order.value.title
@@ -225,74 +131,19 @@ useHead({
     <main class="flex-1 space-y-8 px-4 py-6 pb-28 sm:pb-24">
       <section class="space-y-4">
         <div class="space-y-3">
-          <p class="text-base font-semibold text-black dark:text-white">Фотографии</p>
-          <div class="flex flex-wrap items-start gap-4">
-            <button
-              type="button"
-              class="flex h-24 w-24 min-h-24 min-w-24 items-center justify-center rounded-2xl border-2 border-dashed border-black/10 bg-white text-gray-500 transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/15 dark:bg-[#1C2431] dark:text-[#9da6b9] dark:hover:border-primary"
-              aria-label="Добавить фотографии"
-              @click="handleAddAttachments"
-            >
-              <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
-            </button>
-
-            <ul v-if="hasAttachments" class="flex flex-wrap gap-4" role="list">
-              <li
-                v-for="attachment in attachments"
-                :key="attachment.id"
-                role="listitem"
-                class="group relative flex w-28 flex-col items-center gap-2"
-              >
-                <div class="relative">
-                  <img
-                    v-if="attachment.previewUrl"
-                    :src="attachment.previewUrl"
-                    :alt="`Фото ${attachment.name}`"
-                    class="h-24 w-24 min-h-24 min-w-24 rounded-2xl object-cover shadow-sm"
-                  />
-                  <div
-                    v-else
-                    class="flex h-24 w-24 min-h-24 min-w-24 items-center justify-center rounded-2xl bg-black/5 text-gray-500 dark:bg-white/10 dark:text-[#9da6b9]"
-                  >
-                    <span class="material-symbols-outlined text-3xl">image</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    class="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    :aria-label="`Удалить фото ${attachment.name}`"
-                    @click="handleRemoveAttachment(attachment.id)"
-                  >
-                    <span class="material-symbols-outlined text-sm">close</span>
-                  </button>
-                </div>
-
-                <p
-                  class="text-center text-xs font-medium text-gray-600 dark:text-[#9da6b9]"
-                  :title="attachment.name"
-                >
-                  {{ formatFileName(attachment.name) }}
-                </p>
-              </li>
-            </ul>
-          </div>
-
-          <input
-            ref="fileInputRef"
-            type="file"
-            multiple
-            accept="image/*"
-            class="sr-only"
-            @change="handleFileChange"
+          <p class="text-base font-semibold text-black dark:text-white">Фото результата</p>
+          <ImageUploader
+            v-model="attachments"
+            button-size="md"
+            variant="light"
           />
-
           <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
-            Поддерживаются изображения в форматах JPEG, PNG и HEIC. Максимальный размер уточняется с бэкендом.
+            Поддерживаются изображения в форматах JPEG, PNG и SVG.
           </p>
         </div>
 
         <div class="space-y-3">
-          <label class="flex flex-col">
+          <label class="flex flex-col space-y-3">
             <span class="text-base font-semibold text-black dark:text-white">Комментарий</span>
             <textarea
               v-model="comment"
