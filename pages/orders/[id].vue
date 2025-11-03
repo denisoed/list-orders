@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { getOrderDetailMock } from '~/data/orders'
 import type { OrderDetail, OrderStatusTone } from '~/data/orders'
 
@@ -13,6 +13,9 @@ const orderId = computed(() => {
 
 const order = computed<OrderDetail>(() => getOrderDetailMock(orderId.value))
 
+const isPhoneCopied = ref(false)
+let copyResetTimeout: ReturnType<typeof setTimeout> | null = null
+
 const whatsappLink = computed(() => {
   const digits = order.value.client.phone.replace(/\D+/g, '')
 
@@ -22,6 +25,34 @@ const whatsappLink = computed(() => {
 
   return `https://wa.me/${digits}`
 })
+
+const handleCopyPhone = async () => {
+  const phone = order.value.client.phone.trim()
+
+  if (!phone) {
+    return
+  }
+
+  if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(phone)
+    isPhoneCopied.value = true
+
+    if (copyResetTimeout) {
+      clearTimeout(copyResetTimeout)
+    }
+
+    copyResetTimeout = setTimeout(() => {
+      isPhoneCopied.value = false
+      copyResetTimeout = null
+    }, 2000)
+  } catch (error) {
+    console.error('Не удалось скопировать номер телефона', error)
+  }
+}
 
 const hasClientPaymentDetails = computed(() => {
   const { prepayment, totalAmount } = order.value.client
@@ -119,6 +150,12 @@ const handleImageClick = (attachmentId: string) => {
     },
   })
 }
+
+onBeforeUnmount(() => {
+  if (copyResetTimeout) {
+    clearTimeout(copyResetTimeout)
+  }
+})
 
 useHead({
   title: order.value.title,
@@ -234,19 +271,31 @@ useHead({
             </div>
             <div>
               <p class="font-medium text-gray-700 dark:text-gray-300">Номер телефона</p>
-              <div class="mt-1 flex flex-wrap items-center gap-2">
-                <p>{{ order.client.phone }}</p>
-                <a
-                  v-if="whatsappLink"
-                  :href="whatsappLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
-                  aria-label="Открыть номер в WhatsApp"
-                >
-                  <span class="material-symbols-outlined text-base">chat</span>
-                  <span>WhatsApp</span>
-                </a>
+              <div class="mt-1 flex flex-wrap items-center justify-between gap-3">
+                <p class="text-base font-semibold text-black dark:text-white">{{ order.client.phone }}</p>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                    aria-label="Скопировать номер телефона"
+                    @click="handleCopyPhone"
+                  >
+                    <span class="material-symbols-outlined text-base">
+                      {{ isPhoneCopied ? 'check' : 'content_copy' }}
+                    </span>
+                  </button>
+                  <a
+                    v-if="whatsappLink"
+                    :href="whatsappLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+                    aria-label="Открыть номер в WhatsApp"
+                  >
+                    <span class="material-symbols-outlined text-base">chat</span>
+                    <span>WhatsApp</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
