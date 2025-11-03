@@ -346,10 +346,15 @@ useHead({
                     :aria-label="telegramIdCopyStatus === 'copied' ? 'ID скопирован' : 'Скопировать ID'"
                     @click="handleCopyTelegramId"
                   >
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">
-                      {{ telegramIdCopyStatus === 'copied' ? 'check' : 'content_copy' }}
-                    </span>
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
+                    <span class="sr-only">Скопировать ID</span>
                   </button>
+                  <span
+                    v-if="telegramIdCopyStatus === 'copied'"
+                    class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                  >
+                    Скопировано
+                  </span>
                   <span
                     v-if="telegramIdCopyStatus === 'error'"
                     class="text-xs font-medium text-red-500"
