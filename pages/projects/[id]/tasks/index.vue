@@ -185,28 +185,6 @@ const groupedTasks = computed(() => {
 
 const hasTasksInSelectedMonth = computed(() => groupedTasks.value.length > 0)
 
-const selectedPeriodLabel = computed(() => {
-  if (!hasTasksInSelectedMonth.value) {
-    if (selectedMonth.value) {
-      return `Нет заказов в ${selectedMonth.value.label.toLocaleLowerCase('ru-RU')}`
-    }
-    return 'Нет заказов'
-  }
-
-  const first = groupedTasks.value[0]
-  const last = groupedTasks.value[groupedTasks.value.length - 1]
-
-  if (!first || !last) {
-    return ''
-  }
-
-  if (first.key === last.key) {
-    return first.fullDate
-  }
-
-  return `${first.fullDate} — ${last.fullDate}`
-})
-
 const subtitle = computed(() => {
   if (!project.value) {
     return undefined
@@ -304,12 +282,9 @@ useHead({
     <main class="flex-1 px-4 pb-24">
       <section v-if="project" class="space-y-4 py-4">
         <div
-          class="rounded-3xl border border-black/5 bg-white/80 px-5 py-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
+          class="rounded-3xl border border-black/5 bg-white/80 px-2 py-2 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
         >
           <div class="flex flex-col gap-4">
-            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">
-              {{ selectedPeriodLabel }}
-            </p>
             <div class="flex items-center gap-3">
               <button
                 type="button"

@@ -341,21 +341,12 @@ useHead({
                   <button
                     v-if="canCopyTelegramId"
                     type="button"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-black/5 px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-primary/40 dark:hover:bg-primary/10"
-                    :class="telegramIdCopyStatus === 'copied' ? 'border-emerald-500 text-emerald-600 dark:border-emerald-500/80 dark:text-emerald-400' : ''"
-                    :disabled="isCopyingTelegramId"
-                    :aria-label="telegramIdCopyStatus === 'copied' ? 'ID скопирован' : 'Скопировать ID'"
+                    class="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                    aria-label="Скопировать Telegram ID"
                     @click="handleCopyTelegramId"
                   >
-                    <span
-                      class="material-symbols-outlined text-base"
-                      :class="telegramIdCopyStatus === 'copied' ? 'text-emerald-600 dark:text-emerald-400' : ''"
-                      aria-hidden="true"
-                    >
-                      {{ telegramIdCopyStatus === 'copied' ? 'check' : 'content_copy' }}
-                    </span>
-                    <span class="sr-only">
-                      {{ telegramIdCopyStatus === 'copied' ? 'ID скопирован' : 'Скопировать ID' }}
+                    <span class="material-symbols-outlined text-base">
+                      {{ isTelegramIdCopied ? 'check' : 'content_copy' }}
                     </span>
                   </button>
                   <span

@@ -269,6 +269,33 @@ useHead({
       </section>
 
       <section class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold">Примеры</h2>
+          <span class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ examplesCountLabel }}</span>
+        </div>
+        <div v-if="order.attachments.length" class="flex items-center gap-4">
+          <ul class="flex items-center gap-4 overflow-x-auto" role="list">
+            <li
+              v-for="attachment in order.attachments"
+              :key="attachment.id"
+              role="listitem"
+              class="relative cursor-pointer"
+              @click="handleImageClick(attachment.id)"
+            >
+              <img
+                :src="attachment.previewUrl"
+                :alt="`Пример ${attachment.name}`"
+                class="h-24 w-24 min-h-24 min-w-24 rounded-xl object-cover"
+              />
+            </li>
+          </ul>
+        </div>
+        <p v-else class="rounded-2xl bg-white p-4 text-sm text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]">
+          Примеры пока отсутствуют.
+        </p>
+      </section>
+
+      <section class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
@@ -284,7 +311,7 @@ useHead({
             <div>
               <p class="font-medium text-gray-700 dark:text-gray-300">Номер телефона</p>
               <div class="mt-1 flex flex-wrap items-center justify-between gap-3">
-                <p class="text-base font-semibold text-black dark:text-white">{{ order.client.phone }}</p>
+                <p class="mt-1">{{ order.client.phone }}</p>
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
@@ -333,33 +360,6 @@ useHead({
             </div>
           </div>
         </details>
-      </section>
-
-      <section class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold">Примеры</h2>
-          <span class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ examplesCountLabel }}</span>
-        </div>
-        <div v-if="order.attachments.length" class="flex items-center gap-4">
-          <ul class="flex items-center gap-4 overflow-x-auto" role="list">
-            <li
-              v-for="attachment in order.attachments"
-              :key="attachment.id"
-              role="listitem"
-              class="relative cursor-pointer"
-              @click="handleImageClick(attachment.id)"
-            >
-              <img
-                :src="attachment.previewUrl"
-                :alt="`Пример ${attachment.name}`"
-                class="h-24 w-24 min-h-24 min-w-24 rounded-xl object-cover"
-              />
-            </li>
-          </ul>
-        </div>
-        <p v-else class="rounded-2xl bg-white p-4 text-sm text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]">
-          Примеры пока отсутствуют.
-        </p>
       </section>
 
       <section class="space-y-3">

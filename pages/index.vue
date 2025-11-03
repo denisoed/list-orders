@@ -126,18 +126,20 @@ useHead({
           :aria-label="`Перейти к задачам проекта «${project.title}»`"
         >
           <div class="flex items-start gap-3">
-            <div
-              class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/5 text-black transition group-hover:bg-black/10 dark:bg-white/10 dark:text-white dark:group-hover:bg-white/15"
-            >
-              <span class="material-symbols-outlined text-2xl">folder</span>
-            </div>
-            <div class="flex-1 space-y-1">
-              <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
-                {{ project.title }}
-              </p>
-              <p class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
-                {{ project.description }}
-              </p>
+            <div class="flex items-start gap-2 flex-1" :class="{ 'items-center': !project.description }">
+              <div
+                class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/5 text-black transition group-hover:bg-black/10 dark:bg-white/10 dark:text-white dark:group-hover:bg-white/15"
+              >
+                <span class="material-symbols-outlined text-2xl">folder</span>
+              </div>
+              <div class="flex-1 space-y-1">
+                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
+                  {{ project.title }}
+                </p>
+                <p v-if="project.description" class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
+                  {{ project.description }}
+                </p>
+              </div>
             </div>
             <span
               class="material-symbols-outlined shrink-0 text-gray-400 transition group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
@@ -145,7 +147,7 @@ useHead({
               chevron_right
             </span>
           </div>
-          <div class="flex flex-wrap gap-4 pt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-base text-primary">checklist</span>
               {{ formatTaskCount(project) }}

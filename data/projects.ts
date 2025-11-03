@@ -39,9 +39,9 @@ export interface Project {
 
 export const PROJECTS: Project[] = [
   {
-    id: 'design-refresh',
-    title: 'Разработка нового дизайна',
-    description: 'Редизайн главных страниц продукта и обновление брендбука.',
+    id: 'beita-store-2',
+    title: 'Бета Сторе 2',
+    description: '',
     completed: 5,
     total: 12,
     tasks: [
@@ -114,9 +114,9 @@ export const PROJECTS: Project[] = [
     ],
   },
   {
-    id: 'marketing-q4',
-    title: 'Маркетинговая кампания Q4',
-    description: 'Подготовка кампании к новогоднему сезону и запуск акций.',
+    id: 'cum-2',
+    title: 'Цум 2',
+    description: '',
     completed: 22,
     total: 25,
     tasks: [
@@ -178,9 +178,9 @@ export const PROJECTS: Project[] = [
     ],
   },
   {
-    id: 'api-upgrade',
-    title: 'Обновление API сервера',
-    description: 'Миграция на новую версию API, оптимизация производительности и логирования.',
+    id: 'ibraimova-sklad',
+    title: 'Ибраимова склад',
+    description: '',
     completed: 2,
     total: 10,
     tasks: [
