@@ -41,9 +41,12 @@ export interface UseProjectTasksResult {
   searchQuery: Ref<string>
   activeStatus: Ref<TaskStatusFilter>
   isCreating: Ref<boolean>
+  isUpdating: Ref<boolean>
   setSearchQuery: (value: string) => void
   setActiveStatus: (value: TaskStatusFilter) => void
   createTask: (input: CreateProjectTaskInput) => Promise<ProjectTask>
+  updateTask: (taskId: string, input: CreateProjectTaskInput) => Promise<ProjectTask>
+  getTaskById: (taskId: string) => ProjectTask | undefined
 }
 
 const cloneProjects = (): Project[] => {
@@ -88,6 +91,7 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
   const searchQuery = ref('')
   const activeStatus = ref<TaskStatusFilter>('all')
   const isCreating = ref(false)
+  const isUpdating = ref(false)
 
   const filteredTasks = computed(() => filterProjectTasks(allTasks.value, activeStatus.value, searchQuery.value))
 
@@ -103,11 +107,15 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
     searchQuery,
     activeStatus,
     isCreating,
+    isUpdating,
     setSearchQuery: (value: string) => {
       searchQuery.value = value
     },
     setActiveStatus: (value: TaskStatusFilter) => {
       activeStatus.value = value
+    },
+    getTaskById: (taskId: string) => {
+      return allTasks.value.find((task) => task.id === taskId)
     },
     createTask: async (input: CreateProjectTaskInput) => {
       const currentProjectIndex = projectsState.value.findIndex((item) => item.id === projectIdRef.value)
@@ -165,10 +173,87 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
         isCreating.value = false
       }
     },
+    updateTask: async (taskId: string, input: CreateProjectTaskInput) => {
+      const currentProjectIndex = projectsState.value.findIndex((item) => item.id === projectIdRef.value)
+
+      if (currentProjectIndex === -1) {
+        throw new Error('Проект не найден для обновления задачи')
+      }
+
+      const projectSnapshot = projectsState.value[currentProjectIndex]
+      const taskIndex = projectSnapshot.tasks.findIndex((task) => task.id === taskId)
+
+      if (taskIndex === -1) {
+        throw new Error('Задача не найдена для обновления')
+      }
+
+      const existingTask = projectSnapshot.tasks[taskIndex]
+      const assignee = input.assignee ?? {
+        name: 'Не назначен',
+        avatarUrl:
+          'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
+      }
+
+      const updatedTask: ProjectTask = {
+        ...existingTask,
+        title: input.title.trim(),
+        description: input.description.trim(),
+        dueDate: input.dueDate ?? existingTask.dueDate,
+        dueTime: input.dueTime,
+        assignee,
+        attachments: input.attachments.map((attachment) => ({ ...attachment })),
+        clientName: input.clientName?.trim() || undefined,
+        clientPhone: input.clientPhone?.trim() || undefined,
+        deliveryAddress:
+          input.isPickup === true ? undefined : input.deliveryAddress?.trim() || undefined,
+        isPickup: input.isPickup ?? false,
+        remindBefore: input.remindBefore,
+      }
+
+      isUpdating.value = true
+
+      try {
+        const updatedTasks = [...projectSnapshot.tasks]
+        updatedTasks[taskIndex] = updatedTask
+
+        const updatedProject: Project = {
+          ...projectSnapshot,
+          tasks: updatedTasks,
+        }
+
+        projectsState.value.splice(currentProjectIndex, 1, updatedProject)
+
+        console.info('[tasks] Обновлена задача', {
+          projectId: projectIdRef.value,
+          taskId: updatedTask.id,
+          title: updatedTask.title,
+        })
+
+        return updatedTask
+      } catch (error) {
+        console.error('[tasks] Не удалось обновить задачу', error)
+        throw error
+      } finally {
+        isUpdating.value = false
+      }
+    },
   }
 }
 
 export const useAllProjects = () => {
   const projectsState = useProjectsState()
   return computed(() => projectsState.value)
+}
+
+export const findTaskInProjects = (taskId: string): { project: Project; task: ProjectTask } | null => {
+  const projectsState = useProjectsState()
+  
+  for (const project of projectsState.value) {
+    const task = project.tasks.find((t) => t.id === taskId)
+    if (task) {
+      return { project, task }
+    }
+  }
+  
+  return null
 }

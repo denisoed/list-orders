@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import type { TaskReminderOffset } from '~/data/projects'
-import { useProjectTasks } from '~/composables/useProjectTasks'
+import { findTaskInProjects, useProjectTasks } from '~/composables/useProjectTasks'
 import type { ImageAttachment } from '~/components/ImageUploader.vue'
+import { getOrderDetailMock } from '~/data/orders'
 
 interface AssigneeOption {
   id: string
@@ -15,8 +16,14 @@ const route = useRoute()
 const router = useRouter()
 
 const projectId = computed(() => String(route.params.id ?? ''))
+const orderId = computed(() => {
+  const orderIdParam = route.query.orderId
+  return typeof orderIdParam === 'string' ? orderIdParam : null
+})
 
-const { project, createTask, isCreating } = useProjectTasks(projectId)
+const isEditMode = computed(() => Boolean(orderId.value))
+
+const { project, createTask, updateTask, isCreating, isUpdating } = useProjectTasks(projectId)
 
 const fallbackTasksRoute = computed(() => `/projects/${projectId.value}/tasks`)
 const returnPath = computed(() => {
@@ -36,6 +43,7 @@ const deliveryOption = ref<'pickup' | 'delivery' | ''>('')
 const dueDate = ref('')
 const dueTime = ref('')
 const selectedAssigneeId = ref('unassigned')
+const customAssignee = ref<{ name: string; avatarUrl: string } | null>(null)
 const attachments = ref<ImageAttachment[]>([])
 const reminderOffset = ref<TaskReminderOffset | null>(null)
 const hasPrepayment = ref(false)
@@ -76,6 +84,13 @@ const assigneeOptions = computed<AssigneeOption[]>(() => {
 })
 
 const selectedAssignee = computed(() => {
+  if (customAssignee.value) {
+    return {
+      id: customAssignee.value.name,
+      name: customAssignee.value.name,
+      avatarUrl: customAssignee.value.avatarUrl,
+    }
+  }
   const found = assigneeOptions.value.find((option) => option.id === selectedAssigneeId.value)
   return found ?? DEFAULT_ASSIGNEE
 })
@@ -175,7 +190,129 @@ const handleToggleReminder = (value: TaskReminderOffset) => {
   reminderOffset.value = reminderOffset.value === value ? null : value
 }
 
-const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value)
+const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value || isUpdating.value)
+
+// Load order data for edit mode
+onMounted(() => {
+  if (orderId.value) {
+    // First, try to find task in all projects
+    const found = findTaskInProjects(orderId.value)
+    
+    if (found) {
+      // If task found in another project, redirect to that project's edit page
+      if (found.project.id !== projectId.value) {
+        router.replace({
+          path: `/projects/${found.project.id}/tasks/new`,
+          query: {
+            ...route.query,
+            orderId: orderId.value,
+          },
+        })
+        return
+      }
+      
+      // If task found in current project, fill form with task data
+      const task = found.task
+      title.value = task.title || ''
+      description.value = task.description || ''
+      clientName.value = task.clientName || ''
+      clientPhone.value = task.clientPhone || ''
+      deliveryAddress.value = task.deliveryAddress || ''
+      deliveryOption.value = task.isPickup ? 'pickup' : (task.deliveryAddress ? 'delivery' : '')
+      dueDate.value = task.dueDate || ''
+      dueTime.value = task.dueTime || ''
+      reminderOffset.value = task.remindBefore || null
+      
+      if (task.attachments) {
+        attachments.value = task.attachments.map((att) => ({
+          id: att.id,
+          name: att.name,
+          previewUrl: att.previewUrl,
+        }))
+      }
+      
+      const assigneeOption = assigneeOptions.value.find((opt) => opt.name === task.assignee.name)
+      if (assigneeOption) {
+        selectedAssigneeId.value = assigneeOption.id
+      } else {
+        // If assignee not found in options, store it as custom assignee
+        customAssignee.value = {
+          name: task.assignee.name,
+          avatarUrl: task.assignee.avatarUrl,
+        }
+        selectedAssigneeId.value = 'unassigned'
+      }
+    } else {
+      // If task not found in projects, try to load from order data
+      const order = getOrderDetailMock(orderId.value)
+      
+      // Fill form with order data
+      title.value = order.title || ''
+      description.value = order.description || ''
+      clientName.value = order.client.name || ''
+      clientPhone.value = order.client.phone || ''
+      
+      // Parse due date from dueDateLabel (format: "26 октября 2024, 18:00")
+      if (order.dueDateLabel) {
+        const dateMatch = order.dueDateLabel.match(/(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+(\d{4})/)
+        if (dateMatch) {
+          const months: Record<string, string> = {
+            'января': '01', 'февраля': '02', 'марта': '03', 'апреля': '04',
+            'мая': '05', 'июня': '06', 'июля': '07', 'августа': '08',
+            'сентября': '09', 'октября': '10', 'ноября': '11', 'декабря': '12'
+          }
+          const day = dateMatch[1].padStart(2, '0')
+          const month = months[dateMatch[2]] || '01'
+          const year = dateMatch[3]
+          dueDate.value = `${year}-${month}-${day}`
+          
+          // Parse time if available
+          const timeMatch = order.dueDateLabel.match(/(\d{1,2}):(\d{2})/)
+          if (timeMatch) {
+            dueTime.value = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`
+          }
+        }
+      }
+      
+      // Set delivery option - assume delivery if no specific indication
+      deliveryOption.value = 'pickup'
+      
+      // Set prepayment
+      if (order.client.prepayment) {
+        hasPrepayment.value = true
+        prepaymentAmount.value = order.client.prepayment
+      }
+      
+      if (order.client.totalAmount) {
+        paymentAmount.value = order.client.totalAmount
+      }
+      
+      // Convert attachments
+      if (order.attachments && order.attachments.length > 0) {
+        attachments.value = order.attachments.map((att) => ({
+          id: att.id,
+          name: att.name,
+          previewUrl: att.previewUrl,
+        }))
+      }
+      
+      // Set assignee
+      if (order.assignee) {
+        const assigneeOption = assigneeOptions.value.find((opt) => opt.name === order.assignee?.name)
+        if (assigneeOption) {
+          selectedAssigneeId.value = assigneeOption.id
+        } else {
+          // If assignee not found in options, store it as custom assignee
+          customAssignee.value = {
+            name: order.assignee.name,
+            avatarUrl: order.assignee.avatarUrl,
+          }
+          selectedAssigneeId.value = 'unassigned'
+        }
+      }
+    }
+  }
+})
 
 const handleImageClick = (attachment: ImageAttachment) => {
   // Use previewUrl as imageId for blob URLs
@@ -197,12 +334,14 @@ const handleSubmit = async () => {
   }
 
   if (!project.value) {
-    submitError.value = 'Проект недоступен для создания задачи.'
+    submitError.value = isEditMode.value 
+      ? 'Проект недоступен для редактирования задачи.'
+      : 'Проект недоступен для создания задачи.'
     return
   }
 
   try {
-    await createTask({
+    const taskData = {
       title: title.value,
       description: description.value,
       clientName: clientName.value,
@@ -214,17 +353,40 @@ const handleSubmit = async () => {
       remindBefore: reminderOffset.value || undefined,
       attachments: attachments.value.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
       assignee:
-        selectedAssignee.value.id === DEFAULT_ASSIGNEE.id
+        customAssignee.value
+          ? { name: customAssignee.value.name, avatarUrl: customAssignee.value.avatarUrl }
+          : selectedAssignee.value.id === DEFAULT_ASSIGNEE.id || selectedAssignee.value.id === 'unassigned'
           ? undefined
           : { name: selectedAssignee.value.name, avatarUrl: selectedAssignee.value.avatarUrl },
-    })
+    }
 
-    attachments.value = []
-    reminderOffset.value = null
-
-    await router.push(returnPath.value)
+    if (isEditMode.value && orderId.value) {
+      // Try to find task in projects
+      const found = findTaskInProjects(orderId.value)
+      
+      if (found && found.project.id === projectId.value) {
+        // Task found in current project, update it
+        await updateTask(orderId.value, taskData)
+        await router.push(`/orders/${orderId.value}`)
+      } else {
+        // Task not found or in different project, create new task with same ID
+        // Note: This would require modifying createTask to accept an ID, or we create it and redirect
+        // For now, we'll create a new task and redirect to order details
+        await createTask(taskData)
+        attachments.value = []
+        reminderOffset.value = null
+        await router.push(`/orders/${orderId.value}`)
+      }
+    } else {
+      await createTask(taskData)
+      attachments.value = []
+      reminderOffset.value = null
+      await router.push(returnPath.value)
+    }
   } catch (error) {
-    submitError.value = 'Не удалось создать задачу. Попробуйте ещё раз.'
+    submitError.value = isEditMode.value
+      ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'
+      : 'Не удалось создать задачу. Попробуйте ещё раз.'
   }
 }
 
@@ -256,6 +418,12 @@ watch(dueDate, (value) => {
   }
 })
 
+watch(selectedAssigneeId, (value) => {
+  if (value !== 'unassigned' && customAssignee.value) {
+    customAssignee.value = null
+  }
+})
+
 watch(
   hasPrepayment,
   (value) => {
@@ -266,8 +434,15 @@ watch(
   { flush: 'post' },
 )
 
+const pageTitle = computed(() => isEditMode.value ? 'Редактирование заказа' : 'Новая задача')
+const submitButtonLabel = computed(() => {
+  if (isCreating.value) return 'Создание…'
+  if (isUpdating.value) return 'Сохранение…'
+  return isEditMode.value ? 'Сохранить изменения' : 'Создать задачу'
+})
+
 useHead({
-  title: 'Новая задача',
+  title: pageTitle,
   htmlAttrs: {
     lang: 'ru',
     class: 'dark',
@@ -300,7 +475,7 @@ useHead({
       >
         <span class="material-symbols-outlined text-3xl">close</span>
       </button>
-      <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">Новая задача</h1>
+      <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
       <div class="flex w-12 items-center justify-end"></div>
     </header>
 
@@ -579,7 +754,7 @@ useHead({
           :disabled="isSubmitDisabled"
           @click="handleSubmit"
         >
-          {{ isCreating ? 'Создание…' : 'Создать задачу' }}
+          {{ submitButtonLabel }}
         </button>
       </div>
     </footer>
