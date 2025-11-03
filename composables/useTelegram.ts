@@ -6,6 +6,12 @@ interface TelegramThemeSettings {
   backgroundColor: string
 }
 
+interface TelegramWebAppInitDataUnsafe {
+  start_param?: string
+  start_app?: string
+  [key: string]: unknown
+}
+
 interface TelegramWebApp {
   ready: () => void
   expand?: () => void
@@ -14,6 +20,9 @@ interface TelegramWebApp {
   setBackgroundColor: (color: string) => void
   disableVerticalSwipes?: () => void
   initData?: string
+  initDataUnsafe?: TelegramWebAppInitDataUnsafe
+  openLink?: (url: string, options?: { try_instant_view?: boolean }) => void
+  openTelegramLink?: (url: string) => void
 }
 
 declare global {
@@ -111,6 +120,46 @@ export const useTelegram = () => {
     return instance?.initData ?? null
   }
 
+  const getStartParam = (): string | null => {
+    if (!import.meta.client) {
+      return null
+    }
+
+    const instance = window.Telegram?.WebApp ?? null
+    return instance?.initDataUnsafe?.start_param ?? null
+  }
+
+  const openLink = (url: string, options?: { try_instant_view?: boolean }): void => {
+    if (!import.meta.client) {
+      return
+    }
+
+    const instance = window.Telegram?.WebApp ?? null
+    if (instance?.openLink) {
+      instance.openLink(url, options)
+    } else {
+      // Fallback for non-Telegram environment
+      window.open(url, '_blank')
+    }
+  }
+
+  const openTelegramLink = (url: string): void => {
+    if (!import.meta.client) {
+      return
+    }
+
+    const instance = window.Telegram?.WebApp ?? null
+    if (instance?.openTelegramLink) {
+      instance.openTelegramLink(url)
+    } else if (instance?.openLink) {
+      // Fallback to openLink if openTelegramLink is not available
+      instance.openLink(url)
+    } else {
+      // Fallback for non-Telegram environment
+      window.open(url, '_blank')
+    }
+  }
+
   const initTelegram = async (overrides?: Partial<TelegramThemeSettings>) => {
     if (!import.meta.client) {
       return
@@ -145,5 +194,8 @@ export const useTelegram = () => {
     initTelegram,
     applyTheme,
     getInitData,
+    getStartParam,
+    openLink,
+    openTelegramLink,
   }
 }

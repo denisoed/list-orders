@@ -10,7 +10,9 @@ import { onBeforeMount } from 'vue'
 import { useTelegram } from '~/composables/useTelegram'
 import { useUserStore, type User } from '~/stores/user'
 
-const { getInitData } = useTelegram()
+const { getInitData, getStartParam } = useTelegram()
+const router = useRouter()
+const route = useRoute()
 
 onBeforeMount(async () => {
   const initData = getInitData()
@@ -28,6 +30,19 @@ onBeforeMount(async () => {
       }
     } catch (error) {
       console.warn('[Telegram] Failed to send initData to server', error)
+    }
+  }
+
+  // Handle start_param for deep linking to order details
+  const startParam = getStartParam()
+  if (startParam) {
+    // Check if we're already on the order details page for this order
+    const currentOrderId = route.params.id
+    const isOrderDetailsPage = route.path.startsWith('/orders/')
+    
+    // Only redirect if we're not already on the target page
+    if (!isOrderDetailsPage || currentOrderId !== startParam) {
+      router.push(`/orders/${startParam}`)
     }
   }
 })

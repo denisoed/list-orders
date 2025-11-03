@@ -18,9 +18,25 @@ const orderId = computed(() => {
 
 const order = ref<OrderDetail>(getOrderDetailMock(orderId.value))
 
+// Handle startapp parameter from query string (for direct link opening)
+const startAppParam = computed(() => {
+  const startapp = route.query.startapp
+  if (typeof startapp === 'string') {
+    return startapp
+  }
+  return null
+})
+
 // Update order when route changes
 watch(orderId, () => {
   order.value = getOrderDetailMock(orderId.value)
+})
+
+// Handle startapp parameter from query - redirect if it doesn't match current order
+watch([startAppParam, orderId], ([startapp, currentId]) => {
+  if (startapp && startapp !== currentId) {
+    router.replace(`/orders/${startapp}`)
+  }
 })
 
 const hasAssignee = computed(() => Boolean(order.value.assignee))
@@ -220,23 +236,34 @@ onBeforeUnmount(() => {
   }
 })
 
+// Note: openTelegramLink is imported but not used directly in handleShare
+// It's available via window.Telegram.WebApp if needed
+const { getStartParam } = useTelegram()
+
 const handleShare = async () => {
   if (!orderId.value) {
     return
   }
 
-  // Build the order URL
+  // Build the order URL with startapp parameter for Telegram deep linking
   const orderUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/orders/${orderId.value}`
     : `/orders/${orderId.value}`
 
+  // Add startapp parameter for Telegram Mini App deep linking
+  // When opened in Telegram, this will be available as start_param
+  const shareUrl = `${orderUrl}?startapp=${orderId.value}`
+
   const shareData = {
     title: order.value.title || 'Детали заказа',
     text: order.value.description || 'Посмотрите детали заказа',
-    url: orderUrl,
+    url: shareUrl,
   }
 
-  // Check if Web Share API is available
+  // Check if Telegram WebApp is available
+  const telegramWebApp = window.Telegram?.WebApp
+  
+  // Use Web Share API if available (it works in Telegram Mini App and shows native share dialog)
   if (typeof navigator !== 'undefined' && navigator.share) {
     // Check if we can share (if canShare is available)
     const canShare = navigator.canShare 
@@ -252,14 +279,28 @@ const handleShare = async () => {
         if (error instanceof Error && error.name !== 'AbortError') {
           console.error('Ошибка при открытии окна поделиться:', error)
         } else {
-          // User cancelled, don't fallback to clipboard
+          // User cancelled, don't fallback
           return
         }
       }
     }
   }
+
+  // Fallback for Telegram WebApp: use openLink/openTelegramLink
+  if (telegramWebApp) {
+    try {
+      if (telegramWebApp.openTelegramLink) {
+        telegramWebApp.openTelegramLink(shareUrl)
+      } else if (telegramWebApp.openLink) {
+        telegramWebApp.openLink(shareUrl)
+      }
+      return
+    } catch (error) {
+      console.error('Ошибка при открытии ссылки через Telegram:', error)
+    }
+  }
   
-  // Fallback: copy to clipboard if Web Share API is not available
+  // Final fallback: copy to clipboard
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(orderUrl)
