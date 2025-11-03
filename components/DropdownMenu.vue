@@ -71,7 +71,7 @@ const handleItemClick = (item: DropdownMenuItem) => {
 
 const getItemClasses = (variant: DropdownMenuItem['variant'] = 'default') => {
   const baseClasses =
-    'flex w-full items-center gap-3 px-4 py-2 text-left text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+    'flex w-full items-center gap-3 px-5 py-3 text-left text-base font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
 
   if (variant === 'danger') {
     return [
@@ -94,7 +94,7 @@ const getItemClasses = (variant: DropdownMenuItem['variant'] = 'default') => {
       ref="buttonRef"
       :class="[
         'flex items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10',
-        props.buttonSize === 'sm' ? 'size-12' : 'size-14',
+        props.buttonSize === 'sm' ? 'size-8' : 'size-12',
       ]"
       :aria-label="props.buttonAriaLabel || '?????????????? ????????'"
       :aria-expanded="isMenuOpen"
@@ -121,8 +121,8 @@ const getItemClasses = (variant: DropdownMenuItem['variant'] = 'default') => {
         v-if="isMenuOpen"
         ref="menuRef"
         :class="[
-          'absolute right-0 z-20 min-w-[180px] overflow-hidden rounded-xl border border-black/5 bg-white py-1 shadow-lg shadow-black/10 dark:border-white/10 dark:bg-[#1C2431]',
-          props.buttonSize === 'sm' ? 'top-14' : 'top-16',
+          'absolute right-0 z-20 min-w-[200px] overflow-hidden rounded-xl border border-black/5 bg-white shadow-lg shadow-black/10 dark:border-white/10 dark:bg-[#1C2431]',
+          props.buttonSize === 'sm' ? 'top-10' : 'top-14',
         ]"
         role="menu"
       >
@@ -134,7 +134,7 @@ const getItemClasses = (variant: DropdownMenuItem['variant'] = 'default') => {
           role="menuitem"
           @click="handleItemClick(item)"
         >
-          <span v-if="item.icon" class="material-symbols-outlined text-base">{{
+          <span v-if="item.icon" class="material-symbols-outlined text-xl">{{
             item.icon
           }}</span>
           {{ item.label }}
