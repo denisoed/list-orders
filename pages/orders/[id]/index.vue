@@ -6,6 +6,7 @@ import { useUserStore } from '~/stores/user'
 import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
+import { findTaskInProjects, useAllProjects } from '~/composables/useProjectTasks'
 
 const route = useRoute()
 const router = useRouter()
@@ -308,8 +309,41 @@ const handleShare = async () => {
 }
 
 const handleEdit = () => {
-  // TODO: Implement edit functionality
-  console.log('Edit order', orderId.value)
+  const targetOrderId = orderId.value
+
+  if (!targetOrderId) {
+    return
+  }
+
+  // Try to find task in all projects
+  const found = findTaskInProjects(targetOrderId)
+  
+  if (found) {
+    // If task found, redirect to edit page in the project where it exists
+    router.push({
+      path: `/projects/${found.project.id}/tasks/new`,
+      query: {
+        orderId: targetOrderId,
+        from: route.fullPath,
+      },
+    })
+  } else {
+    // If task not found, try to get first project and redirect there
+    const allProjects = useAllProjects()
+    const firstProject = allProjects.value[0]
+    
+    if (firstProject) {
+      router.push({
+        path: `/projects/${firstProject.id}/tasks/new`,
+        query: {
+          orderId: targetOrderId,
+          from: route.fullPath,
+        },
+      })
+    } else {
+      console.warn('No projects available for editing order')
+    }
+  }
 }
 
 const menuItems: DropdownMenuItem[] = [
