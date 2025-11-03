@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useHead, useRouter } from '#imports'
 import { useUserStore, type UserProfileUpdates } from '~/stores/user'
@@ -63,8 +63,17 @@ const canCopyTelegramId = computed(() => telegramIdText.value.length > 0)
 const isCopyingTelegramId = ref(false)
 
 const telegramIdCopyStatus = ref<'idle' | 'copied' | 'error'>('idle')
+const telegramIdCopyResetTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+
+const clearTelegramIdCopyResetTimeout = () => {
+  if (telegramIdCopyResetTimeout.value) {
+    clearTimeout(telegramIdCopyResetTimeout.value)
+    telegramIdCopyResetTimeout.value = null
+  }
+}
 
 const resetTelegramIdStatus = () => {
+  clearTelegramIdCopyResetTimeout()
   telegramIdCopyStatus.value = 'idle'
 }
 
@@ -82,6 +91,11 @@ const handleCopyTelegramId = async () => {
     isCopyingTelegramId.value = true
     await navigator.clipboard.writeText(telegramIdText.value)
     telegramIdCopyStatus.value = 'copied'
+    clearTelegramIdCopyResetTimeout()
+    telegramIdCopyResetTimeout.value = setTimeout(() => {
+      telegramIdCopyStatus.value = 'idle'
+      telegramIdCopyResetTimeout.value = null
+    }, 2000)
   }
   catch (error) {
     console.error('[ProfileEdit] Failed to copy Telegram ID', error)
@@ -93,6 +107,10 @@ const handleCopyTelegramId = async () => {
 }
 
 watch(telegramIdText, resetTelegramIdStatus)
+
+onBeforeUnmount(() => {
+  clearTelegramIdCopyResetTimeout()
+})
 
 const validateField = (field: FormField) => {
   const value = form[field].trim()
@@ -317,27 +335,23 @@ useHead({
               <div class="space-y-2">
                 <p class="text-lg font-semibold leading-tight text-zinc-900 dark:text-white">{{ displayName }}</p>
                 <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-[#9da6b9]" aria-live="polite">
-                  <span class="text-sm">ID в Telegram:</span>
+                  <span class="text-sm">ID:</span>
+                  <span v-if="canCopyTelegramId" class="font-semibold text-zinc-900 dark:text-white">{{ telegramIdText }}</span>
+                  <span v-else class="text-sm font-medium text-zinc-900 dark:text-white">нет данных</span>
                   <button
                     v-if="canCopyTelegramId"
                     type="button"
-                    class="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-black/5 px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-primary/40 dark:hover:bg-primary/10"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-black/5 px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-primary/40 dark:hover:bg-primary/10"
                     :disabled="isCopyingTelegramId"
+                    :aria-label="telegramIdCopyStatus === 'copied' ? 'ID скопирован' : 'Скопировать ID'"
                     @click="handleCopyTelegramId"
                   >
-                    <span>{{ telegramIdText }}</span>
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
-                    <span class="sr-only">Скопировать ID в Telegram</span>
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">
+                      {{ telegramIdCopyStatus === 'copied' ? 'check' : 'content_copy' }}
+                    </span>
                   </button>
-                  <span v-else class="text-sm font-medium text-zinc-900 dark:text-white">нет данных</span>
                   <span
-                    v-if="telegramIdCopyStatus === 'copied'"
-                    class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                  >
-                    Скопировано
-                  </span>
-                  <span
-                    v-else-if="telegramIdCopyStatus === 'error'"
+                    v-if="telegramIdCopyStatus === 'error'"
                     class="text-xs font-medium text-red-500"
                   >
                     Не удалось скопировать
