@@ -220,9 +220,55 @@ onBeforeUnmount(() => {
   }
 })
 
-const handleShare = () => {
-  // TODO: Implement share functionality
-  console.log('Share order', orderId.value)
+const handleShare = async () => {
+  if (!orderId.value) {
+    return
+  }
+
+  // Build the order URL
+  const orderUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/orders/${orderId.value}`
+    : `/orders/${orderId.value}`
+
+  const shareData = {
+    title: order.value.title || 'Детали заказа',
+    text: order.value.description || 'Посмотрите детали заказа',
+    url: orderUrl,
+  }
+
+  // Check if Web Share API is available
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    // Check if we can share (if canShare is available)
+    const canShare = navigator.canShare 
+      ? navigator.canShare(shareData) 
+      : true
+    
+    if (canShare) {
+      try {
+        await navigator.share(shareData)
+        return
+      } catch (error) {
+        // User cancelled or share failed
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Ошибка при открытии окна поделиться:', error)
+        } else {
+          // User cancelled, don't fallback to clipboard
+          return
+        }
+      }
+    }
+  }
+  
+  // Fallback: copy to clipboard if Web Share API is not available
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(orderUrl)
+      // You could show a toast notification here
+      console.log('Ссылка скопирована в буфер обмена')
+    } catch (error) {
+      console.error('Не удалось скопировать ссылку:', error)
+    }
+  }
 }
 
 const handleEdit = () => {
