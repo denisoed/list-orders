@@ -95,6 +95,27 @@ const handleBack = () => {
   router.back()
 }
 
+const reviewBlockedStatusIds = ['status-review', 'status-completed', 'status-archived']
+
+const reviewSubmitRoute = computed(() => ({
+  path: `/orders/${orderId.value}/submit-review`,
+  query: {
+    from: route.fullPath,
+  },
+}))
+
+const isSubmitDisabled = computed(() =>
+  order.value.statusChips.some((chip) => reviewBlockedStatusIds.includes(chip.id)),
+)
+
+const handleSubmitForReview = () => {
+  if (isSubmitDisabled.value) {
+    return
+  }
+
+  router.push(reviewSubmitRoute.value)
+}
+
 const handleImageClick = (attachmentId: string) => {
   router.push({
     path: `/images/${attachmentId}`,
@@ -283,7 +304,10 @@ useHead({
     >
       <button
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:bg-primary/60 disabled:text-white/80"
+        :disabled="isSubmitDisabled"
+        :aria-disabled="isSubmitDisabled"
+        @click="handleSubmitForReview"
       >
         <span>{{ order.actionLabel }}</span>
         <span class="material-symbols-outlined">check_circle</span>
