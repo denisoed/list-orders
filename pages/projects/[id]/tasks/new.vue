@@ -41,8 +41,9 @@ const dueTime = ref('')
 const selectedAssigneeId = ref('unassigned')
 const attachments = ref<FormAttachment[]>([])
 const reminderOffset = ref<TaskReminderOffset | null>(null)
-const paymentOption = ref<'prepayment' | 'full' | ''>('')
+const hasPrepayment = ref(false)
 const paymentAmount = ref('')
+const prepaymentAmount = ref('')
 
 const titleTouched = ref(false)
 const clientNameTouched = ref(false)
@@ -133,8 +134,6 @@ const showDeliveryAddressError = computed(
 )
 
 const shouldShowDeliveryAddress = computed(() => isDeliverySelected.value)
-
-const isPaymentAmountDisabled = computed(() => paymentOption.value === '')
 
 const dueDateLabel = computed(() => {
   if (!dueDate.value) {
@@ -318,11 +317,15 @@ watch(dueDate, (value) => {
   }
 })
 
-watch(paymentOption, (value) => {
-  if (!value) {
-    paymentAmount.value = ''
-  }
-})
+watch(
+  hasPrepayment,
+  (value) => {
+    if (!value) {
+      prepaymentAmount.value = ''
+    }
+  },
+  { flush: 'post' },
+)
 
 useHead({
   title: 'Новая задача',
@@ -422,34 +425,33 @@ useHead({
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 text-base font-medium leading-normal">
               <input
-                v-model="paymentOption"
-                type="radio"
-                value="prepayment"
+                v-model="hasPrepayment"
+                type="checkbox"
                 class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
-                name="payment-option"
+                name="payment-prepayment"
               />
               <span>Предоплата</span>
             </label>
-            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+            <label v-if="hasPrepayment" class="flex flex-col">
+              <span class="pb-2 text-base font-medium leading-normal">Сумма предоплаты</span>
               <input
-                v-model="paymentOption"
-                type="radio"
-                value="full"
-                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
-                name="payment-option"
+                v-model="prepaymentAmount"
+                class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+                type="number"
+                inputmode="decimal"
+                placeholder="Введите сумму предоплаты"
+                min="0"
               />
-              <span>Вся сумма</span>
             </label>
           </div>
           <label class="flex flex-col">
-            <span class="pb-2 text-base font-medium leading-normal">Сумма</span>
+            <span class="pb-2 text-base font-medium leading-normal">Вся сумма</span>
             <input
               v-model="paymentAmount"
-              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
               type="number"
               inputmode="decimal"
-              placeholder="Введите сумму"
-              :disabled="isPaymentAmountDisabled"
+              placeholder="Введите сумму заказа"
               min="0"
             />
           </label>
