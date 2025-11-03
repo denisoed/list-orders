@@ -35,6 +35,7 @@ export interface Project {
   completed: number
   total: number
   tasks: ProjectTask[]
+  color?: string
 }
 
 export const PROJECTS: Project[] = [
@@ -44,6 +45,7 @@ export const PROJECTS: Project[] = [
     description: '',
     completed: 5,
     total: 12,
+    color: '#3B82F6',
     tasks: [
       {
         id: 'landing-page',
@@ -119,6 +121,7 @@ export const PROJECTS: Project[] = [
     description: '',
     completed: 22,
     total: 25,
+    color: '#10B981',
     tasks: [
       {
         id: 'media-plan',
@@ -183,6 +186,7 @@ export const PROJECTS: Project[] = [
     description: '',
     completed: 2,
     total: 10,
+    color: '#F59E0B',
     tasks: [
       {
         id: 'auth-migration',

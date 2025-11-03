@@ -346,7 +346,7 @@ useHead({
                     @click="handleCopyTelegramId"
                   >
                     <span class="material-symbols-outlined text-base">
-                      {{ isTelegramIdCopied ? 'check' : 'content_copy' }}
+                      {{ telegramIdCopyStatus === 'copied' ? 'check' : 'content_copy' }}
                     </span>
                   </button>
                   <span

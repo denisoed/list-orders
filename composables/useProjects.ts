@@ -5,12 +5,14 @@ import { useProjectsState } from '~/composables/useProjectTasks'
 export interface CreateProjectInput {
   title: string
   description?: string
+  color?: string
 }
 
 export interface UpdateProjectInput {
   id: string
   title: string
   description?: string
+  color?: string
 }
 
 const generateProjectId = () => `project-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`
@@ -23,6 +25,7 @@ export const useProjects = () => {
   const createProject = async (input: CreateProjectInput): Promise<Project> => {
     const trimmedTitle = input.title.trim()
     const trimmedDescription = input.description?.trim() ?? ''
+    const projectColor = input.color
 
     if (!trimmedTitle) {
       throw new Error('Название проекта не может быть пустым')
@@ -38,6 +41,7 @@ export const useProjects = () => {
         completed: 0,
         total: 0,
         tasks: [],
+        color: projectColor,
       }
 
       projectsState.value = [newProject, ...projectsState.value]
@@ -60,6 +64,7 @@ export const useProjects = () => {
     const trimmedTitle = input.title.trim()
     const hasDescription = typeof input.description === 'string'
     const trimmedDescription = hasDescription ? input.description.trim() : undefined
+    const projectColor = input.color
 
     if (!trimmedTitle) {
       throw new Error('Название проекта не может быть пустым')
@@ -80,6 +85,7 @@ export const useProjects = () => {
         title: trimmedTitle,
         description:
           trimmedDescription !== undefined ? trimmedDescription : existingProject.description,
+        color: projectColor !== undefined ? projectColor : existingProject.color,
       }
 
       projectsState.value.splice(projectIndex, 1, updatedProject)

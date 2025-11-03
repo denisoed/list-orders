@@ -12,6 +12,7 @@ const { createProject, updateProject, isCreating, isUpdating } = useProjects()
 
 const title = ref('')
 const description = ref('')
+const color = ref('#3B82F6')
 const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
@@ -118,6 +119,7 @@ const handleSubmit = async () => {
         id: editableProject.value.id,
         title: title.value,
         description: description.value,
+        color: color.value,
       })
 
       await router.push(returnPath.value || `/projects/${updatedProject.id}/tasks`)
@@ -127,6 +129,7 @@ const handleSubmit = async () => {
     const project = await createProject({
       title: title.value,
       description: description.value,
+      color: color.value,
     })
 
     await router.push(`/projects/${project.id}/tasks`)
@@ -179,6 +182,16 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  () => editableProject.value?.color,
+  (projectColor) => {
+    if (projectColor && isEditing.value) {
+      color.value = projectColor
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -226,6 +239,7 @@ watch(
             enterkeyhint="done"
           ></textarea>
         </label>
+        <ColorSelector v-model="color" />
         <ProjectInviteLink
           :project-id="inviteProjectId"
           :project-title="title"

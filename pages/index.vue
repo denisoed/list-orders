@@ -128,7 +128,9 @@ useHead({
           <div class="flex items-start gap-3">
             <div class="flex items-start gap-2 flex-1" :class="{ 'items-center': !project.description }">
               <div
-                class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/5 text-black transition group-hover:bg-black/10 dark:bg-white/10 dark:text-white dark:group-hover:bg-white/15"
+                class="flex size-12 shrink-0 items-center justify-center rounded-xl transition group-hover:opacity-80"
+                :style="project.color ? { backgroundColor: project.color + '20', color: project.color } : {}"
+                :class="!project.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white group-hover:bg-black/10 dark:group-hover:bg-white/15'"
               >
                 <span class="material-symbols-outlined text-2xl">folder</span>
               </div>
