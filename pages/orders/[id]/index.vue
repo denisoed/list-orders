@@ -4,6 +4,8 @@ import { getOrderDetailMock } from '~/data/orders'
 import type { OrderDetail, OrderStatusTone } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
+import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
+import DropdownMenu from '~/components/DropdownMenu.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,6 +220,31 @@ onBeforeUnmount(() => {
   }
 })
 
+const handleShare = () => {
+  // TODO: Implement share functionality
+  console.log('Share order', orderId.value)
+}
+
+const handleEdit = () => {
+  // TODO: Implement edit functionality
+  console.log('Edit order', orderId.value)
+}
+
+const menuItems: DropdownMenuItem[] = [
+  {
+    id: 'share',
+    label: 'Поделиться',
+    icon: 'share',
+    action: handleShare,
+  },
+  {
+    id: 'edit',
+    label: 'Изменить',
+    icon: 'edit',
+    action: handleEdit,
+  },
+]
+
 useHead({
   title: order.value.title,
   htmlAttrs: {
@@ -263,6 +290,11 @@ useHead({
           {{ order.title }}
         </h1>
       </div>
+
+      <DropdownMenu
+        :items="menuItems"
+        button-aria-label="Дополнительные действия для заказа"
+      />
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
