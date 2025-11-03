@@ -218,10 +218,6 @@ const handleSubmit = async () => {
   }
 }
 
-const handleNavigateHome = () => {
-  router.push('/')
-}
-
 const handleRetry = () => {
   if (typeof window !== 'undefined') {
     window.location.reload()
@@ -265,7 +261,7 @@ useHead({
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться на главную"
-        @click="handleNavigateHome"
+        @click="$router.back()"
       >
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
@@ -310,9 +306,9 @@ useHead({
           <button
             type="button"
             class="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary transition hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            @click="handleNavigateHome"
+            @click="$router.back()"
           >
-            На главную
+            Вернуться назад
           </button>
         </div>
       </section>

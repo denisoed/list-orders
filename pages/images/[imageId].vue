@@ -247,11 +247,6 @@ const canZoomIn = computed(() => scale.value < MAX_SCALE)
 const canZoomOut = computed(() => scale.value > MIN_SCALE)
 const canReset = computed(() => scale.value !== MIN_SCALE || translateX.value !== 0 || translateY.value !== 0)
 
-// Handle back navigation
-const handleBack = () => {
-  router.back()
-}
-
 // Handle image load
 const handleImageLoad = () => {
   isLoading.value = false
@@ -339,7 +334,7 @@ useHead({
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться назад"
-        @click="handleBack"
+        @click="$router.back()"
       >
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>

@@ -73,10 +73,6 @@ const returnPath = computed(() => {
   return '/'
 })
 
-const handleClose = () => {
-  router.push(returnPath.value)
-}
-
 const inviteProjectId = computed(() => {
   if (!isEditing.value || projectNotFound.value || !editableProject.value) {
     return ''
@@ -201,9 +197,9 @@ watch(
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
         :aria-label="closeAriaLabel"
-        @click="handleClose"
+        @click="$router.back()"
       >
-        <span class="material-symbols-outlined text-3xl">close</span>
+        <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
       <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
       <div class="flex w-12 items-center justify-end"></div>

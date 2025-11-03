@@ -19,19 +19,6 @@ const comment = ref('')
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 
-const handleBack = () => {
-  if (typeof window !== 'undefined' && window.history.length > 1) {
-    router.back()
-    return
-  }
-
-  if (orderId.value) {
-    router.push({ path: `/orders/${orderId.value}` })
-  } else {
-    router.push({ path: '/' })
-  }
-}
-
 const isSubmitDisabled = computed(() => {
   const trimmedComment = comment.value.trim()
   return isSubmitting.value || (!trimmedComment && !attachments.value.length)
@@ -116,7 +103,7 @@ useHead({
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться назад"
-        @click="handleBack"
+        @click="$router.back()"
       >
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>

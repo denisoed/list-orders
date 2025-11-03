@@ -28,10 +28,6 @@ const backPath = computed(() => {
   return projectId.value.length > 0 ? `/projects/${projectId.value}/tasks` : '/projects/new'
 })
 
-const handleBack = () => {
-  router.push(backPath.value)
-}
-
 const handleSearchUpdate = (value: string) => {
   setSearchQuery(value)
 }
@@ -83,7 +79,7 @@ useHead({
           type="button"
           class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
           aria-label="Вернуться к проекту"
-          @click="handleBack"
+          @click="$router.back()"
         >
           <span class="material-symbols-outlined text-3xl">arrow_back</span>
         </button>

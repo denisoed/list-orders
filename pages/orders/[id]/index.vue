@@ -66,12 +66,6 @@ const quickInfoItems = computed(() => [
     label: 'Срок выполнения',
     value: order.value.dueDateLabel,
   },
-  {
-    id: 'project',
-    icon: 'folder',
-    label: 'Проект',
-    value: order.value.projectName,
-  },
 ])
 
 const statusToneClass = (tone: OrderStatusTone) => {
@@ -137,10 +131,6 @@ const examplesCountLabel = computed(() => {
   return `${count} примеров`
 })
 
-const handleBack = () => {
-  router.back()
-}
-
 const handleImageClick = (attachmentId: string) => {
   router.push({
     path: `/images/${attachmentId}`,
@@ -204,7 +194,7 @@ useHead({
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться назад"
-        @click="handleBack"
+        @click="$router.back()"
       >
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
@@ -363,24 +353,31 @@ useHead({
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-base font-semibold">История изменений</h2>
-        <div class="space-y-4">
-          <div v-for="entry in order.history" :key="entry.id" class="flex gap-4">
-            <div class="flex flex-col items-center">
-              <div :class="baseIconContainerClass">
-                <span class="material-symbols-outlined">{{ entry.icon }}</span>
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
+          >
+            История изменений
+            <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
+          </summary>
+          <div class="mt-4 space-y-4">
+            <div v-for="entry in order.history" :key="entry.id" class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div :class="baseIconContainerClass">
+                  <span class="material-symbols-outlined">{{ entry.icon }}</span>
+                </div>
+                <div
+                  v-if="entry.id !== order.history[order.history.length - 1]?.id"
+                  class="mt-2 w-px flex-1 bg-gray-200 dark:bg-[#282e39]"
+                ></div>
               </div>
-              <div
-                v-if="entry.id !== order.history[order.history.length - 1]?.id"
-                class="mt-2 w-px flex-1 bg-gray-200 dark:bg-[#282e39]"
-              ></div>
-            </div>
-            <div class="flex-1 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
-              <p class="text-sm leading-6 text-black dark:text-white">{{ entry.description }}</p>
-              <p class="mt-2 text-xs uppercase tracking-wide text-gray-500 dark:text-[#9da6b9]">{{ entry.timestamp }}</p>
+              <div class="flex-1 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#282e39]">
+                <p class="text-sm leading-6 text-black dark:text-white">{{ entry.description }}</p>
+                <p class="mt-2 text-xs uppercase tracking-wide text-gray-500 dark:text-[#9da6b9]">{{ entry.timestamp }}</p>
+              </div>
             </div>
           </div>
-        </div>
+        </details>
       </section>
     </main>
 

@@ -71,10 +71,6 @@ const filterButtonClass = (status: TeamMemberTaskStatus) => {
   ]
 }
 
-const handleBack = () => {
-  router.back()
-}
-
 const contactTarget = (type: TeamMemberContact['type']) => (type === 'telegram' ? '_blank' : undefined)
 
 useHead(() => ({
@@ -112,7 +108,7 @@ useHead(() => ({
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться назад"
-        @click="handleBack"
+        @click="$router.back()"
       >
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
@@ -141,7 +137,7 @@ useHead(() => ({
         <button
           type="button"
           class="rounded-full bg-primary px-6 py-2 text-sm font-medium text-white shadow-lg transition hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          @click="handleBack"
+          @click="$router.back()"
         >
           Вернуться назад
         </button>
