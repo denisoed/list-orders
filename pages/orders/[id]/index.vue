@@ -245,14 +245,9 @@ const handleShare = async () => {
     return
   }
 
-  // Build the order URL with startapp parameter for Telegram deep linking
-  const orderUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/orders/${orderId.value}`
-    : `/orders/${orderId.value}`
-
-  // Add startapp parameter for Telegram Mini App deep linking
+  // Use Telegram bot link for sharing
   // When opened in Telegram, this will be available as start_param
-  const shareUrl = `${orderUrl}?startapp=${orderId.value}`
+  const shareUrl = `https://t.me/list_orders_bot/app?startapp=${orderId.value}`
 
   const shareData = {
     title: order.value.title || 'Детали заказа',
@@ -303,7 +298,7 @@ const handleShare = async () => {
   // Final fallback: copy to clipboard
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     try {
-      await navigator.clipboard.writeText(orderUrl)
+      await navigator.clipboard.writeText(shareUrl)
       // You could show a toast notification here
       console.log('Ссылка скопирована в буфер обмена')
     } catch (error) {
