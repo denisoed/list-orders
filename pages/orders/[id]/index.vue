@@ -151,6 +151,18 @@ const handleImageClick = (attachmentId: string) => {
   })
 }
 
+const handleMarkCompleted = () => {
+  const targetOrderId = orderId.value
+
+  if (!targetOrderId) {
+    return
+  }
+
+  router.push({
+    path: `/orders/${targetOrderId}/review`,
+  })
+}
+
 onBeforeUnmount(() => {
   if (copyResetTimeout) {
     clearTimeout(copyResetTimeout)
@@ -378,6 +390,7 @@ useHead({
       <button
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        @click="handleMarkCompleted"
       >
         <span>{{ order.actionLabel }}</span>
         <span class="material-symbols-outlined">check_circle</span>

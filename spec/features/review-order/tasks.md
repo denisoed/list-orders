@@ -4,23 +4,23 @@
 
 ## Main directions
 ### UI/UX
-- [ ] Обновить страницу деталей заказа, чтобы кнопка «Отметить выполненным» перенаправляла на маршрут страницы отправки на проверку.
-- [ ] Создать страницу отправки на проверку с шапкой (кнопка «Назад» и название задачи), формой загрузки фотографий, полем комментария и кнопкой отправки.
-- [ ] Реализовать клиентскую обрезку длинных названий файлов с добавлением троеточия при отображении списка вложений.
-- [ ] Убедиться, что интерфейс не содержит лишних элементов и соответствует дизайн-системе проекта.
+- [x] Обновить страницу деталей заказа, чтобы кнопка «Отметить выполненным» перенаправляла на маршрут страницы отправки на проверку.
+- [x] Создать страницу отправки на проверку с шапкой (кнопка «Назад» и название задачи), формой загрузки фотографий, полем комментария и кнопкой отправки.
+- [x] Реализовать клиентскую обрезку длинных названий файлов с добавлением троеточия при отображении списка вложений.
+- [x] Убедиться, что интерфейс не содержит лишних элементов и соответствует дизайн-системе проекта.
 
 ### Data flow / интеграция
-- [ ] Настроить загрузку изображений и передачу их ссылок/идентификаторов вместе с комментарием в бэкенд.
-- [ ] Обновить логику смены статуса заказа на «ожидает проверки» после успешной отправки.
-- [ ] Обработать ошибки загрузки и отправки, используя существующий механизм уведомлений.
+- [x] Настроить загрузку изображений и передачу их ссылок/идентификаторов вместе с комментарием в бэкенд.
+- [x] Обновить логику смены статуса заказа на «ожидает проверки» после успешной отправки.
+- [x] Обработать ошибки загрузки и отправки, используя существующий механизм уведомлений.
 
 ## Supporting tasks
-- [ ] Documentation: update relevant instructions and descriptions.
-- [ ] Observability: add or clarify metrics, alerts, and/or logging.
-- [ ] Code review and PR: prepare changes for review and accompanying information.
+- [x] Documentation: update relevant instructions and descriptions.
+- [x] Observability: add or clarify metrics, alerts, and/or logging.
+- [x] Code review and PR: prepare changes for review and accompanying information.
 
 ## Definition of Done
-- [ ] All tasks are completed and tested.
-- [ ] Relevant unit/e2e/integration tests pass successfully.
-- [ ] Documentation and operational instructions are updated.
-- [ ] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [x] All tasks are completed and tested.
+- [x] Relevant unit/e2e/integration tests pass successfully.
+- [x] Documentation and operational instructions are updated.
+- [x] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
