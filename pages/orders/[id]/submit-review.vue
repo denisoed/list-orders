@@ -255,7 +255,6 @@ useHead({
       </button>
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
-        <p class="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-[#9da6b9]">Отправка на проверку</p>
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
           {{ order.title }}
         </h1>
@@ -263,18 +262,6 @@ useHead({
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-36 sm:pb-32">
-      <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
-        <div class="flex flex-col gap-3">
-          <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Заказ</p>
-          <div class="flex flex-wrap items-center gap-2 text-sm text-black/80 dark:text-white/80">
-            <span class="rounded-full bg-black/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-black/70 dark:bg-white/5 dark:text-white/70">
-              {{ order.code }}
-            </span>
-            <span class="text-sm leading-tight">{{ order.summary }}</span>
-          </div>
-        </div>
-      </section>
-
       <form :id="reviewFormId" class="space-y-6" novalidate @submit.prevent="handleSubmit">
         <section class="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <div class="flex flex-col gap-4">
@@ -290,7 +277,7 @@ useHead({
               class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-black/10 bg-black/5 px-6 py-8 text-center text-sm text-gray-600 transition hover:border-primary/40 hover:bg-primary/5 dark:border-white/10 dark:bg-white/5 dark:text-[#9da6b9] dark:hover:border-primary/60 dark:hover:bg-primary/10"
             >
               <span class="material-symbols-outlined text-4xl text-primary">cloud_upload</span>
-              <span class="text-base font-semibold text-black dark:text-white">Перетащите фото или выберите файлы</span>
+              <span class="text-base font-semibold text-black dark:text-white">Выберите фото</span>
               <span class="text-xs text-gray-500 dark:text-[#9da6b9]">Можно выбрать несколько изображений сразу.</span>
               <input
                 id="photo-upload"
