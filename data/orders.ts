@@ -31,6 +31,8 @@ export interface OrderClient {
   name: string
   phone: string
   payment: string
+  prepayment: string
+  totalAmount: string
 }
 
 export interface OrderDetail {
@@ -70,6 +72,8 @@ const defaultOrder: OrderDetail = {
     name: 'ООО "ТехноПром"',
     phone: '+7 (495) 123-45-67',
     payment: 'Предоплата 50%',
+    prepayment: '50 000 ₽',
+    totalAmount: '100 000 ₽',
   },
   attachments: [
     {
@@ -125,6 +129,8 @@ const ordersMock: Record<string, OrderDetail> = {
       name: 'ИП Петров А.В.',
       phone: '+7 (812) 456-78-90',
       payment: 'Оплата по факту',
+      prepayment: '0 ₽',
+      totalAmount: '65 000 ₽',
     },
     attachments: [
       {

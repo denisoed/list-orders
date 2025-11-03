@@ -13,6 +13,21 @@ const orderId = computed(() => {
 
 const order = computed<OrderDetail>(() => getOrderDetailMock(orderId.value))
 
+const whatsappLink = computed(() => {
+  const digits = order.value.client.phone.replace(/\D+/g, '')
+
+  if (!digits) {
+    return null
+  }
+
+  return `https://wa.me/${digits}`
+})
+
+const hasClientPaymentDetails = computed(() => {
+  const { prepayment, totalAmount } = order.value.client
+  return Boolean(prepayment?.trim() || totalAmount?.trim())
+})
+
 const quickInfoItems = computed(() => [
   {
     id: 'due-date',
@@ -215,15 +230,49 @@ useHead({
           <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
             <div>
               <p class="font-medium text-gray-700 dark:text-gray-300">Имя клиента</p>
-              <p class="mt-1">{{ order.client.name }}</p>
+              <p class="mt-1 text-base font-semibold leading-tight text-black dark:text-white">
+                {{ order.client.name }}
+              </p>
             </div>
             <div>
               <p class="font-medium text-gray-700 dark:text-gray-300">Номер телефона</p>
-              <p class="mt-1">{{ order.client.phone }}</p>
+              <div class="mt-1 flex flex-wrap items-center gap-2">
+                <p class="text-base font-semibold leading-tight text-black dark:text-white">
+                  {{ order.client.phone }}
+                </p>
+                <a
+                  v-if="whatsappLink"
+                  :href="whatsappLink"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+                  aria-label="Открыть номер в WhatsApp"
+                >
+                  <span class="material-symbols-outlined text-base">chat</span>
+                  <span>WhatsApp</span>
+                </a>
+              </div>
             </div>
-            <div>
-              <p class="font-medium text-gray-700 dark:text-gray-300">Оплата</p>
-              <p class="mt-1">{{ order.client.payment }}</p>
+          </div>
+        </details>
+      </section>
+
+      <section v-if="hasClientPaymentDetails" class="space-y-3">
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
+          >
+            Оплата
+            <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
+          </summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
+            <div v-if="order.client.prepayment">
+              <p class="font-medium text-gray-700 dark:text-gray-300">Предоплата</p>
+              <p class="mt-1">{{ order.client.prepayment }}</p>
+            </div>
+            <div v-if="order.client.totalAmount">
+              <p class="font-medium text-gray-700 dark:text-gray-300">Вся сумма</p>
+              <p class="mt-1">{{ order.client.totalAmount }}</p>
             </div>
           </div>
         </details>
