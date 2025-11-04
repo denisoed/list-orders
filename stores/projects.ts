@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { Project } from '~/data/projects'
+import { useTelegram } from '~/composables/useTelegram'
 
 export interface CreateProjectInput {
   title: string
@@ -26,6 +27,27 @@ export const useProjectsStore = defineStore('projects', () => {
   const error = ref<string | null>(null)
 
   /**
+   * Helper function to get fetch options with initData header
+   */
+  function getFetchOptions(options: any = {}): any {
+    const { getInitData } = useTelegram()
+    const initData = getInitData()
+
+    const headers = {
+      ...(options.headers || {}),
+    }
+
+    if (initData) {
+      headers['x-telegram-init-data'] = initData
+    }
+
+    return {
+      ...options,
+      headers,
+    }
+  }
+
+  /**
    * Fetch all projects from the server
    */
   async function fetchProjects(): Promise<Project[]> {
@@ -33,7 +55,7 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
 
     try {
-      const response = await $fetch<Project[]>('/api/projects')
+      const response = await $fetch<Project[]>('/api/projects', getFetchOptions())
 
       // Transform response to ensure tasks array exists
       const transformedProjects = response.map((project) => ({
@@ -67,7 +89,7 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
 
     try {
-      const project = await $fetch<Project>(`/api/projects/${projectId}`)
+      const project = await $fetch<Project>(`/api/projects/${projectId}`, getFetchOptions())
 
       // Transform response to ensure tasks array exists
       const projectWithTasks: Project = {
@@ -121,14 +143,14 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
 
     try {
-      const newProject = await $fetch<Project>('/api/projects', {
+      const newProject = await $fetch<Project>('/api/projects', getFetchOptions({
         method: 'POST',
         body: {
           title: trimmedTitle,
           description: trimmedDescription,
           color: projectColor,
         },
-      })
+      }))
 
       // Transform response to ensure tasks array exists
       const projectWithTasks: Project = {
@@ -178,14 +200,14 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
 
     try {
-      const updatedProject = await $fetch<Project>(`/api/projects/${projectId}`, {
+      const updatedProject = await $fetch<Project>(`/api/projects/${projectId}`, getFetchOptions({
         method: 'PUT',
         body: {
           title: trimmedTitle,
           description: trimmedDescription,
           color: projectColor,
         },
-      })
+      }))
 
       // Transform response to ensure tasks array exists
       const projectIndex = projects.value.findIndex((project) => project.id === projectId)
@@ -228,9 +250,9 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
 
     try {
-      await $fetch(`/api/projects/${projectId}`, {
+      await $fetch(`/api/projects/${projectId}`, getFetchOptions({
         method: 'DELETE',
-      })
+      }))
 
       // Remove project from the list
       const projectIndex = projects.value.findIndex((project) => project.id === projectId)
