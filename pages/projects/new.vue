@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useProjects } from '~/composables/useProjects'
 import { useProjectsStore } from '~/stores/projects'
-import { useProjectTeam } from '~/composables/useProjectTeam'
 
 const router = useRouter()
 const route = useRoute()
@@ -35,8 +34,6 @@ const editableProject = computed(() => {
 
 const isEditing = computed(() => editProjectId.value.length > 0)
 const projectNotFound = computed(() => isEditing.value && !editableProject.value)
-
-const { memberCount: teamMemberCount } = useProjectTeam(editProjectId)
 
 const titleError = computed(() => {
   if (title.value.trim().length > 0) {
@@ -80,8 +77,6 @@ const inviteProjectId = computed(() => {
 
   return editableProject.value.id
 })
-
-const inviteReturnPath = computed(() => route.fullPath)
 
 const pageTitle = computed(() => (isEditing.value ? 'Редактирование проекта' : 'Новый проект'))
 const closeAriaLabel = computed(() =>
@@ -201,7 +196,21 @@ watch(
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
       <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
-      <div class="flex w-12 items-center justify-end"></div>
+      <button
+        v-if="isEditing && !projectNotFound"
+        type="button"
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
+        aria-label="Управление коллегами"
+        @click="
+          $router.push({
+            path: `/projects/${inviteProjectId}/team`,
+            query: returnPath ? { from: returnPath } : {},
+          })
+        "
+      >
+        <span class="material-symbols-outlined text-3xl">group_add</span>
+      </button>
+      <div v-else class="flex w-12 items-center justify-end"></div>
     </header>
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
@@ -225,6 +234,7 @@ watch(
           />
           <p v-if="showTitleError" class="pt-1 text-sm text-red-400">{{ titleError }}</p>
         </label>
+        <ColorSelector v-model="color" />
         <label class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Описание</p>
           <textarea
@@ -234,13 +244,6 @@ watch(
             enterkeyhint="done"
           ></textarea>
         </label>
-        <ColorSelector v-model="color" />
-        <ProjectInviteLink
-          :project-id="inviteProjectId"
-          :project-title="title"
-          :member-count="teamMemberCount"
-          :return-path="inviteReturnPath"
-        />
       </div>
     </main>
 

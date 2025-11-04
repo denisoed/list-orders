@@ -16,13 +16,13 @@ const selectedColor = computed({
 
 const COLORS = [
   { name: 'Синий', value: '#3B82F6', class: 'bg-blue-500' },
-  { name: 'Зелёный', value: '#10B981', class: 'bg-emerald-500' },
+  { name: 'Зелёный', value: '#22C55E', class: 'bg-green-500' },
   { name: 'Красный', value: '#EF4444', class: 'bg-red-500' },
-  { name: 'Оранжевый', value: '#F59E0B', class: 'bg-amber-500' },
-  { name: 'Фиолетовый', value: '#8B5CF6', class: 'bg-violet-500' },
+  { name: 'Жёлтый', value: '#EAB308', class: 'bg-yellow-500' },
+  { name: 'Фиолетовый', value: '#A855F7', class: 'bg-purple-500' },
   { name: 'Розовый', value: '#EC4899', class: 'bg-pink-500' },
-  { name: 'Бирюзовый', value: '#14B8A6', class: 'bg-teal-500' },
-  { name: 'Голубой', value: '#06B6D4', class: 'bg-cyan-500' },
+  { name: 'Индиго', value: '#6366F1', class: 'bg-indigo-500' },
+  { name: 'Оранжевый', value: '#F97316', class: 'bg-orange-500' },
 ]
 </script>
 
