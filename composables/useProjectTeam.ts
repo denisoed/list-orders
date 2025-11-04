@@ -2,6 +2,7 @@ import { useState } from '#imports'
 import { computed, ref, watch, type Ref } from 'vue'
 import type { ProjectTeamMember } from '~/data/team'
 import { filterTeamMembers } from '~/utils/projectTeam'
+import { useTelegram } from '~/composables/useTelegram'
 
 export interface AvailableUser {
   id: string
@@ -48,6 +49,27 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
   const filteredMembers = computed(() => filterTeamMembers(members.value, searchQuery.value))
   const memberCount = computed(() => members.value.length)
 
+  /**
+   * Helper function to get fetch options with initData header
+   */
+  function getFetchOptions(options: any = {}): any {
+    const { getInitData } = useTelegram()
+    const initData = getInitData()
+
+    const headers = {
+      ...(options.headers || {}),
+    }
+
+    if (initData) {
+      headers['x-telegram-init-data'] = initData
+    }
+
+    return {
+      ...options,
+      headers,
+    }
+  }
+
   watch(projectIdRef, () => {
     searchQuery.value = ''
   })
@@ -57,7 +79,7 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
 
     isLoading.value = true
     try {
-      const response = await $fetch<ProjectTeamMember[]>(`/api/projects/${projectIdRef.value}/members`)
+      const response = await $fetch<ProjectTeamMember[]>(`/api/projects/${projectIdRef.value}/members`, getFetchOptions())
       
       teamsState.value = {
         ...teamsState.value,
@@ -86,13 +108,13 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
 
     isAdding.value = true
     try {
-      const member = await $fetch<ProjectTeamMember>(`/api/projects/${projectIdRef.value}/members`, {
+      const member = await $fetch<ProjectTeamMember>(`/api/projects/${projectIdRef.value}/members`, getFetchOptions({
         method: 'POST',
         body: {
           memberTelegramId: telegramId,
           role,
         },
-      })
+      }))
 
       // Update local state
       const currentTeam = teamsState.value[projectIdRef.value]
@@ -121,7 +143,7 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
     if (!projectIdRef.value) return []
 
     try {
-      const users = await $fetch<AvailableUser[]>(`/api/users?excludeProjectId=${projectIdRef.value}`)
+      const users = await $fetch<AvailableUser[]>(`/api/users?excludeProjectId=${projectIdRef.value}`, getFetchOptions())
       return users || []
     } catch (error) {
       console.error('Failed to fetch available users:', error)
@@ -133,9 +155,9 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
     if (!projectIdRef.value) return
 
     try {
-      await $fetch(`/api/projects/${projectIdRef.value}/members/${memberId}`, {
+      await $fetch(`/api/projects/${projectIdRef.value}/members/${memberId}`, getFetchOptions({
         method: 'DELETE',
-      })
+      }))
 
       // Update local state
       const currentTeam = teamsState.value[projectIdRef.value]
