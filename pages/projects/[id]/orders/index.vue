@@ -10,6 +10,7 @@ import { useProjects } from '~/composables/useProjects'
 import { useOrders } from '~/composables/useOrders'
 import type { Order } from '~/data/orders'
 import type { ProjectOrder, OrderStatus } from '~/data/projects'
+import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,8 +18,10 @@ const router = useRouter()
 const projectId = computed(() => String(route.params.id ?? ''))
 
 const { project, activeStatus, setActiveStatus } = useProjectOrders(projectId)
-const { fetchProject } = useProjects()
-const { fetchOrders, getOrdersByProjectId } = useOrders()
+const { fetchProject, isLoading: isLoadingProject } = useProjects()
+const { fetchOrders, getOrdersByProjectId, isLoading: isLoadingOrders } = useOrders()
+
+const isLoading = computed(() => isLoadingProject.value || isLoadingOrders.value)
 
 // Convert Order to ProjectOrder format
 const convertOrderToOrder = (order: Order): ProjectOrder => {
@@ -393,42 +396,45 @@ useHead({
 
     <main class="flex-1 px-4 pb-24">
       <section v-if="project" class="space-y-4 py-4">
-        <div
-          class="rounded-3xl border border-black/5 bg-white/80 px-2 py-2 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
-        >
-          <div class="flex flex-col gap-4">
-            <div class="flex items-center gap-3">
-              <button
-                type="button"
-                class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-                :disabled="!canGoToPreviousMonth"
-                aria-label="Предыдущий месяц"
-                @click="handlePreviousMonth"
-              >
-                <span class="material-symbols-outlined text-2xl">chevron_left</span>
-              </button>
-              <div
-                class="flex flex-1 items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-medium text-white shadow-inner dark:bg-white/10"
-              >
-                <span class="truncate">
-                  {{ selectedMonth?.label ?? 'Месяц не выбран' }}
-                </span>
+        <DataLoadingIndicator v-if="isLoading" />
+
+        <template v-else>
+          <div
+            class="rounded-3xl border border-black/5 bg-white/80 px-2 py-2 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
+          >
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                  :disabled="!canGoToPreviousMonth"
+                  aria-label="Предыдущий месяц"
+                  @click="handlePreviousMonth"
+                >
+                  <span class="material-symbols-outlined text-2xl">chevron_left</span>
+                </button>
+                <div
+                  class="flex flex-1 items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-medium text-white shadow-inner dark:bg-white/10"
+                >
+                  <span class="truncate">
+                    {{ selectedMonth?.label ?? 'Месяц не выбран' }}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                  :disabled="!canGoToNextMonth"
+                  aria-label="Следующий месяц"
+                  @click="handleNextMonth"
+                >
+                  <span class="material-symbols-outlined text-2xl">chevron_right</span>
+                </button>
               </div>
-              <button
-                type="button"
-                class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-                :disabled="!canGoToNextMonth"
-                aria-label="Следующий месяц"
-                @click="handleNextMonth"
-              >
-                <span class="material-symbols-outlined text-2xl">chevron_right</span>
-              </button>
             </div>
           </div>
-        </div>
-        <OrderStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
+          <OrderStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
 
-        <div class="flex flex-col gap-4 pt-2">
+          <div class="flex flex-col gap-4 pt-2">
           <template v-if="hasOrders">
             <template v-if="hasFilteredOrders">
               <template v-if="hasOrdersInSelectedMonth">
@@ -473,6 +479,11 @@ useHead({
           </template>
           <OrderEmptyState v-else />
         </div>
+        </template>
+      </section>
+
+      <section v-else-if="isLoading" class="py-10">
+        <DataLoadingIndicator />
       </section>
 
       <section v-else class="py-10">
