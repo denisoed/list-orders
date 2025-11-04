@@ -11,6 +11,8 @@ export interface Order {
   description: string
   status: string
   assigneeTelegramId: number | null
+  assigneeTelegramAvatarUrl: string | null
+  assigneeTelegramName: string | null
   dueDate: string | null
   projectId: string
   clientName: string
@@ -138,6 +140,15 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
     }).format(amount)
   }
 
+  // Build assignee from new fields
+  const assignee: OrderAssignee | null = order.assigneeTelegramName && order.assigneeTelegramAvatarUrl
+    ? {
+        name: order.assigneeTelegramName,
+        avatarUrl: order.assigneeTelegramAvatarUrl,
+        role: '', // Role is not available from DB fields
+      }
+    : null
+
   return {
     id: order.id,
     code: order.code,
@@ -145,7 +156,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
     summary: order.summary || '',
     description: order.description || '',
     statusChips,
-    assignee: null, // Will be populated separately if assignee info is available
+    assignee,
     dueDateLabel,
     projectName: projectName || 'Проект',
     client: {

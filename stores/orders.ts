@@ -24,6 +24,8 @@ export interface UpdateOrderInput {
   description?: string
   status?: string
   assignee_telegram_id?: number | null
+  assignee_telegram_name?: string | null
+  assignee_telegram_avatar_url?: string | null
   due_date?: string | null
   client_name?: string
   client_phone?: string
@@ -283,6 +285,12 @@ export const useOrdersStore = defineStore('orders', () => {
       }
       if (input.total_amount !== undefined) {
         body.total_amount = input.total_amount
+      }
+      if (input.assignee_telegram_name !== undefined) {
+        body.assignee_telegram_name = input.assignee_telegram_name
+      }
+      if (input.assignee_telegram_avatar_url !== undefined) {
+        body.assignee_telegram_avatar_url = input.assignee_telegram_avatar_url
       }
 
       const updatedOrder = await $fetch<Order>(`/api/orders/${orderId}`, getFetchOptions({

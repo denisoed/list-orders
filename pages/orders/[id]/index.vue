@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { convertOrderToOrderDetail } from '~/data/orders'
 import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
-import { STATUS_CHIP_THEMES } from '~/utils/orderStatusThemes'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
 import { useOrders } from '~/composables/useOrders'
@@ -148,17 +147,7 @@ const statusToneClass = (tone: OrderStatusTone) => {
 }
 
 const primaryStatusChip = computed(() => {
-  // If no assignee, show "Ожидает" status
-  if (!hasAssignee.value) {
-    return {
-      id: 'status-pending',
-      label: 'Ожидает',
-      tone: 'danger' as OrderStatusTone,
-      classes: STATUS_CHIP_THEMES.pending.inactive,
-    }
-  }
-
-  // Otherwise use the status from order
+  // Use the status from order (from API)
   if (!order.value) return null
   const chip = order.value.statusChips[0]
   if (!chip) {
@@ -246,9 +235,11 @@ const handleTakeInWork = async () => {
 
   try {
     // Update order status to "in_progress" and set assignee
-    const updatedOrderData = await updateOrder(orderId.value, {
+    await updateOrder(orderId.value, {
       status: 'in_progress',
-      assignee_telegram_id: currentUser.id,
+      assignee_telegram_id: currentUser.telegram_id,
+      assignee_telegram_name: (currentUser.first_name || '') + ' ' + (currentUser.last_name || '') || currentUser.username || '',
+      assignee_telegram_avatar_url: currentUser.photo_url || '',
     })
 
     // Reload order to get updated data
@@ -275,10 +266,6 @@ onBeforeUnmount(() => {
     clearTimeout(copyResetTimeout)
   }
 })
-
-// Note: openTelegramLink is imported but not used directly in handleShare
-// It's available via window.Telegram.WebApp if needed
-const { getStartParam } = useTelegram()
 
 const handleShare = async () => {
   if (!orderId.value) {

@@ -157,6 +157,8 @@ export default defineEventHandler(async (event) => {
       description: order.description || '',
       status: order.status || 'new',
       assigneeTelegramId: order.assignee_telegram_id || null,
+      assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
+      assigneeTelegramName: order.assignee_telegram_name || null,
       dueDate: order.due_date || null,
       projectId: order.project_id,
       clientName: order.client_name,

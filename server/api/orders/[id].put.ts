@@ -44,6 +44,8 @@ export default defineEventHandler(async (event) => {
       payment_type?: string | null
       prepayment_amount?: number | null
       total_amount?: number | null
+      assignee_telegram_name?: string | null
+      assignee_telegram_avatar_url?: string | null
     } = {}
 
     if (body.title !== undefined) {
@@ -108,6 +110,14 @@ export default defineEventHandler(async (event) => {
       updateData.total_amount = body.total_amount !== null ? Number(body.total_amount) : null
     }
 
+    if (body.assignee_telegram_name !== undefined) {
+      updateData.assignee_telegram_name = body.assignee_telegram_name || null
+    }
+
+    if (body.assignee_telegram_avatar_url !== undefined) {
+      updateData.assignee_telegram_avatar_url = body.assignee_telegram_avatar_url || null
+    }
+
     // Check if there's anything to update
     if (Object.keys(updateData).length === 0) {
       return sendError(event, createError({
@@ -149,6 +159,8 @@ export default defineEventHandler(async (event) => {
       description: order.description || '',
       status: order.status || 'new',
       assigneeTelegramId: order.assignee_telegram_id || null,
+      assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
+      assigneeTelegramName: order.assignee_telegram_name || null,
       dueDate: order.due_date || null,
       projectId: order.project_id,
       clientName: order.client_name,
