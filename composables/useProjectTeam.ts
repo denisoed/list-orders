@@ -1,30 +1,47 @@
 import { useState } from '#imports'
 import { computed, ref, watch, type Ref } from 'vue'
-import { PROJECT_TEAMS, type ProjectTeam, type ProjectTeamMember } from '~/data/team'
+import type { ProjectTeamMember } from '~/data/team'
 import { filterTeamMembers } from '~/utils/projectTeam'
 
-const cloneTeams = (): ProjectTeam[] =>
-  PROJECT_TEAMS.map((team) => ({
-    projectId: team.projectId,
-    members: team.members.map((member) => ({ ...member })),
-  }))
+export interface AvailableUser {
+  id: string
+  telegramId: number
+  name: string
+  username: string | null
+  avatarUrl: string | null
+}
 
-export const useProjectTeamsState = () => useState<ProjectTeam[]>('project-teams', cloneTeams)
+interface ProjectTeamState {
+  projectId: string
+  members: ProjectTeamMember[]
+}
+
+const createEmptyTeamState = (): Record<string, ProjectTeamState> => ({})
+
+export const useProjectTeamsState = () => useState<Record<string, ProjectTeamState>>('project-teams', createEmptyTeamState)
 
 export interface UseProjectTeamResult {
   members: Ref<ProjectTeamMember[]>
   filteredMembers: Ref<ProjectTeamMember[]>
   memberCount: Ref<number>
   searchQuery: Ref<string>
+  isLoading: Ref<boolean>
+  isAdding: Ref<boolean>
   setSearchQuery: (value: string) => void
-  setMembers: (value: ProjectTeamMember[]) => void
+  fetchMembers: () => Promise<void>
+  addMember: (telegramId: number, role?: string) => Promise<ProjectTeamMember | null>
+  getAvailableUsers: () => Promise<AvailableUser[]>
+  removeMember: (memberId: string) => Promise<void>
 }
 
 export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamResult => {
   const teamsState = useProjectTeamsState()
   const projectIdRef = computed(() => (typeof projectId === 'string' ? projectId : projectId.value))
 
-  const team = computed(() => teamsState.value.find((item) => item.projectId === projectIdRef.value))
+  const isLoading = ref(false)
+  const isAdding = ref(false)
+
+  const team = computed(() => teamsState.value[projectIdRef.value])
   const members = computed(() => team.value?.members ?? [])
 
   const searchQuery = ref('')
@@ -35,24 +52,100 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
     searchQuery.value = ''
   })
 
-  const setMembers = (value: ProjectTeamMember[]) => {
-    const targetIndex = teamsState.value.findIndex((item) => item.projectId === projectIdRef.value)
+  const fetchMembers = async (): Promise<void> => {
+    if (!projectIdRef.value) return
 
-    if (targetIndex === -1) {
-      teamsState.value = [
+    isLoading.value = true
+    try {
+      const response = await $fetch<ProjectTeamMember[]>(`/api/projects/${projectIdRef.value}/members`)
+      
+      teamsState.value = {
         ...teamsState.value,
-        {
+        [projectIdRef.value]: {
           projectId: projectIdRef.value,
-          members: value.map((member) => ({ ...member })),
+          members: response || [],
         },
-      ]
-      return
+      }
+    } catch (error) {
+      console.error('Failed to fetch project members:', error)
+      // Initialize with empty array if fetch fails
+      teamsState.value = {
+        ...teamsState.value,
+        [projectIdRef.value]: {
+          projectId: projectIdRef.value,
+          members: [],
+        },
+      }
+    } finally {
+      isLoading.value = false
     }
+  }
 
-    teamsState.value.splice(targetIndex, 1, {
-      projectId: projectIdRef.value,
-      members: value.map((member) => ({ ...member })),
-    })
+  const addMember = async (telegramId: number, role: string = 'Участник'): Promise<ProjectTeamMember | null> => {
+    if (!projectIdRef.value) return null
+
+    isAdding.value = true
+    try {
+      const member = await $fetch<ProjectTeamMember>(`/api/projects/${projectIdRef.value}/members`, {
+        method: 'POST',
+        body: {
+          memberTelegramId: telegramId,
+          role,
+        },
+      })
+
+      // Update local state
+      const currentTeam = teamsState.value[projectIdRef.value]
+      if (currentTeam) {
+        currentTeam.members = [...currentTeam.members, member]
+      } else {
+        teamsState.value = {
+          ...teamsState.value,
+          [projectIdRef.value]: {
+            projectId: projectIdRef.value,
+            members: [member],
+          },
+        }
+      }
+
+      return member
+    } catch (error) {
+      console.error('Failed to add member:', error)
+      return null
+    } finally {
+      isAdding.value = false
+    }
+  }
+
+  const getAvailableUsers = async (): Promise<AvailableUser[]> => {
+    if (!projectIdRef.value) return []
+
+    try {
+      const users = await $fetch<AvailableUser[]>(`/api/users?excludeProjectId=${projectIdRef.value}`)
+      return users || []
+    } catch (error) {
+      console.error('Failed to fetch available users:', error)
+      return []
+    }
+  }
+
+  const removeMember = async (memberId: string): Promise<void> => {
+    if (!projectIdRef.value) return
+
+    try {
+      await $fetch(`/api/projects/${projectIdRef.value}/members/${memberId}`, {
+        method: 'DELETE',
+      })
+
+      // Update local state
+      const currentTeam = teamsState.value[projectIdRef.value]
+      if (currentTeam) {
+        currentTeam.members = currentTeam.members.filter((m) => m.id !== memberId)
+      }
+    } catch (error) {
+      console.error('Failed to remove member:', error)
+      throw error
+    }
   }
 
   return {
@@ -60,9 +153,14 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
     filteredMembers,
     memberCount,
     searchQuery,
+    isLoading,
+    isAdding,
     setSearchQuery: (value: string) => {
       searchQuery.value = value
     },
-    setMembers,
+    fetchMembers,
+    addMember,
+    getAvailableUsers,
+    removeMember,
   }
 }

@@ -1,0 +1,175 @@
+import { getSupabaseClient } from '~/server/utils/supabase'
+import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
+
+/**
+ * POST /api/projects/[id]/members
+ * Adds a team member to a project
+ * Body: { memberTelegramId: number, role?: string }
+ */
+export default defineEventHandler(async (event) => {
+  try {
+    const projectId = getRouterParam(event, 'id')
+
+    if (!projectId) {
+      return sendError(event, createError({
+        statusCode: 400,
+        message: 'Project ID is required'
+      }))
+    }
+
+    // Read body
+    const body = await readBody(event)
+
+    if (!body.memberTelegramId || typeof body.memberTelegramId !== 'number') {
+      return sendError(event, createError({
+        statusCode: 400,
+        message: 'memberTelegramId is required and must be a number'
+      }))
+    }
+
+    // Get user telegram_id from request
+    const userTelegramId = await getUserTelegramIdFromRequest(event, body)
+
+    if (!userTelegramId) {
+      return sendError(event, createError({
+        statusCode: 401,
+        message: 'Unauthorized: Invalid or missing initData'
+      }))
+    }
+
+    const supabase = getSupabaseClient()
+
+    // Verify that the project belongs to the user
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('user_telegram_id', userTelegramId)
+      .single()
+
+    if (projectError || !project) {
+      if (projectError?.code === 'PGRST116') {
+        return sendError(event, createError({
+          statusCode: 404,
+          message: 'Project not found'
+        }))
+      }
+
+      console.error('[Project Members API] Error fetching project:', projectError)
+      return sendError(event, createError({
+        statusCode: 500,
+        message: 'Failed to verify project ownership'
+      }))
+    }
+
+    // Check if user exists
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('telegram_id', body.memberTelegramId)
+      .single()
+
+    if (userError || !user) {
+      if (userError?.code === 'PGRST116') {
+        return sendError(event, createError({
+          statusCode: 404,
+          message: 'User not found'
+        }))
+      }
+
+      console.error('[Project Members API] Error fetching user:', userError)
+      return sendError(event, createError({
+        statusCode: 500,
+        message: 'Failed to verify user'
+      }))
+    }
+
+    // Check if member is already in the project
+    const { data: existingMember, error: checkError } = await supabase
+      .from('project_members')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('member_telegram_id', body.memberTelegramId)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('[Project Members API] Error checking existing member:', checkError)
+      return sendError(event, createError({
+        statusCode: 500,
+        message: 'Failed to check existing member'
+      }))
+    }
+
+    if (existingMember) {
+      return sendError(event, createError({
+        statusCode: 409,
+        message: 'User is already a member of this project'
+      }))
+    }
+
+    // Add member to project
+    const { data: member, error: insertError } = await supabase
+      .from('project_members')
+      .insert([
+        {
+          project_id: projectId,
+          member_telegram_id: body.memberTelegramId,
+          role: body.role || 'Участник',
+        },
+      ])
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('[Project Members API] Error adding member:', insertError)
+      return sendError(event, createError({
+        statusCode: 500,
+        message: 'Failed to add member to project'
+      }))
+    }
+
+    // Fetch full member data with user info
+    const { data: memberWithUser, error: fetchError } = await supabase
+      .from('project_members')
+      .select(`
+        id,
+        role,
+        created_at,
+        member:users!project_members_member_telegram_id_fkey (
+          telegram_id,
+          first_name,
+          last_name,
+          username,
+          photo_url
+        )
+      `)
+      .eq('id', member.id)
+      .single()
+
+    if (fetchError || !memberWithUser) {
+      console.error('[Project Members API] Error fetching member data:', fetchError)
+      return sendError(event, createError({
+        statusCode: 500,
+        message: 'Failed to fetch member data'
+      }))
+    }
+
+    const userData = memberWithUser.member as any
+
+    // Transform to match frontend interface
+    const transformedMember = {
+      id: userData.telegram_id.toString(),
+      name: [userData.first_name, userData.last_name].filter(Boolean).join(' ') || 'Без имени',
+      role: memberWithUser.role,
+      avatarUrl: userData.photo_url || null,
+    }
+
+    return transformedMember
+  } catch (error) {
+    console.error('[Project Members API] Unexpected error:', error)
+    return sendError(event, createError({
+      statusCode: 500,
+      message: 'Internal server error'
+    }))
+  }
+})
