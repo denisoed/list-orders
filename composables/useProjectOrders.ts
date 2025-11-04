@@ -1,8 +1,8 @@
 import { computed, ref, watch, type Ref } from 'vue'
-import type { Project, ProjectTask, TaskAssignee, TaskAttachment, TaskReminderOffset } from '~/data/projects'
+import type { Project } from '~/data/projects'
 import { useProjectsStore } from '~/stores/projects'
 
-export const TASK_STATUS_FILTERS = [
+export const ORDER_STATUS_FILTERS = [
   { value: 'all', label: 'Все' },
   { value: 'pending', label: 'Ожидает' },
   { value: 'in_progress', label: 'В работе' },
@@ -10,31 +10,16 @@ export const TASK_STATUS_FILTERS = [
   { value: 'done', label: 'Сделано' },
 ] as const
 
-export type TaskStatusFilter = (typeof TASK_STATUS_FILTERS)[number]['value']
+export type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]['value']
 
-export interface CreateProjectTaskInput {
-  title: string
-  description: string
-  dueDate?: string
-  dueTime?: string
-  attachments: TaskAttachment[]
-  assignee?: TaskAssignee
-  status?: ProjectTask['status']
-  clientName?: string
-  clientPhone?: string
-  deliveryAddress?: string
-  isPickup?: boolean
-  remindBefore?: TaskReminderOffset
-}
-
-export interface UseProjectTasksResult {
+export interface UseProjectOrdersResult {
   project: Ref<Project | undefined>
   searchQuery: Ref<string>
-  activeStatus: Ref<TaskStatusFilter>
+  activeStatus: Ref<OrderStatusFilter>
   isCreating: Ref<boolean>
   isUpdating: Ref<boolean>
   setSearchQuery: (value: string) => void
-  setActiveStatus: (value: TaskStatusFilter) => void
+  setActiveStatus: (value: OrderStatusFilter) => void
 }
 
 // Legacy function for backward compatibility (deprecated, use Pinia store instead)
@@ -43,31 +28,14 @@ export const useProjectsState = () => {
   return store.projects
 }
 
-export const filterProjectTasks = (
-  tasks: ProjectTask[],
-  status: TaskStatusFilter,
-  query: string,
-): ProjectTask[] => {
-  const normalizedQuery = query.trim().toLocaleLowerCase('ru-RU')
-
-  return tasks.filter((task) => {
-    const matchesStatus = status === 'all' ? true : task.status === status
-    const matchesQuery =
-      normalizedQuery.length === 0 ||
-      [task.title, task.assignee.name].some((value) => value.toLocaleLowerCase('ru-RU').includes(normalizedQuery))
-
-    return matchesStatus && matchesQuery
-  })
-}
-
-export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTasksResult => {
+export const useProjectOrders = (projectId: Ref<string> | string): UseProjectOrdersResult => {
   const store = useProjectsStore()
   const projectIdRef = computed(() => (typeof projectId === 'string' ? projectId : projectId.value))
 
   const project = computed(() => store.projects.find((item) => item.id === projectIdRef.value))
 
   const searchQuery = ref('')
-  const activeStatus = ref<TaskStatusFilter>('all')
+  const activeStatus = ref<OrderStatusFilter>('all')
   const isCreating = ref(false)
   const isUpdating = ref(false)
 
@@ -85,7 +53,7 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
     setSearchQuery: (value: string) => {
       searchQuery.value = value
     },
-    setActiveStatus: (value: TaskStatusFilter) => {
+    setActiveStatus: (value: OrderStatusFilter) => {
       activeStatus.value = value
     },
   }

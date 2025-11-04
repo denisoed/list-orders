@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useTeamMemberProfile } from '~/composables/useTeamMemberProfile'
-import type { TeamMemberContact, TeamMemberTaskStatus } from '~/data/teamMemberProfiles'
+import type { TeamMemberContact, TeamMemberOrderStatus } from '~/data/teamMemberProfiles'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +14,7 @@ const memberId = computed(() => {
 
 const { profile, currentStatus, setStatus } = useTeamMemberProfile(memberId)
 
-const statusOptions: { value: TeamMemberTaskStatus; label: string }[] = [
+const statusOptions: { value: TeamMemberOrderStatus; label: string }[] = [
   { value: 'in-progress', label: 'В работе' },
   { value: 'completed', label: 'Завершено' },
   { value: 'overdue', label: 'Просрочено' },
@@ -25,14 +25,14 @@ const ensureStatusMatchesData = () => {
     return
   }
 
-  const hasTasksForCurrent = profile.value.tasks.some((task) => task.status === currentStatus.value)
+  const hasOrdersForCurrent = profile.value.orders.some((order) => order.status === currentStatus.value)
 
-  if (hasTasksForCurrent) {
+  if (hasOrdersForCurrent) {
     return
   }
 
   const nextStatus = statusOptions.find((option) =>
-    profile.value?.tasks.some((task) => task.status === option.value),
+    profile.value?.orders.some((order) => order.status === option.value),
   )?.value
 
   setStatus(nextStatus ?? 'in-progress')
@@ -40,18 +40,18 @@ const ensureStatusMatchesData = () => {
 
 watch(profile, ensureStatusMatchesData, { immediate: true })
 
-const filteredTasks = computed(() => {
+const filteredOrders = computed(() => {
   if (!profile.value) {
     return []
   }
 
-  return profile.value.tasks.filter((task) => task.status === currentStatus.value)
+  return profile.value.orders.filter((order) => order.status === currentStatus.value)
 })
 
-const hasTasks = computed(() => filteredTasks.value.length > 0)
+const hasOrders = computed(() => filteredOrders.value.length > 0)
 
-const taskStatusDotClass = (status: TeamMemberTaskStatus) => {
-  const map: Record<TeamMemberTaskStatus, string> = {
+const OrderStatusDotClass = (status: TeamMemberOrderStatus) => {
+  const map: Record<TeamMemberOrderStatus, string> = {
     'in-progress': 'bg-yellow-500',
     completed: 'bg-emerald-500',
     overdue: 'bg-red-500',
@@ -60,7 +60,7 @@ const taskStatusDotClass = (status: TeamMemberTaskStatus) => {
   return map[status]
 }
 
-const filterButtonClass = (status: TeamMemberTaskStatus) => {
+const filterButtonClass = (status: TeamMemberOrderStatus) => {
   const isActive = currentStatus.value === status
 
   return [
@@ -199,19 +199,19 @@ useHead(() => ({
               {{ option.label }}
             </button>
           </div>
-          <div v-if="hasTasks" class="flex flex-col gap-3">
+          <div v-if="hasOrders" class="flex flex-col gap-3">
             <article
-              v-for="task in filteredTasks"
-              :key="task.id"
+              v-for="order in filteredOrders"
+              :key="order.id"
               class="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]"
             >
               <div class="flex items-start justify-between gap-3">
-                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ task.title }}</p>
-                <span :class="['mt-1.5 h-3 w-3 shrink-0 rounded-full', taskStatusDotClass(task.status)]"></span>
+                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ order.title }}</p>
+                <span :class="['mt-1.5 h-3 w-3 shrink-0 rounded-full', OrderStatusDotClass(order.status)]"></span>
               </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-500 dark:text-[#9da6b9]">Срок</span>
-                <span class="font-medium text-zinc-900 dark:text-white">{{ task.dueDateLabel }}</span>
+                <span class="font-medium text-zinc-900 dark:text-white">{{ order.dueDateLabel }}</span>
               </div>
             </article>
           </div>
@@ -219,7 +219,7 @@ useHead(() => ({
             v-else
             class="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white px-6 py-10 text-center text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]"
           >
-            <span class="material-symbols-outlined text-4xl opacity-70">task_alt</span>
+            <span class="material-symbols-outlined text-4xl opacity-70">order_alt</span>
             <div class="space-y-1">
               <p class="text-base font-semibold text-zinc-900 dark:text-white">Нет задач в выбранном статусе</p>
               <p class="text-sm">Попробуйте переключить фильтр, чтобы увидеть другие задачи коллеги.</p>

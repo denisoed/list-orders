@@ -16,4 +16,4 @@ No discrepancies detected.
 - ✅ UI-редирект с деталей заказа на страницу отправки на проверку (`pages/orders/[id]/index.vue`).
 - ✅ Страница отправки с загрузкой фотографий, комментарием и валидацией (`pages/orders/[id]/review.vue`).
 - ✅ Клиентская имитация загрузки вложений и смены статуса на «ожидает проверки» (`utils/orderReviewSubmission.ts`).
-- ✅ Обновлён список задач и сопутствующая документация (`spec/features/review-order/tasks.md`).
+- ✅ Обновлён список задач и сопутствующая документация (`spec/features/review-order/orders.md`).

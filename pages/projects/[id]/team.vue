@@ -42,7 +42,7 @@ const backPath = computed(() => {
   if (typeof from === 'string' && from.length > 0) {
     return from
   }
-  return projectId.value.length > 0 ? `/projects/${projectId.value}/tasks` : '/projects/new'
+  return projectId.value.length > 0 ? `/projects/${projectId.value}/orders` : '/projects/new'
 })
 
 const handleSearchUpdate = (value: string) => {

@@ -1,4 +1,4 @@
-export type TeamMemberTaskStatus = 'in-progress' | 'completed' | 'overdue'
+export type TeamMemberOrderStatus = 'in-progress' | 'completed' | 'overdue'
 
 export interface TeamMemberContact {
   id: string
@@ -9,10 +9,10 @@ export interface TeamMemberContact {
   icon: string
 }
 
-export interface TeamMemberTask {
+export interface TeamMemberOrder {
   id: string
   title: string
-  status: TeamMemberTaskStatus
+  status: TeamMemberOrderStatus
   dueDateLabel: string
 }
 
@@ -30,7 +30,7 @@ export interface TeamMemberProfile {
   avatarUrl?: string | null
   bio?: string
   contacts: TeamMemberContact[]
-  tasks: TeamMemberTask[]
+  orders: TeamMemberOrder[]
   history: TeamMemberHistoryItem[]
 }
 
@@ -71,21 +71,21 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
         icon: 'mail',
       },
     ],
-    tasks: [
+    orders: [
       {
-        id: 'task-1',
+        id: 'order-1',
         title: 'Реализация формы обратной связи',
         status: 'in-progress',
         dueDateLabel: '25 октября 2024',
       },
       {
-        id: 'task-2',
+        id: 'order-2',
         title: 'Оптимизация сборки фронтенда',
         status: 'in-progress',
         dueDateLabel: '1 ноября 2024',
       },
       {
-        id: 'task-3',
+        id: 'order-3',
         title: 'Подготовить релизную ветку',
         status: 'overdue',
         dueDateLabel: '15 октября 2024',
@@ -138,15 +138,15 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
         icon: 'mail',
       },
     ],
-    tasks: [
+    orders: [
       {
-        id: 'task-1',
+        id: 'order-1',
         title: 'Подготовить макеты адаптивных экранов',
         status: 'in-progress',
         dueDateLabel: '29 октября 2024',
       },
       {
-        id: 'task-2',
+        id: 'order-2',
         title: 'Согласовать визуализацию отчёта',
         status: 'completed',
         dueDateLabel: '18 октября 2024',
@@ -198,15 +198,15 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
         icon: 'mail',
       },
     ],
-    tasks: [
+    orders: [
       {
-        id: 'task-1',
+        id: 'order-1',
         title: 'Подготовить обновлённый roadmap проекта',
         status: 'in-progress',
         dueDateLabel: '28 октября 2024',
       },
       {
-        id: 'task-2',
+        id: 'order-2',
         title: 'Согласовать бюджет с финансовым отделом',
         status: 'overdue',
         dueDateLabel: '12 октября 2024',
@@ -258,15 +258,15 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
         icon: 'mail',
       },
     ],
-    tasks: [
+    orders: [
       {
-        id: 'task-1',
+        id: 'order-1',
         title: 'Согласовать квартальный план проектов',
         status: 'in-progress',
         dueDateLabel: '30 октября 2024',
       },
       {
-        id: 'task-2',
+        id: 'order-2',
         title: 'Подготовить презентацию для совета директоров',
         status: 'completed',
         dueDateLabel: '18 октября 2024',
@@ -290,7 +290,7 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
 export const cloneTeamMemberProfile = (profile: TeamMemberProfile): TeamMemberProfile => ({
   ...profile,
   contacts: profile.contacts.map((contact) => ({ ...contact })),
-  tasks: profile.tasks.map((task) => ({ ...task })),
+  orders: profile.orders.map((order) => ({ ...order })),
   history: profile.history.map((item) => ({ ...item })),
 })
 

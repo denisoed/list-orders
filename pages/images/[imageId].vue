@@ -62,7 +62,7 @@ const loadImageUrl = async () => {
     return
   }
 
-  if (source.value === 'task-create') {
+  if (source.value === 'order-create') {
     // For blob URLs, return the imageId as URL
     imageUrl.value = imageId.value
     return

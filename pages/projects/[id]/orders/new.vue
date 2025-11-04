@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
+import type { ImageAttachment } from '~/components/ImageUploader.vue'
+import type { OrderReminderOffset } from '~/data/projects'
 import { useOrders } from '~/composables/useOrders'
+import { convertOrderToOrderDetail } from '~/data/orders'
 import { useProjects } from '~/composables/useProjects'
+
+interface AssigneeOption {
+  id: string
+  name: string
+  avatarUrl: string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -15,8 +24,10 @@ const orderId = computed(() => {
 
 const isEditMode = computed(() => Boolean(orderId.value))
 
-const { createOrder, updateOrder, fetchOrder, isCreating, isUpdating } = useOrders()
 const { getProjectById } = useProjects()
+const { fetchOrder, createOrder, updateOrder, isCreating, isUpdating } = useOrders()
+
+const project = computed(() => getProjectById(projectId.value))
 
 const fallbackOrdersRoute = computed(() => `/projects/${projectId.value}/orders`)
 const returnPath = computed(() => {
@@ -28,23 +39,52 @@ const returnPath = computed(() => {
 })
 
 const title = ref('')
-const summary = ref('')
 const description = ref('')
 const clientName = ref('')
 const clientPhone = ref('')
+const deliveryAddress = ref('')
+const deliveryOption = ref<'pickup' | 'delivery' | ''>('')
 const dueDate = ref('')
 const dueTime = ref('')
-const paymentType = ref<string>('')
+const selectedAssigneeId = ref('unassigned')
+const customAssignee = ref<{ name: string; avatarUrl: string } | null>(null)
+const attachments = ref<ImageAttachment[]>([])
+const reminderOffset = ref<OrderReminderOffset | null>(null)
+const hasPrepayment = ref(false)
+const paymentAmount = ref('')
 const prepaymentAmount = ref('')
-const totalAmount = ref('')
-const status = ref('new')
 
 const titleTouched = ref(false)
 const clientNameTouched = ref(false)
 const clientPhoneTouched = ref(false)
+const deliveryAddressTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
-const isLoading = ref(false)
+
+const DEFAULT_ASSIGNEE: AssigneeOption = {
+  id: 'unassigned',
+  name: 'Не назначен',
+  avatarUrl:
+    'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
+}
+
+const assigneeOptions = computed<AssigneeOption[]>(() => {
+  // For now, we only have default assignee option
+  // In the future, this could be populated from team members
+  return [DEFAULT_ASSIGNEE]
+})
+
+const selectedAssignee = computed(() => {
+  if (customAssignee.value) {
+    return {
+      id: customAssignee.value.name,
+      name: customAssignee.value.name,
+      avatarUrl: customAssignee.value.avatarUrl,
+    }
+  }
+  const found = assigneeOptions.value.find((option) => option.id === selectedAssigneeId.value)
+  return found ?? DEFAULT_ASSIGNEE
+})
 
 const titleError = computed(() => {
   if (title.value.trim().length > 0) {
@@ -68,6 +108,20 @@ const clientPhoneError = computed(() => {
   return 'Введите номер телефона'
 })
 
+const isDeliverySelected = computed(() => deliveryOption.value === 'delivery')
+
+const deliveryAddressError = computed(() => {
+  if (!isDeliverySelected.value) {
+    return ''
+  }
+
+  if (deliveryAddress.value.trim().length > 0) {
+    return ''
+  }
+
+  return 'Введите адрес доставки'
+})
+
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
 const showClientNameError = computed(
   () => (clientNameTouched.value || submitAttempted.value) && Boolean(clientNameError.value),
@@ -75,71 +129,271 @@ const showClientNameError = computed(
 const showClientPhoneError = computed(
   () => (clientPhoneTouched.value || submitAttempted.value) && Boolean(clientPhoneError.value),
 )
-
-const isSubmitting = computed(() => (isEditMode.value ? isUpdating.value : isCreating.value))
-const isSubmitDisabled = computed(
-  () => isSubmitting.value || Boolean(titleError.value) || Boolean(clientNameError.value) || Boolean(clientPhoneError.value),
+const showDeliveryAddressError = computed(
+  () =>
+    isDeliverySelected.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
 )
 
-const pageTitle = computed(() => (isEditMode.value ? 'Редактирование заказа' : 'Новый заказ'))
-const submitButtonText = computed(() => {
-  if (isEditMode.value) {
-    return isUpdating.value ? 'Сохранение…' : 'Сохранить изменения'
+const shouldShowDeliveryAddress = computed(() => isDeliverySelected.value)
+
+const dueDateLabel = computed(() => {
+  if (!dueDate.value) {
+    return 'Не задан'
   }
-  return isCreating.value ? 'Создание…' : 'Создать заказ'
+
+  const dateLabel = new Date(dueDate.value).toLocaleDateString('ru-RU')
+
+  return dateLabel
 })
 
-const paymentTypeOptions = [
-  { value: '', label: 'Не выбрано' },
-  { value: 'prepayment', label: 'Предоплата' },
-  { value: 'full', label: 'Полная оплата' },
-  { value: 'partial', label: 'Частичная оплата' },
-  { value: 'on_delivery', label: 'Оплата при доставке' },
-  { value: 'on_completion', label: 'Оплата по факту' },
+const isFormValid = computed(() => {
+  return (
+    titleError.value.length === 0 &&
+    clientNameError.value.length === 0 &&
+    clientPhoneError.value.length === 0 &&
+    deliveryAddressError.value.length === 0
+  )
+})
+
+const createTimeOptions = (stepMinutes: number): string[] => {
+  const options: string[] = []
+  const totalMinutesInDay = 24 * 60
+
+  for (let minutes = 0; minutes < totalMinutesInDay; minutes += stepMinutes) {
+    const hour = Math.floor(minutes / 60)
+    const minute = minutes % 60
+    const formatted = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+    options.push(formatted)
+  }
+
+  return options
+}
+
+const timeOptions = createTimeOptions(15)
+
+const reminderOptions: ReadonlyArray<{ label: string; value: OrderReminderOffset }> = [
+  { label: '1 час', value: '1h' },
+  { label: '3 часа', value: '3h' },
+  { label: '1 день', value: '1d' },
 ]
 
-const statusOptions = [
-  { value: 'new', label: 'Новый' },
-  { value: 'pending', label: 'Ожидает' },
-  { value: 'in_progress', label: 'В работе' },
-  { value: 'review', label: 'Проверяется' },
-  { value: 'done', label: 'Сделано' },
-  { value: 'cancelled', label: 'Отменен' },
-]
+const handleToggleReminder = (value: OrderReminderOffset) => {
+  reminderOffset.value = reminderOffset.value === value ? null : value
+}
 
-const project = computed(() => getProjectById(projectId.value))
+// Convert dueDate and dueTime to ISO string for API
+const getDueDateISO = (): string | null => {
+  if (!dueDate.value) {
+    return null
+  }
 
-// Load order data if in edit mode
+  try {
+    if (dueTime.value) {
+      // Combine date and time
+      const timeParts = dueTime.value.split(':')
+      if (timeParts.length === 2) {
+        const hours = Number(timeParts[0])
+        const minutes = Number(timeParts[1])
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          const date = new Date(dueDate.value)
+          date.setHours(hours, minutes, 0, 0)
+          return date.toISOString()
+        }
+      }
+    }
+
+    // Only date, set to start of day
+    const date = new Date(dueDate.value)
+    date.setHours(0, 0, 0, 0)
+    return date.toISOString()
+  } catch (error) {
+    console.error('Error converting due date to ISO:', error)
+    return null
+  }
+}
+
+// Determine payment_type based on form data
+const getPaymentType = (): string | null => {
+  if (hasPrepayment.value && prepaymentAmount.value) {
+    const prepayment = Number(prepaymentAmount.value)
+    const total = Number(paymentAmount.value) || 0
+    
+    if (!isNaN(prepayment) && !isNaN(total)) {
+      if (prepayment > 0 && total > 0 && prepayment < total) {
+        return 'prepayment'
+      } else if (prepayment > 0 && total > 0 && prepayment >= total) {
+        return 'full'
+      }
+    }
+  }
+  
+  if (deliveryOption.value === 'delivery') {
+    return 'on_delivery'
+  }
+  
+  return null
+}
+
+const isSubmitDisabled = computed(() => !projectId.value || !isFormValid.value || isCreating.value || isUpdating.value)
+
+// Load order data for edit mode
 onMounted(async () => {
-  if (isEditMode.value && orderId.value) {
-    isLoading.value = true
+  if (orderId.value) {
     try {
       const orderData = await fetchOrder(orderId.value)
-      title.value = orderData.title
-      summary.value = orderData.summary || ''
-      description.value = orderData.description || ''
-      clientName.value = orderData.clientName
-      clientPhone.value = orderData.clientPhone
-      paymentType.value = orderData.paymentType || ''
-      prepaymentAmount.value = orderData.prepaymentAmount?.toString() || ''
-      totalAmount.value = orderData.totalAmount?.toString() || ''
-      status.value = orderData.status || 'new'
-
-      if (orderData.dueDate) {
-        const date = new Date(orderData.dueDate)
-        dueDate.value = date.toISOString().slice(0, 10)
-        const hours = String(date.getHours()).padStart(2, '0')
-        const minutes = String(date.getMinutes()).padStart(2, '0')
-        dueTime.value = `${hours}:${minutes}`
+      const projectData = project.value
+      const order = convertOrderToOrderDetail(orderData, projectData?.title)
+      
+      // Fill form with order data
+      title.value = order.title || ''
+      description.value = order.description || ''
+      clientName.value = order.client.name || ''
+      clientPhone.value = order.client.phone || ''
+      
+      // Parse due date from dueDateLabel (format: "26 октября 2024, 18:00")
+      if (order.dueDateLabel) {
+        const dateMatch = order.dueDateLabel.match(/(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+(\d{4})/)
+        if (dateMatch && dateMatch[1] && dateMatch[2] && dateMatch[3]) {
+          const months: Record<string, string> = {
+            'января': '01', 'февраля': '02', 'марта': '03', 'апреля': '04',
+            'мая': '05', 'июня': '06', 'июля': '07', 'августа': '08',
+            'сентября': '09', 'октября': '10', 'ноября': '11', 'декабря': '12'
+          }
+          const day = dateMatch[1].padStart(2, '0')
+          const month = months[dateMatch[2]] || '01'
+          const year = dateMatch[3]
+          dueDate.value = `${year}-${month}-${day}`
+          
+          // Parse time if available
+          const timeMatch = order.dueDateLabel.match(/(\d{1,2}):(\d{2})/)
+          if (timeMatch && timeMatch[1] && timeMatch[2]) {
+            dueTime.value = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`
+          }
+        }
       }
+      
+      // Set delivery option - check if there's delivery address
+      if (orderData.dueDate) {
+        // Try to infer from order data if available
+        deliveryOption.value = 'pickup'
+      } else {
+        deliveryOption.value = 'pickup'
+      }
+      
+      // Set prepayment - parse from formatted string
+      if (order.client.prepayment) {
+        // Extract numeric value from formatted string like "50 000 ₽"
+        const prepaymentMatch = order.client.prepayment.match(/[\d\s]+/)
+        if (prepaymentMatch) {
+          hasPrepayment.value = true
+          prepaymentAmount.value = prepaymentMatch[0].replace(/\s/g, '')
+        }
+      }
+      
+      if (order.client.totalAmount) {
+        // Extract numeric value from formatted string
+        const totalMatch = order.client.totalAmount.match(/[\d\s]+/)
+        if (totalMatch) {
+          paymentAmount.value = totalMatch[0].replace(/\s/g, '')
+        }
+      }
+      
+      // Convert attachments
+      if (order.attachments && order.attachments.length > 0) {
+        attachments.value = order.attachments.map((att) => ({
+          id: att.id,
+          name: att.name || 'image',
+          previewUrl: att.previewUrl,
+          file: new File([], att.name || 'image'), // Create empty file for existing attachments
+        }))
+      }
+      
+      // Set assignee - for now, always default as we don't have telegram_id mapping
+      selectedAssigneeId.value = 'unassigned'
     } catch (error) {
-      console.error('Failed to load order:', error)
-      submitError.value = 'Не удалось загрузить заказ'
-    } finally {
-      isLoading.value = false
+      console.error('Failed to load order data:', error)
+      // If order loading fails, form will remain empty
     }
   }
 })
+
+const handleImageClick = (attachment: ImageAttachment) => {
+  // Use previewUrl as imageId for blob URLs
+  router.push({
+    path: `/images/${encodeURIComponent(attachment.previewUrl)}`,
+    query: {
+      projectId: projectId.value,
+      source: 'order-create',
+    },
+  })
+}
+
+const handleSubmit = async () => {
+  submitAttempted.value = true
+  submitError.value = ''
+
+  if (!isFormValid.value) {
+    return
+  }
+
+  if (!projectId.value) {
+    submitError.value = isEditMode.value 
+      ? 'Проект недоступен для редактирования заказа.'
+      : 'Проект недоступен для создания заказа.'
+    return
+  }
+
+  try {
+    const dueDateISO = getDueDateISO()
+    const paymentType = getPaymentType()
+    const prepaymentNum = hasPrepayment.value && prepaymentAmount.value ? Number(prepaymentAmount.value) : null
+    const totalNum = paymentAmount.value ? Number(paymentAmount.value) : null
+    const prepayment = prepaymentNum !== null && !isNaN(prepaymentNum) ? prepaymentNum : null
+    const total = totalNum !== null && !isNaN(totalNum) ? totalNum : null
+
+    if (isEditMode.value && orderId.value) {
+      // Update existing order
+      await updateOrder(orderId.value, {
+        title: title.value,
+        description: description.value,
+        client_name: clientName.value,
+        client_phone: clientPhone.value,
+        due_date: dueDateISO,
+        payment_type: paymentType,
+        prepayment_amount: prepayment,
+        total_amount: total,
+        // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
+        // attachments are not part of order schema, they're handled separately in review flow
+      })
+      
+      await router.push(`/orders/${orderId.value}`)
+    } else {
+      // Create new order
+      await createOrder({
+        project_id: projectId.value,
+        title: title.value,
+        description: description.value,
+        client_name: clientName.value,
+        client_phone: clientPhone.value,
+        due_date: dueDateISO,
+        payment_type: paymentType,
+        prepayment_amount: prepayment,
+        total_amount: total,
+        status: 'new',
+        // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
+        // attachments are not part of order schema, they're handled separately in review flow
+      })
+      
+      attachments.value = []
+      reminderOffset.value = null
+      await router.push(returnPath.value)
+    }
+  } catch (error) {
+    submitError.value = isEditMode.value
+      ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'
+      : 'Не удалось создать заказ. Попробуйте ещё раз.'
+  }
+}
 
 const handleTitleBlur = () => {
   titleTouched.value = true
@@ -153,79 +407,44 @@ const handleClientPhoneBlur = () => {
   clientPhoneTouched.value = true
 }
 
-const handleSubmit = async () => {
-  submitAttempted.value = true
-
-  if (isSubmitDisabled.value) {
-    return
-  }
-
-  submitError.value = ''
-
-  try {
-    // Prepare due date
-    let dueDateValue: string | null = null
-    if (dueDate.value) {
-      if (dueTime.value) {
-        dueDateValue = `${dueDate.value}T${dueTime.value}:00`
-      } else {
-        dueDateValue = `${dueDate.value}T00:00:00`
-      }
-    }
-
-    // Prepare payment amounts
-    const prepaymentAmountValue = prepaymentAmount.value
-      ? parseFloat(prepaymentAmount.value.replace(/,/g, '.').replace(/\s/g, ''))
-      : null
-    const totalAmountValue = totalAmount.value
-      ? parseFloat(totalAmount.value.replace(/,/g, '.').replace(/\s/g, ''))
-      : null
-
-    if (isEditMode.value && orderId.value) {
-      await updateOrder(orderId.value, {
-        title: title.value.trim(),
-        summary: summary.value.trim() || undefined,
-        description: description.value.trim() || undefined,
-        client_name: clientName.value.trim(),
-        client_phone: clientPhone.value.trim(),
-        due_date: dueDateValue,
-        payment_type: paymentType.value || null,
-        prepayment_amount: prepaymentAmountValue,
-        total_amount: totalAmountValue,
-        status: status.value,
-      })
-    } else {
-      await createOrder({
-        project_id: projectId.value,
-        title: title.value.trim(),
-        summary: summary.value.trim() || undefined,
-        description: description.value.trim() || undefined,
-        client_name: clientName.value.trim(),
-        client_phone: clientPhone.value.trim(),
-        due_date: dueDateValue,
-        payment_type: paymentType.value || null,
-        prepayment_amount: prepaymentAmountValue,
-        total_amount: totalAmountValue,
-        status: status.value,
-      })
-    }
-
-    await router.push(returnPath.value)
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : isEditMode.value
-          ? 'Не удалось сохранить заказ'
-          : 'Не удалось создать заказ'
-    submitError.value = errorMessage
-    console.error('Error submitting order:', error)
-  }
+const handleDeliveryAddressBlur = () => {
+  deliveryAddressTouched.value = true
 }
 
-const handleClose = () => {
-  router.push(returnPath.value)
-}
+watch(deliveryOption, (value) => {
+  if (value !== 'delivery') {
+    deliveryAddressTouched.value = false
+  }
+})
+
+watch(dueDate, (value) => {
+  if (!value) {
+    dueTime.value = ''
+  }
+})
+
+watch(selectedAssigneeId, (value) => {
+  if (value !== 'unassigned' && customAssignee.value) {
+    customAssignee.value = null
+  }
+})
+
+watch(
+  hasPrepayment,
+  (value) => {
+    if (!value) {
+      prepaymentAmount.value = ''
+    }
+  },
+  { flush: 'post' },
+)
+
+const pageTitle = computed(() => isEditMode.value ? 'Редактирование заказа' : 'Новая задача')
+const submitButtonLabel = computed(() => {
+  if (isCreating.value) return 'Создание…'
+  if (isUpdating.value) return 'Сохранение…'
+  return isEditMode.value ? 'Сохранить изменения' : 'Создать задачу'
+})
 
 useHead({
   title: pageTitle,
@@ -240,7 +459,7 @@ useHead({
   link: [
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap',
     },
     {
       rel: 'stylesheet',
@@ -251,208 +470,298 @@ useHead({
 </script>
 
 <template>
-  <div
-    class="relative flex min-h-screen w-full flex-col bg-background-light text-black dark:bg-background-dark dark:text-white"
-    :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
-  >
-    <header
-      class="sticky top-0 z-20 flex items-center gap-3 border-b border-black/5 bg-background-light/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
-    >
+  <div class="relative flex min-h-screen w-full flex-col bg-background-dark text-white">
+    <header class="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background-dark/80 p-4 pb-3 backdrop-blur-sm">
       <button
         type="button"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
-        aria-label="Закрыть"
-        @click="handleClose"
+        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
+        aria-label="Закрыть создание задачи"
+        @click="router.back()"
       >
         <span class="material-symbols-outlined text-3xl">close</span>
       </button>
-
-      <div class="flex min-w-0 flex-1 flex-col items-start text-left">
-        <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ pageTitle }}
-        </h1>
-        <p v-if="project" class="text-sm text-gray-500 dark:text-[#9da6b9]">
-          {{ project.title }}
-        </p>
-      </div>
+      <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
+      <div class="flex w-12 items-center justify-end"></div>
     </header>
 
-    <main v-if="!isLoading" class="flex-1 space-y-6 overflow-y-auto px-4 py-6 pb-28 sm:pb-24">
-      <section class="space-y-4">
-        <div class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Название заказа *</span>
+    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
+      <div v-if="projectId" class="flex flex-col space-y-6">
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Название заказа</p>
+          <input
+            v-model="title"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="text"
+            placeholder="Введите короткое название заказа"
+            :aria-invalid="showTitleError"
+            enterkeyhint="done"
+            @blur="handleTitleBlur"
+          />
+          <p v-if="showTitleError" class="pt-1 text-sm text-red-400">{{ titleError }}</p>
+        </label>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Описание</p>
+          <textarea
+            v-model="description"
+            class="form-input min-h-36 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Добавьте детали, чек-лист и важные требования"
+            enterkeyhint="done"
+          ></textarea>
+        </label>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
+          <input
+            v-model="clientName"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="text"
+            placeholder="Введите имя клиента"
+            :aria-invalid="showClientNameError"
+            enterkeyhint="done"
+            @blur="handleClientNameBlur"
+          />
+          <p v-if="showClientNameError" class="pt-1 text-sm text-red-400">{{ clientNameError }}</p>
+        </label>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Номер телефона клиента</p>
+          <input
+            v-model="clientPhone"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="tel"
+            inputmode="tel"
+            placeholder="Введите номер телефона"
+            :aria-invalid="showClientPhoneError"
+            enterkeyhint="done"
+            @blur="handleClientPhoneBlur"
+          />
+          <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
+        </label>
+
+        <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
+          <p class="text-base font-medium leading-normal">Оплата</p>
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="hasPrepayment"
+                type="checkbox"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="payment-prepayment"
+              />
+              <span>Предоплата</span>
+            </label>
+            <label v-if="hasPrepayment" class="flex flex-col">
+              <span class="pb-2 text-base font-medium leading-normal">Сумма предоплаты</span>
+              <input
+                v-model="prepaymentAmount"
+                class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+                type="number"
+                inputmode="decimal"
+                placeholder="Введите сумму предоплаты"
+                min="0"
+              />
+            </label>
+          </div>
+          <label class="flex flex-col">
+            <span class="pb-2 text-base font-medium leading-normal">Вся сумма</span>
             <input
-              v-model="title"
+              v-model="paymentAmount"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+              type="number"
+              inputmode="decimal"
+              placeholder="Введите сумму заказа"
+              min="0"
+            />
+          </label>
+        </div>
+
+        <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
+          <p class="text-base font-medium leading-normal">Доставка</p>
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="deliveryOption"
+                type="radio"
+                value="pickup"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="delivery-option"
+              />
+              <span>Самовывоз</span>
+            </label>
+            <label class="flex items-center gap-3 text-base font-medium leading-normal">
+              <input
+                v-model="deliveryOption"
+                type="radio"
+                value="delivery"
+                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
+                name="delivery-option"
+              />
+              <span>Доставка</span>
+            </label>
+          </div>
+
+          <label v-if="shouldShowDeliveryAddress" class="flex flex-col">
+            <span class="pb-2 text-base font-medium leading-normal">Адрес доставки</span>
+            <input
+              v-model="deliveryAddress"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
               type="text"
-              class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              placeholder="Введите название заказа"
-              @blur="handleTitleBlur"
+              placeholder="Введите адрес доставки"
+              :aria-invalid="showDeliveryAddressError"
+              enterkeyhint="done"
+              @blur="handleDeliveryAddressBlur"
             />
-            <p v-if="showTitleError" class="text-sm text-red-600 dark:text-red-400">
-              {{ titleError }}
-            </p>
+            <p v-if="showDeliveryAddressError" class="pt-1 text-sm text-red-400">{{ deliveryAddressError }}</p>
           </label>
         </div>
 
-        <div class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Краткое описание</span>
-            <input
-              v-model="summary"
-              type="text"
-              class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              placeholder="Краткое описание заказа"
-            />
-          </label>
+        <div class="flex flex-col space-y-4">
+          <p class="text-base font-medium leading-normal">Фото примеров</p>
+          <ImageUploader
+            v-model="attachments"
+            button-size="md"
+            variant="dark"
+            :clickable="true"
+            @image-click="handleImageClick"
+          />
+          <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
+            Поддерживаются изображения в форматах JPEG, PNG и SVG.
+          </p>
         </div>
 
-        <div class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Описание</span>
-            <textarea
-              v-model="description"
-              class="min-h-32 w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              placeholder="Подробное описание заказа"
-            ></textarea>
-          </label>
-        </div>
+        <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
+          <!-- Assignee -->
+          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+            <div class="flex items-center gap-4">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
+                <span class="material-symbols-outlined">person</span>
+              </div>
+              <div>
+                <p class="text-base font-normal leading-normal">Исполнитель</p>
+                <p class="text-sm text-[#9da6b9]" :class="{ 'text-emerald-600 dark:text-emerald-400': selectedAssignee.id !== DEFAULT_ASSIGNEE.id }">{{ selectedAssignee.name }}</p>
+              </div>
+            </div>
+            <div class="relative">
+              <select
+                v-model="selectedAssigneeId"
+                class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                aria-label="Выберите исполнителя"
+              >
+                <option v-for="option in assigneeOptions" :key="option.id" :value="option.id">
+                  {{ option.name }}
+                </option>
+              </select>
+              <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
+                <span>{{ selectedAssignee.id === DEFAULT_ASSIGNEE.id ? 'Выбрать' : 'Изменить' }}</span>
+                <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
+              </div>
+            </div>
+          </div>
 
-        <div class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Имя клиента *</span>
-            <input
-              v-model="clientName"
-              type="text"
-              class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              placeholder="Введите имя клиента"
-              @blur="handleClientNameBlur"
-            />
-            <p v-if="showClientNameError" class="text-sm text-red-600 dark:text-red-400">
-              {{ clientNameError }}
-            </p>
-          </label>
-        </div>
-
-        <div class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Номер телефона клиента *</span>
-            <input
-              v-model="clientPhone"
-              type="tel"
-              class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              placeholder="+7 (XXX) XXX-XX-XX"
-              @blur="handleClientPhoneBlur"
-            />
-            <p v-if="showClientPhoneError" class="text-sm text-red-600 dark:text-red-400">
-              {{ clientPhoneError }}
-            </p>
-          </label>
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-3">
-            <label class="flex flex-col space-y-2">
-              <span class="text-base font-semibold text-black dark:text-white">Срок выполнения</span>
+          <!-- Due Date -->
+          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+            <div class="flex items-center gap-4">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
+                <span class="material-symbols-outlined">calendar_today</span>
+              </div>
+              <div>
+                <p class="text-base font-normal leading-normal">Дата</p>
+                <p class="text-sm text-[#9da6b9]" :class="{ 'text-emerald-600 dark:text-emerald-400': dueDate }">{{ dueDateLabel }}</p>
+              </div>
+            </div>
+            <div class="relative">
               <input
                 v-model="dueDate"
                 type="date"
-                class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
+                class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                aria-label="Установите срок выполнения"
               />
-            </label>
+              <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
+                <span>{{ dueDate ? 'Изменить' : 'Установить' }}</span>
+                <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
+              </div>
+            </div>
           </div>
 
-          <div class="space-y-3">
-            <label class="flex flex-col space-y-2">
-              <span class="text-base font-semibold text-black dark:text-white">Время выполнения</span>
-              <input
+          <!-- Due Time -->
+          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+            <div class="flex items-center gap-4">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
+                <span class="material-symbols-outlined">schedule</span>
+              </div>
+              <div>
+                <p class="text-base font-normal leading-normal">Время</p>
+                <p class="text-sm text-[#9da6b9]" :class="{ 'text-emerald-600 dark:text-emerald-400': dueTime }">{{ dueTime ? dueTime : 'Не задано' }}</p>
+              </div>
+            </div>
+            <div class="relative">
+              <select
                 v-model="dueTime"
-                type="time"
-                class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              />
-            </label>
+                class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                aria-label="Установите время выполнения"
+              >
+                <option value="">Не задано</option>
+                <option v-for="option in timeOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+              <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
+                <span>{{ dueTime ? 'Изменить' : 'Установить' }}</span>
+                <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Тип оплаты</span>
-            <select
-              v-model="paymentType"
-              class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:focus:ring-primary/40"
+        <div class="flex flex-col space-y-3">
+          <p class="text-base font-medium leading-normal">Напомнить за:</p>
+          <div class="flex items-center gap-3">
+            <button
+              v-for="option in reminderOptions"
+              :key="option.value"
+              type="button"
+              class="flex-1 rounded-xl px-4 py-3 text-base font-medium leading-normal transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              :class="
+                reminderOffset === option.value
+                  ? 'bg-primary text-white'
+                  : 'bg-[#282e39] text-white/80 hover:bg-[#323a47]'
+              "
+              :aria-pressed="reminderOffset === option.value"
+              @click="handleToggleReminder(option.value)"
             >
-              <option v-for="option in paymentTypeOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-3">
-            <label class="flex flex-col space-y-2">
-              <span class="text-base font-semibold text-black dark:text-white">Предоплата (₽)</span>
-              <input
-                v-model="prepaymentAmount"
-                type="text"
-                inputmode="decimal"
-                class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-                placeholder="0"
-              />
-            </label>
-          </div>
-
-          <div class="space-y-3">
-            <label class="flex flex-col space-y-2">
-              <span class="text-base font-semibold text-black dark:text-white">Общая сумма (₽)</span>
-              <input
-                v-model="totalAmount"
-                type="text"
-                inputmode="decimal"
-                class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-                placeholder="0"
-              />
-            </label>
+              {{ option.label }}
+            </button>
           </div>
         </div>
+      </div>
 
-        <div v-if="isEditMode" class="space-y-3">
-          <label class="flex flex-col space-y-2">
-            <span class="text-base font-semibold text-black dark:text-white">Статус</span>
-            <select
-              v-model="status"
-              class="w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:focus:ring-primary/40"
-            >
-              <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <p
-        v-if="submitError"
-        class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200"
-        role="alert"
-      >
-        {{ submitError }}
-      </p>
+      <div v-else class="flex flex-col items-center justify-center gap-4 py-20 text-center text-[#9da6b9]">
+        <span class="material-symbols-outlined text-4xl text-primary">search_off</span>
+        <p class="text-base font-medium text-white">Проект не найден</p>
+        <p>Проверьте ссылку или вернитесь к списку задач.</p>
+        <button
+          type="button"
+          class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          @click="router.back()"
+        >
+          Вернуться к задачам
+        </button>
+      </div>
     </main>
 
-    <footer
-      class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
-    >
-      <button
-        type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
-        :aria-disabled="isSubmitDisabled"
-        :disabled="isSubmitDisabled"
-        @click="handleSubmit"
-      >
-        <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-        <span>{{ submitButtonText }}</span>
-      </button>
+    <footer class="fixed bottom-0 left-0 z-10 w-full bg-background-dark/80 p-4 backdrop-blur-sm">
+      <div class="space-y-2">
+        <p v-if="submitError" class="text-sm text-red-400">{{ submitError }}</p>
+        <button
+          type="button"
+          class="w-full rounded-xl bg-primary px-5 py-4 text-center text-base font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-primary/50"
+          :disabled="isSubmitDisabled"
+          @click="handleSubmit"
+        >
+          {{ submitButtonLabel }}
+        </button>
+      </div>
     </footer>
   </div>
 </template>

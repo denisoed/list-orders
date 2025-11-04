@@ -1,4 +1,4 @@
-# Tasks
+# Orders
 
 **Context:** Implement a profile editing experience that opens from the avatar in the main header, reads data from the Pinia user store, and provides an editable form for authenticated users.
 
@@ -19,7 +19,7 @@
 - [x] Provide accessible labels, focus management, and keyboard navigation for all form controls.
 - [x] Add read-only indicators for non-editable data such as premium status and avatar preview.
 
-## Supporting tasks
+## Supporting orders
 
 - [x] Documentation: update relevant instructions and descriptions.
 - [x] Observability: add or clarify metrics, alerts, and/or logging.
@@ -27,7 +27,7 @@
 
 ## Definition of Done
 
-- [x] All tasks are completed and tested.
+- [x] All orders are completed and tested.
 - [x] Relevant unit/e2e/integration tests pass successfully.
 - [x] Documentation and operational instructions are updated.
-- [x] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [x] `/spec/core/verify.md` is executed after completing all orders to verify the order list.

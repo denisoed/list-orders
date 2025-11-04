@@ -68,7 +68,7 @@ const returnPath = computed(() => {
     return fallbackPath.value
   }
   if (isEditing.value && editableProject.value) {
-    return `/projects/${editableProject.value.id}/tasks`
+    return `/projects/${editableProject.value.id}/orders`
   }
   return '/'
 })
@@ -117,7 +117,7 @@ const handleSubmit = async () => {
         color: color.value,
       })
 
-      await router.push(returnPath.value || `/projects/${updatedProject.id}/tasks`)
+      await router.push(returnPath.value || `/projects/${updatedProject.id}/orders`)
       return
     }
 
@@ -127,7 +127,7 @@ const handleSubmit = async () => {
       color: color.value,
     })
 
-    await router.push(`/projects/${project.id}/tasks`)
+    await router.push(`/projects/${project.id}/orders`)
   } catch (error) {
     submitError.value = isEditing.value
       ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'

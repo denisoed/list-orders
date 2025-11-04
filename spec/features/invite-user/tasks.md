@@ -1,4 +1,4 @@
-# Tasks
+# Orders
 
 **Context:** Добавление страницы управления командой и ссылки приглашения коллег из формы проекта с отображением названия и количества участников.
 
@@ -19,13 +19,13 @@
 - [x] Синхронизировать счётчик участников между страницей проекта и страницей команды, обновляя значение при изменении списка.
 - [x] Добавить юнит-тесты для функции форматирования текста ссылки и логики фильтрации участников.
 
-## Supporting tasks
+## Supporting orders
 - [x] Documentation: обновить описание страниц проекта и команды, указав новый маршрут и компонент ссылки.
 - [x] Observability: Not required — reason: клиентская функция без бекенд-метрик; мониторинг не меняется.
 - [x] Code review and PR: подготовить изменения для ревью и описать ключевые сценарии.
 
 ## Definition of Done
-- [x] All tasks are completed and tested.
+- [x] All orders are completed and tested.
 - [x] Relevant unit/e2e/integration tests pass successfully.
 - [x] Documentation and operational instructions are updated.
-- [x] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [x] `/spec/core/verify.md` is executed after completing all orders to verify the order list.

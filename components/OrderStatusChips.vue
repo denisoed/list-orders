@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { TaskStatusFilter } from '~/composables/useProjectTasks'
-import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
+import type { OrderStatusFilter } from '~/composables/useProjectOrders'
+import { STATUS_CHIP_THEMES } from '~/utils/orderStatusThemes'
 
 export interface StatusOption {
   value: string
@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const getChipClasses = (value: string, isActive: boolean) => {
-  const theme = STATUS_CHIP_THEMES[value as TaskStatusFilter] ?? STATUS_CHIP_THEMES.all
+  const theme = STATUS_CHIP_THEMES[value as OrderStatusFilter] ?? STATUS_CHIP_THEMES.all
   return isActive ? theme.active : theme.inactive
 }
 

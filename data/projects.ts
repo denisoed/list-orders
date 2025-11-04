@@ -1,31 +1,31 @@
-export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done'
-export type TaskReminderOffset = '1h' | '3h' | '1d'
+export type OrderStatus = 'pending' | 'in_progress' | 'review' | 'done'
+export type OrderReminderOffset = '1h' | '3h' | '1d'
 
-export interface TaskAttachment {
+export interface OrderAttachment {
   id: string
   name: string
   previewUrl: string
 }
 
-export interface TaskAssignee {
+export interface OrderAssignee {
   name: string
   avatarUrl: string
 }
 
-export interface ProjectTask {
+export interface ProjectOrder {
   id: string
   title: string
-  assignee: TaskAssignee
-  status: TaskStatus
+  assignee: OrderAssignee
+  status: OrderStatus
   dueDate: string
   dueTime?: string
   description?: string
-  attachments?: TaskAttachment[]
+  attachments?: OrderAttachment[]
   clientName?: string
   clientPhone?: string
   deliveryAddress?: string
   isPickup?: boolean
-  remindBefore?: TaskReminderOffset
+  remindBefore?: OrderReminderOffset
 }
 
 export interface Project {

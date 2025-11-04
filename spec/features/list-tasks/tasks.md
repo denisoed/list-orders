@@ -1,17 +1,17 @@
-# Tasks
+# Orders
 
 **Context:** Создать страницу задач выбранного проекта с динамическим роутом, загрузкой данных, фильтрами/поиском и визуалом согласно макету. Страница открывается при клике на карточку проекта на главной.
 
 ## Main directions
 
 ### Роутинг и загрузка данных
-- [ ] Добавить динамический маршрут `pages/projects/[projectId]/tasks.vue` (или соответствующий) с конфигурацией `definePageMeta`, заголовком и обработкой параметра `projectId`.
-- [ ] Реализовать загрузку данных проекта и его задач через `useAsyncData`/composable `useProjectTasks`, обеспечить обработку состояний `loading`/`error` и fallback при отсутствии задач.
+- [ ] Добавить динамический маршрут `pages/projects/[projectId]/orders.vue` (или соответствующий) с конфигурацией `definePageMeta`, заголовком и обработкой параметра `projectId`.
+- [ ] Реализовать загрузку данных проекта и его задач через `useAsyncData`/composable `useProjectOrders`, обеспечить обработку состояний `loading`/`error` и fallback при отсутствии задач.
 - [ ] Настроить навигацию с главной страницы: карточка проекта вызывает `navigateTo` на новую страницу и передаёт идентификатор проекта.
 
 ### UI и компоненты
 - [ ] Создать структуру страницы согласно макету: AppBar с кнопкой меню и действием добавления, поле поиска, чипы фильтров, список карточек задач, пустое состояние и FAB.
-- [ ] Разработать переиспользуемые компоненты (`TaskSearch`, `TaskStatusChips`, `TaskCard`, `TaskEmptyState`) с поддержкой светлой/тёмной темы и адаптивного поведения.
+- [ ] Разработать переиспользуемые компоненты (`OrderSearch`, `OrderStatusChips`, `OrderCard`, `OrderEmptyState`) с поддержкой светлой/тёмной темы и адаптивного поведения.
 - [ ] Настроить отображение статусов, приоритетов, просрочки: бейджи с цветами Tailwind, иконки Material Symbols, зачёркивание выполненных задач.
 
 ### Состояние и фильтрация
@@ -27,7 +27,7 @@
 - [ ] Покрыть фильтрующую логику юнит-тестом/composable-тестом (если используется Vitest) и убедиться, что тесты проходят.
 - [ ] Обновить снимки/визуальные тесты (если есть) и прогнать линтер/типизацию проекта.
 
-## Supporting tasks
+## Supporting orders
 
 - [ ] Documentation: обновить README/справку по страницам, если требуется описание новой страницы.
 - [ ] Observability: при необходимости добавить логирование или трекинг перехода на страницу задач.
@@ -35,7 +35,7 @@
 
 ## Definition of Done
 
-- [ ] All tasks are completed and tested.
+- [ ] All orders are completed and tested.
 - [ ] Relevant unit/e2e/integration tests pass successfully.
 - [ ] Documentation and operational instructions are updated.
-- [ ] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [ ] `/spec/core/verify.md` is executed after completing all orders to verify the order list.

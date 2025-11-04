@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ProjectTask, TaskStatus } from '~/data/projects'
+import type { ProjectOrder, OrderStatus } from '~/data/projects'
 
 interface StatusMeta {
   label: string
@@ -10,7 +10,7 @@ interface StatusMeta {
   cardClass: string
 }
 
-const STATUS_META: Record<TaskStatus, StatusMeta> = {
+const STATUS_META: Record<OrderStatus, StatusMeta> = {
   pending: {
     label: 'Ожидает',
     badgeBg: 'bg-red-500/20',
@@ -43,24 +43,24 @@ const STATUS_META: Record<TaskStatus, StatusMeta> = {
 }
 
 const props = defineProps<{
-  task: ProjectTask
+  order: ProjectOrder
 }>()
 
-const statusMeta = computed(() => STATUS_META[props.task.status])
-const isCompleted = computed(() => props.task.status === 'done')
+const statusMeta = computed(() => STATUS_META[props.order.status])
+const isCompleted = computed(() => props.order.status === 'done')
 
-const orderDetailsRoute = computed(() => `/orders/${props.task.id}`)
-const orderAriaLabel = computed(() => `Открыть детали заказа «${props.task.title}»`)
+const orderDetailsRoute = computed(() => `/orders/${props.order.id}`)
+const orderAriaLabel = computed(() => `Открыть детали заказа «${props.order.title}»`)
 
 const dueLabel = computed(() => {
-  if (!props.task.dueDate) {
+  if (!props.order.dueDate) {
     return 'Срок не указан'
   }
 
-  return `Срок: ${formatDate(props.task.dueDate)}`
+  return `Срок: ${formatDate(props.order.dueDate)}`
 })
 
-const dueIcon = computed(() => (props.task.status === 'pending' ? 'schedule' : 'calendar_today'))
+const dueIcon = computed(() => (props.order.status === 'pending' ? 'schedule' : 'calendar_today'))
 
 const dueIconClass = computed(() =>
   isCompleted.value ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400',
@@ -102,16 +102,16 @@ function formatDate(date: string) {
   <NuxtLink :to="orderDetailsRoute" :aria-label="orderAriaLabel" :class="containerClasses">
     <div class="flex flex-col gap-2">
       <p :class="titleClasses">
-        {{ task.title }}
+        {{ order.title }}
       </p>
       <div class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
         <img
-          :src="task.assignee.avatarUrl"
-          :alt="`Аватар ${task.assignee.name}`"
+          :src="order.assignee.avatarUrl"
+          :alt="`Аватар ${order.assignee.name}`"
           class="h-6 w-6 rounded-full object-cover"
           loading="lazy"
         />
-        <span>{{ task.assignee.name }}</span>
+        <span>{{ order.assignee.name }}</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="material-symbols-outlined text-base" :class="dueIconClass">

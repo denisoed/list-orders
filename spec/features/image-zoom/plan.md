@@ -19,12 +19,12 @@
 - Query-параметры:
   - `orderId` (string, optional) — для контекста заказа
   - `projectId` (string, optional) — для контекста проекта/создания заказа
-  - `source` (string, optional) — источник перехода: `'order-details'` или `'task-create'`
+  - `source` (string, optional) — источник перехода: `'order-details'` или `'order-create'`
 
 **Вариант 2: Отдельные маршруты**
 
 - Маршрут для заказов: `/orders/[id]/images/[imageId]` (параметры: `id`, `imageId`).
-- Маршрут для создания заказа: `/projects/[id]/tasks/new/images/[imageId]` (параметры: `id`, `imageId`).
+- Маршрут для создания заказа: `/projects/[id]/orders/new/images/[imageId]` (параметры: `id`, `imageId`).
 
 **Рекомендация:** Использовать Вариант 1 для упрощения и единообразия кода.
 
@@ -44,13 +44,13 @@
 - Query-параметры (опционально, для контекста и возврата):
   - `orderId` (string, optional) — идентификатор заказа (для страницы деталей заказа)
   - `projectId` (string, optional) — идентификатор проекта (для страницы создания заказа)
-  - `source` (string, optional) — источник перехода: `'order-details'` или `'task-create'`
+  - `source` (string, optional) — источник перехода: `'order-details'` или `'order-create'`
   - `returnTo` (string, optional) — URL для возврата, если требуется явное указание
 
 **Альтернативные маршруты:**
 
 1. `/orders/[id]/images/[imageId]` — для просмотра из страницы деталей заказа
-2. `/projects/[id]/tasks/new/images/[imageId]` — для просмотра из страницы создания заказа
+2. `/projects/[id]/orders/new/images/[imageId]` — для просмотра из страницы создания заказа
 
 **Преимущества универсального маршрута:**
 - Единая реализация страницы просмотра
@@ -96,7 +96,7 @@ interface ZoomState {
 - Проверка валидности `imageId` (не пустая строка, допустимые символы).
 - Обработка случая, когда изображение с указанным `imageId` не найдено:
   - Если `source === 'order-details'` и указан `orderId` — поиск в данных заказа.
-  - Если `source === 'task-create'` и указан `projectId` — поиск в локальных attachment'ах формы создания заказа (может быть blob URL).
+  - Если `source === 'order-create'` и указан `projectId` — поиск в локальных attachment'ах формы создания заказа (может быть blob URL).
   - В ином случае — универсальная обработка ошибки.
 
 ## Architecture / Components
@@ -117,7 +117,7 @@ pages/
         [imageId].vue  # Страница просмотра для заказов
   projects/
     [id]/
-      tasks/
+      orders/
         new/
           images/
             [imageId].vue  # Страница просмотра для создания заказа
@@ -173,9 +173,9 @@ components/
    - Добавить обработчик клика на миниатюры изображений в секции "Примеры".
    - При клике выполнять навигацию на `/images/${attachment.id}?orderId=${orderId}&source=order-details`.
 
-2. **Страница создания заказа** (`pages/projects/[id]/tasks/new.vue`):
+2. **Страница создания заказа** (`pages/projects/[id]/orders/new.vue`):
    - Добавить обработчик клика на миниатюры изображений в секции "Фото примеров".
-   - При клике выполнять навигацию на `/images/${attachment.id}?projectId=${projectId}&source=task-create`.
+   - При клике выполнять навигацию на `/images/${attachment.id}?projectId=${projectId}&source=order-create`.
    - Учитывать, что URL изображения может быть локальным blob URL (из `File` объекта), а не серверным.
 
 3. **Навигация:**

@@ -4,7 +4,7 @@ import {
   TEAM_MEMBER_PROFILES,
   cloneTeamMemberProfile,
   type TeamMemberProfile,
-  type TeamMemberTaskStatus,
+  type TeamMemberOrderStatus,
 } from '~/data/teamMemberProfiles'
 
 const cloneProfiles = (): TeamMemberProfile[] => TEAM_MEMBER_PROFILES.map((profile) => cloneTeamMemberProfile(profile))
@@ -13,19 +13,19 @@ export const useTeamMemberProfilesState = () => useState<TeamMemberProfile[]>('t
 
 export interface UseTeamMemberProfileResult {
   profile: Ref<TeamMemberProfile | undefined>
-  currentStatus: Ref<TeamMemberTaskStatus>
-  setStatus: (value: TeamMemberTaskStatus) => void
+  currentStatus: Ref<TeamMemberOrderStatus>
+  setStatus: (value: TeamMemberOrderStatus) => void
 }
 
 export const useTeamMemberProfile = (
   memberId: Ref<string> | string,
-  defaultStatus: TeamMemberTaskStatus = 'in-progress',
+  defaultStatus: TeamMemberOrderStatus = 'in-progress',
 ): UseTeamMemberProfileResult => {
   const profilesState = useTeamMemberProfilesState()
   const memberIdRef = computed(() => (typeof memberId === 'string' ? memberId : memberId.value))
 
   const profile = computed(() => profilesState.value.find((item) => item.id === memberIdRef.value))
-  const currentStatus = ref<TeamMemberTaskStatus>(defaultStatus)
+  const currentStatus = ref<TeamMemberOrderStatus>(defaultStatus)
 
   watch(
     () => memberIdRef.value,
@@ -37,7 +37,7 @@ export const useTeamMemberProfile = (
   return {
     profile,
     currentStatus,
-    setStatus: (value: TeamMemberTaskStatus) => {
+    setStatus: (value: TeamMemberOrderStatus) => {
       currentStatus.value = value
     },
   }

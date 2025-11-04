@@ -1,6 +1,6 @@
-import type { TaskStatusFilter } from '~/composables/useProjectTasks'
+import type { OrderStatusFilter } from '~/composables/useProjectOrders'
 
-export const STATUS_CHIP_THEMES: Record<TaskStatusFilter, { inactive: string; active: string }> = {
+export const STATUS_CHIP_THEMES: Record<OrderStatusFilter, { inactive: string; active: string }> = {
   all: {
     inactive: 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-white',
     active: 'bg-primary text-white',

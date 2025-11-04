@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAllProjects } from '~/composables/useProjectTasks'
+import { useAllProjects } from '~/composables/useProjectOrders'
 import { useProjects } from '~/composables/useProjects'
 import { useOrders } from '~/composables/useOrders'
 import type { Project } from '~/data/projects'
@@ -75,7 +75,7 @@ const declOfNum = (count: number, forms: [string, string, string]) => {
   return forms[2]
 }
 
-const getTaskCount = (project: Project) => {
+const getOrderCount = (project: Project) => {
   // Count orders for this project from the database
   const currentOrders = ordersList.value
   const projectOrders = currentOrders.filter((order: Order) => order.projectId === project.id)
@@ -89,8 +89,8 @@ const getTaskCount = (project: Project) => {
   return orderCount
 }
 
-const formatTaskCount = (project: Project) => {
-  const count = getTaskCount(project)
+const formatOrderCount = (project: Project) => {
+  const count = getOrderCount(project)
   return `${count} ${declOfNum(count, ['задача', 'задачи', 'задач'])}`
 }
 
@@ -156,7 +156,7 @@ useHead({
         <NuxtLink
           v-for="project in visibleProjects"
           :key="project.id"
-          :to="`/projects/${project.id}/tasks`"
+          :to="`/projects/${project.id}/orders`"
           class="group flex cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
           :aria-label="`Перейти к задачам проекта «${project.title}»`"
         >
@@ -187,7 +187,7 @@ useHead({
           <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-base text-primary">checklist</span>
-              {{ formatTaskCount(project) }}
+              {{ formatOrderCount(project) }}
             </div>
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-base text-primary">group</span>

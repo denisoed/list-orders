@@ -1,4 +1,4 @@
-# Tasks
+# Orders
 
 **Context:** Реализовать страницу отправки заказа на проверку с загрузкой фотографий и комментарием, перенаправляя пользователя с деталей заказа по кнопке «Отметить выполненным», и обеспечить сокращение длинных имен файлов.
 
@@ -14,13 +14,13 @@
 - [x] Обновить логику смены статуса заказа на «ожидает проверки» после успешной отправки.
 - [x] Обработать ошибки загрузки и отправки, используя существующий механизм уведомлений.
 
-## Supporting tasks
+## Supporting orders
 - [x] Documentation: update relevant instructions and descriptions.
 - [x] Observability: add or clarify metrics, alerts, and/or logging.
 - [x] Code review and PR: prepare changes for review and accompanying information.
 
 ## Definition of Done
-- [x] All tasks are completed and tested.
+- [x] All orders are completed and tested.
 - [x] Relevant unit/e2e/integration tests pass successfully.
 - [x] Documentation and operational instructions are updated.
-- [x] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [x] `/spec/core/verify.md` is executed after completing all orders to verify the order list.

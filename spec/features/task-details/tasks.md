@@ -1,4 +1,4 @@
-# Tasks
+# Orders
 
 **Context:** Реализовать динамическую страницу деталей заказа `/orders/[id]` на мок-данных с адаптивной вёрсткой, соответствующей стилю приложения.
 
@@ -19,7 +19,7 @@
 
 - [ ] Добавить unit-тесты, проверяющие рендеринг ключевых секций и отображение данных по умолчанию.
 
-## Supporting tasks
+## Supporting orders
 
 - [ ] Документация: обновить/добавить краткое описание новой страницы в README или отдельном разделе при необходимости.
 - [ ] Наблюдаемость: Not required — reason: статическая мок-страница не использует сервисы и логи.
@@ -27,7 +27,7 @@
 
 ## Definition of Done
 
-- [ ] All tasks are completed and tested.
+- [ ] All orders are completed and tested.
 - [ ] Relevant unit/e2e/integration tests pass successfully.
 - [ ] Documentation and operational instructions are updated.
-- [ ] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [ ] `/spec/core/verify.md` is executed after completing all orders to verify the order list.

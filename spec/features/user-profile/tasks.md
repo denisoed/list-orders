@@ -1,4 +1,4 @@
-# Tasks
+# Orders
 
 **Context:** Создать динамическую страницу публичного профиля коллеги с контактами и задачами, доступную из списка команды, соблюдая стили приложения.
 
@@ -24,7 +24,7 @@
 - [ ] Реализовать секцию «История задач» с карточками завершённых задач, пониженной контрастностью и пустым состоянием.
 - [ ] Обеспечить адаптивность и доступность: проверка контрастности, aria-метки для кнопок, фокусные состояния.
 
-## Supporting tasks
+## Supporting orders
 
 - [ ] Documentation: описать использование страницы и источника данных в README или соответствующем разделе.
 - [ ] Observability: Not required — reason: в рамках клиентского Nuxt-приложения без бекэнда нечего настраивать.
@@ -32,7 +32,7 @@
 
 ## Definition of Done
 
-- [ ] All tasks are completed and tested.
+- [ ] All orders are completed and tested.
 - [ ] Relevant unit/e2e/integration tests pass successfully.
 - [ ] Documentation and operational instructions are updated.
-- [ ] `/spec/core/verify.md` is executed after completing all tasks to verify the task list.
+- [ ] `/spec/core/verify.md` is executed after completing all orders to verify the order list.

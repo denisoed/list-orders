@@ -287,7 +287,6 @@ export const useProjectsStore = defineStore('projects', () => {
   const errorComputed = computed(() => error.value)
 
   return {
-    // State (projects is writable for local task management)
     projects: projects,
     isLoading: isLoadingComputed,
     isCreating: isCreatingComputed,

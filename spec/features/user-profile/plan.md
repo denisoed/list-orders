@@ -4,13 +4,13 @@
 
 ## Data sources / schemas
 
-- Создать новый модуль `data/teamMembers.ts` (или расширить текущий `data/team.ts`, если допустимо) с полной моделью `TeamMemberProfile`, содержащей поля: `id`, `name`, `role`, `avatarUrl`, `bio`/`department`, `contacts` (telegram, phone, email), `tasks` (массив с `id`, `title`, `status`, `dueDate`), `history` (массив завершённых задач). Определить перечисление статусов (`in-progress`, `completed`, `overdue`).
+- Создать новый модуль `data/teamMembers.ts` (или расширить текущий `data/team.ts`, если допустимо) с полной моделью `TeamMemberProfile`, содержащей поля: `id`, `name`, `role`, `avatarUrl`, `bio`/`department`, `contacts` (telegram, phone, email), `orders` (массив с `id`, `title`, `status`, `dueDate`), `history` (массив завершённых задач). Определить перечисление статусов (`in-progress`, `completed`, `overdue`).
 - Добавить вспомогательные функции/композабл `useTeamMemberProfile(id)` для получения данных по идентификатору, с мемоизацией и обработкой отсутствующих записей. Возвращать состояния: `profile`, `isLoading`, `error`.
 - Обеспечить совместимость с существующим `useProjectTeam` — данные в списке коллег должны ссылаться на ту же `id`. При необходимости расширить `ProjectTeamMember` дополнительными полями или добавить маппинг `id -> profile`.
 
 ## Contracts and interfaces
 
-- Определить интерфейс `TaskItem` с полями `title`, `status`, `dueDate`, `description?`. Для истории добавить `completedAt`.
+- Определить интерфейс `OrderItem` с полями `title`, `status`, `dueDate`, `description?`. Для истории добавить `completedAt`.
 - Фильтры статусов реализовать как массив объектов `{ key, label }`, где `key` соответствует перечислению статусов. Контролировать активный фильтр через состояние компонента.
 - Навигация: карточка `TeamMemberCard` получает обработчик `@click` и `aria-label` для открытия `/colleagues/{id}` (через `router.push`). На странице профиля реализовать кнопку «Назад», использующую `router.back()` и fallback на `/projects/{projectId}/team` (если проект передал `from` в query).
 - Контактные элементы используют схемы ссылок: `href="https://t.me/${username}"`, `href="tel:${phone}"`, `href="mailto:${email}"`. Добавить атрибуты `rel="noopener noreferrer"` для внешних ссылок.
