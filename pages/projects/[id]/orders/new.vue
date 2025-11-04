@@ -7,6 +7,7 @@ import { useOrders } from '~/composables/useOrders'
 import { convertOrderToOrderDetail } from '~/data/orders'
 import { useProjects } from '~/composables/useProjects'
 import { useTelegram } from '~/composables/useTelegram'
+import { useOrderDraft } from '~/composables/useOrderDraft'
 
 interface AssigneeOption {
   id: string
@@ -29,6 +30,10 @@ const { getProjectById } = useProjects()
 const { fetchOrder, createOrder, updateOrder, isCreating, isUpdating } = useOrders()
 
 const project = computed(() => getProjectById(projectId.value))
+
+// Initialize draft functionality (only for creating new orders, not editing)
+const { saveDraft, loadDraft, clearDraft, hasDraft, createDebouncedSave } = useOrderDraft(projectId)
+const debouncedSave = createDebouncedSave(500)
 
 const title = ref('')
 const description = ref('')
@@ -228,7 +233,102 @@ const getPaymentType = (): string | null => {
 
 const isSubmitDisabled = computed(() => !projectId.value || !isFormValid.value || isCreating.value || isUpdating.value)
 
-// Load order data for edit mode
+// Save form data to draft (only for creating new orders)
+const saveFormToDraft = () => {
+  if (isEditMode.value) {
+    return // Don't save drafts when editing
+  }
+
+  // Get attachment URLs (only non-blob URLs)
+  const attachmentUrls = attachments.value
+    .filter(att => att.previewUrl && !att.previewUrl.startsWith('blob:'))
+    .map(att => att.previewUrl)
+
+  debouncedSave({
+    title: title.value,
+    description: description.value,
+    clientName: clientName.value,
+    clientPhone: clientPhone.value,
+    deliveryAddress: deliveryAddress.value,
+    deliveryOption: deliveryOption.value,
+    dueDate: dueDate.value,
+    dueTime: dueTime.value,
+    selectedAssigneeId: selectedAssigneeId.value,
+    customAssignee: customAssignee.value,
+    attachmentUrls,
+    reminderOffset: reminderOffset.value,
+    hasPrepayment: hasPrepayment.value,
+    paymentAmount: paymentAmount.value,
+    prepaymentAmount: prepaymentAmount.value,
+  })
+}
+
+// Load draft data into form (only for creating new orders)
+const loadDraftToForm = () => {
+  if (isEditMode.value) {
+    return // Don't load drafts when editing
+  }
+
+  const draft = loadDraft()
+  if (!draft) {
+    return
+  }
+
+  title.value = draft.title || ''
+  description.value = draft.description || ''
+  clientName.value = draft.clientName || ''
+  clientPhone.value = draft.clientPhone || ''
+  deliveryAddress.value = draft.deliveryAddress || ''
+  deliveryOption.value = draft.deliveryOption || ''
+  dueDate.value = draft.dueDate || ''
+  dueTime.value = draft.dueTime || ''
+  selectedAssigneeId.value = draft.selectedAssigneeId || 'unassigned'
+  customAssignee.value = draft.customAssignee || null
+  reminderOffset.value = draft.reminderOffset || null
+  hasPrepayment.value = draft.hasPrepayment || false
+  paymentAmount.value = draft.paymentAmount || ''
+  prepaymentAmount.value = draft.prepaymentAmount || ''
+
+  // Load attachment URLs (convert to ImageAttachment format)
+  if (draft.attachmentUrls && draft.attachmentUrls.length > 0) {
+    attachments.value = draft.attachmentUrls.map((url, index) => ({
+      id: `draft-${index}`,
+      name: `image-${index + 1}`,
+      previewUrl: url,
+      file: new File([], `image-${index + 1}`), // Empty file for draft attachments
+    }))
+  }
+}
+
+// Handle draft clear
+const handleClearDraft = () => {
+  clearDraft()
+  // Clear form fields
+  title.value = ''
+  description.value = ''
+  clientName.value = ''
+  clientPhone.value = ''
+  deliveryAddress.value = ''
+  deliveryOption.value = ''
+  dueDate.value = ''
+  dueTime.value = ''
+  selectedAssigneeId.value = 'unassigned'
+  customAssignee.value = null
+  attachments.value = []
+  reminderOffset.value = null
+  hasPrepayment.value = false
+  paymentAmount.value = ''
+  prepaymentAmount.value = ''
+  
+  // Reset touched states
+  titleTouched.value = false
+  clientNameTouched.value = false
+  clientPhoneTouched.value = false
+  deliveryAddressTouched.value = false
+  submitAttempted.value = false
+}
+
+// Load order data for edit mode or draft for new orders
 onMounted(async () => {
   if (orderId.value) {
     try {
@@ -339,6 +439,9 @@ onMounted(async () => {
       console.error('Failed to load order data:', error)
       // If order loading fails, form will remain empty
     }
+  } else {
+    // Load draft for new order creation
+    loadDraftToForm()
   }
 })
 
@@ -528,6 +631,9 @@ const handleSubmit = async () => {
         // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
       })
       
+      // Clear draft after successful order creation
+      clearDraft()
+      
       attachments.value = []
       reminderOffset.value = null
       await router.back()
@@ -583,6 +689,19 @@ watch(
   { flush: 'post' },
 )
 
+// Auto-save draft when form fields change (only for creating new orders)
+watch([title, description, clientName, clientPhone, deliveryAddress, deliveryOption, dueDate, dueTime, selectedAssigneeId, customAssignee, reminderOffset, hasPrepayment, paymentAmount, prepaymentAmount], () => {
+  saveFormToDraft()
+}, { deep: true })
+
+// Auto-save draft when attachments change (only non-blob URLs)
+watch(attachments, () => {
+  saveFormToDraft()
+}, { deep: true })
+
+// Check if draft exists
+const draftExists = computed(() => !isEditMode.value && hasDraft())
+
 const pageTitle = computed(() => isEditMode.value ? 'Редактирование заказа' : 'Новая задача')
 const submitButtonLabel = computed(() => {
   if (isCreating.value) return 'Создание…'
@@ -625,7 +744,17 @@ useHead({
         <span class="material-symbols-outlined text-3xl">close</span>
       </button>
       <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
-      <div class="flex w-12 items-center justify-end"></div>
+      <div class="flex w-12 items-center justify-end">
+        <button
+          v-if="draftExists"
+          type="button"
+          class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
+          aria-label="Очистить черновик"
+          @click="handleClearDraft"
+        >
+          <span class="material-symbols-outlined text-3xl">delete_outline</span>
+        </button>
+      </div>
     </header>
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
