@@ -318,8 +318,23 @@ onMounted(async () => {
         }))
       }
       
-      // Set assignee - for now, always default as we don't have telegram_id mapping
-      selectedAssigneeId.value = 'unassigned'
+      // Set assignee - load from orderData if available
+      if (orderData.assigneeTelegramName && orderData.assigneeTelegramAvatarUrl) {
+        customAssignee.value = {
+          name: orderData.assigneeTelegramName,
+          avatarUrl: orderData.assigneeTelegramAvatarUrl,
+        }
+        // Keep selectedAssigneeId as 'unassigned' but customAssignee will be used
+      } else if (order.assignee) {
+        // Fallback to order.assignee if available
+        customAssignee.value = {
+          name: order.assignee.name,
+          avatarUrl: order.assignee.avatarUrl,
+        }
+      } else {
+        selectedAssigneeId.value = 'unassigned'
+        customAssignee.value = null
+      }
     } catch (error) {
       console.error('Failed to load order data:', error)
       // If order loading fails, form will remain empty
@@ -458,7 +473,7 @@ const handleSubmit = async () => {
 
     if (isEditMode.value && orderId.value) {
       // Update existing order
-      await updateOrder(orderId.value, {
+      const updateData: any = {
         title: title.value,
         summary: '', // Summary is not used in the form, but we send empty string to ensure it's updated
         description: description.value,
@@ -467,13 +482,29 @@ const handleSubmit = async () => {
         due_date: dueDateISO,
         due_time: dueTime.value || null,
         delivery_address: deliveryOption.value === 'delivery' ? deliveryAddress.value || null : null,
-        reminder_offset: reminderOffset.value || null,
         payment_type: paymentType,
         prepayment_amount: prepayment,
         total_amount: total,
         image_urls: allImageUrls,
-        // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
-      })
+      }
+      
+      // Set assignee fields if customAssignee exists, otherwise clear them
+      if (customAssignee.value) {
+        updateData.assignee_telegram_name = customAssignee.value.name
+        updateData.assignee_telegram_avatar_url = customAssignee.value.avatarUrl
+      } else if (selectedAssigneeId.value === 'unassigned') {
+        updateData.assignee_telegram_name = null
+        updateData.assignee_telegram_avatar_url = null
+      }
+      
+      // Include reminder_offset (should be TEXT in database, values like "1h", "3h", "1d")
+      if (reminderOffset.value !== null && reminderOffset.value !== undefined) {
+        updateData.reminder_offset = reminderOffset.value
+      } else {
+        updateData.reminder_offset = null
+      }
+      
+      await updateOrder(orderId.value, updateData)
       
       await router.back()
     } else {

@@ -91,7 +91,14 @@ export default defineEventHandler(async (event) => {
     }
 
     if (body.reminder_offset !== undefined) {
-      updateData.reminder_offset = body.reminder_offset || null
+      // Validate that reminder_offset is a string (not a timestamp)
+      // It should be values like "1h", "3h", "1d"
+      if (body.reminder_offset === null || typeof body.reminder_offset === 'string') {
+        updateData.reminder_offset = body.reminder_offset || null
+      } else {
+        console.warn('[Orders API] Invalid reminder_offset type:', typeof body.reminder_offset)
+        // Skip reminder_offset if it's not a string or null
+      }
     }
 
     if (body.client_name !== undefined) {
