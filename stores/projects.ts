@@ -277,22 +277,13 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
   }
 
-
-  // Getters as computed refs
-  const projectsComputed = computed(() => projects.value)
-  const isLoadingComputed = computed(() => isLoading.value)
-  const isCreatingComputed = computed(() => isCreating.value)
-  const isUpdatingComputed = computed(() => isUpdating.value)
-  const isDeletingComputed = computed(() => isDeleting.value)
-  const errorComputed = computed(() => error.value)
-
   return {
-    projects: projects,
-    isLoading: isLoadingComputed,
-    isCreating: isCreatingComputed,
-    isUpdating: isUpdatingComputed,
-    isDeleting: isDeletingComputed,
-    error: errorComputed,
+    projects,
+    isLoading,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    error,
     // Actions
     fetchProjects,
     fetchProject,

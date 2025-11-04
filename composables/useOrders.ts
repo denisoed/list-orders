@@ -12,6 +12,13 @@ import {
 export const useOrders = () => {
   const store = useOrdersStore()
 
+  const orders = computed(() => store.orders)
+  const isLoading = computed(() => store.isLoading)
+  const isCreating = computed(() => store.isCreating)
+  const isUpdating = computed(() => store.isUpdating)
+  const isDeleting = computed(() => store.isDeleting)
+  const error = computed(() => store.error)
+
   /**
    * Fetch all orders from the server
    * @param projectId Optional project ID to filter orders
@@ -53,12 +60,12 @@ export const useOrders = () => {
 
   return {
     // State
-    orders: store.orders,
-    isLoading: store.isLoading,
-    isCreating: store.isCreating,
-    isUpdating: store.isUpdating,
-    isDeleting: store.isDeleting,
-    error: store.error,
+    orders,
+    isLoading,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    error,
     // Actions
     fetchOrders,
     fetchOrder,

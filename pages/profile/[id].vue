@@ -219,7 +219,7 @@ useHead(() => ({
             v-else
             class="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white px-6 py-10 text-center text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]"
           >
-            <span class="material-symbols-outlined text-4xl opacity-70">order_alt</span>
+            <span class="material-symbols-outlined text-4xl opacity-70">task_alt</span>
             <div class="space-y-1">
               <p class="text-base font-semibold text-zinc-900 dark:text-white">Нет задач в выбранном статусе</p>
               <p class="text-sm">Попробуйте переключить фильтр, чтобы увидеть другие задачи коллеги.</p>

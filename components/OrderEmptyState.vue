@@ -6,7 +6,7 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-  icon: 'order_alt',
+  icon: 'task_alt',
   title: 'Здесь пока нет задач',
   description: 'Нажмите +, чтобы создать новую.',
 })

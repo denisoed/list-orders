@@ -11,6 +11,12 @@ import {
  */
 export const useProjects = () => {
   const store = useProjectsStore()
+  const projects = computed(() => store.projects)
+  const isLoading = computed(() => store.isLoading)
+  const isCreating = computed(() => store.isCreating)
+  const isUpdating = computed(() => store.isUpdating)
+  const isDeleting = computed(() => store.isDeleting)
+  const error = computed(() => store.error)
 
   /**
    * Fetch all projects from the server
@@ -52,12 +58,12 @@ export const useProjects = () => {
 
   return {
     // State
-    projects: store.projects,
-    isLoading: store.isLoading,
-    isCreating: store.isCreating,
-    isUpdating: store.isUpdating,
-    isDeleting: store.isDeleting,
-    error: store.error,
+    projects,
+    isLoading,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    error,
     // Actions
     fetchProjects,
     fetchProject,
