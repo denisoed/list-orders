@@ -483,7 +483,7 @@ useHead({
       </section>
 
       <section v-else-if="isLoading" class="py-10">
-        <DataLoadingIndicator />
+        <DataLoadingIndicator message="Загрузка задач..." />
       </section>
 
       <section v-else class="py-10">

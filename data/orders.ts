@@ -14,6 +14,9 @@ export interface Order {
   assigneeTelegramAvatarUrl: string | null
   assigneeTelegramName: string | null
   dueDate: string | null
+  dueTime: string | null
+  deliveryAddress: string | null
+  reminderOffset: string | null
   projectId: string
   clientName: string
   clientPhone: string

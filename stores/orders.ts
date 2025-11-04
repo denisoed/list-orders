@@ -10,6 +10,9 @@ export interface CreateOrderInput {
   status?: string
   assignee_telegram_id?: number | null
   due_date?: string | null
+  due_time?: string | null
+  delivery_address?: string | null
+  reminder_offset?: string | null
   client_name: string
   client_phone: string
   payment_type?: string | null
@@ -27,6 +30,9 @@ export interface UpdateOrderInput {
   assignee_telegram_name?: string | null
   assignee_telegram_avatar_url?: string | null
   due_date?: string | null
+  due_time?: string | null
+  delivery_address?: string | null
+  reminder_offset?: string | null
   client_name?: string
   client_phone?: string
   payment_type?: string | null

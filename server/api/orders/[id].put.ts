@@ -39,6 +39,9 @@ export default defineEventHandler(async (event) => {
       status?: string
       assignee_telegram_id?: number | null
       due_date?: string | null
+      due_time?: string | null
+      delivery_address?: string | null
+      reminder_offset?: string | null
       client_name?: string
       client_phone?: string
       payment_type?: string | null
@@ -76,6 +79,18 @@ export default defineEventHandler(async (event) => {
 
     if (body.due_date !== undefined) {
       updateData.due_date = body.due_date || null
+    }
+
+    if (body.due_time !== undefined) {
+      updateData.due_time = body.due_time || null
+    }
+
+    if (body.delivery_address !== undefined) {
+      updateData.delivery_address = body.delivery_address || null
+    }
+
+    if (body.reminder_offset !== undefined) {
+      updateData.reminder_offset = body.reminder_offset || null
     }
 
     if (body.client_name !== undefined) {
@@ -162,6 +177,9 @@ export default defineEventHandler(async (event) => {
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,
       dueDate: order.due_date || null,
+      dueTime: order.due_time || null,
+      deliveryAddress: order.delivery_address || null,
+      reminderOffset: order.reminder_offset || null,
       projectId: order.project_id,
       clientName: order.client_name,
       clientPhone: order.client_phone,

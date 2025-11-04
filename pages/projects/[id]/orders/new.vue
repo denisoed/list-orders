@@ -29,15 +29,6 @@ const { fetchOrder, createOrder, updateOrder, isCreating, isUpdating } = useOrde
 
 const project = computed(() => getProjectById(projectId.value))
 
-const fallbackOrdersRoute = computed(() => `/projects/${projectId.value}/orders`)
-const returnPath = computed(() => {
-  const from = route.query.from
-  if (typeof from === 'string' && from.length > 0) {
-    return from
-  }
-  return fallbackOrdersRoute.value
-})
-
 const title = ref('')
 const description = ref('')
 const clientName = ref('')
@@ -272,12 +263,22 @@ onMounted(async () => {
         }
       }
       
-      // Set delivery option - check if there's delivery address
-      if (orderData.dueDate) {
-        // Try to infer from order data if available
-        deliveryOption.value = 'pickup'
+      // Load due_time from orderData if available (prefer over parsed time)
+      if (orderData.dueTime) {
+        dueTime.value = orderData.dueTime
+      }
+      
+      // Set delivery option and address
+      if (orderData.deliveryAddress) {
+        deliveryOption.value = 'delivery'
+        deliveryAddress.value = orderData.deliveryAddress
       } else {
         deliveryOption.value = 'pickup'
+      }
+      
+      // Load reminder offset
+      if (orderData.reminderOffset) {
+        reminderOffset.value = orderData.reminderOffset as OrderReminderOffset
       }
       
       // Set prepayment - parse from formatted string
@@ -355,10 +356,14 @@ const handleSubmit = async () => {
       // Update existing order
       await updateOrder(orderId.value, {
         title: title.value,
+        summary: '', // Summary is not used in the form, but we send empty string to ensure it's updated
         description: description.value,
         client_name: clientName.value,
         client_phone: clientPhone.value,
         due_date: dueDateISO,
+        due_time: dueTime.value || null,
+        delivery_address: deliveryOption.value === 'delivery' ? deliveryAddress.value || null : null,
+        reminder_offset: reminderOffset.value || null,
         payment_type: paymentType,
         prepayment_amount: prepayment,
         total_amount: total,
@@ -366,16 +371,20 @@ const handleSubmit = async () => {
         // attachments are not part of order schema, they're handled separately in review flow
       })
       
-      await router.push(`/orders/${orderId.value}`)
+      await router.back()
     } else {
       // Create new order
       await createOrder({
         project_id: projectId.value,
         title: title.value,
+        summary: '', // Summary is not used in the form, but we send empty string for consistency
         description: description.value,
         client_name: clientName.value,
         client_phone: clientPhone.value,
         due_date: dueDateISO,
+        due_time: dueTime.value || null,
+        delivery_address: deliveryOption.value === 'delivery' ? deliveryAddress.value || null : null,
+        reminder_offset: reminderOffset.value || null,
         payment_type: paymentType,
         prepayment_amount: prepayment,
         total_amount: total,
@@ -386,7 +395,7 @@ const handleSubmit = async () => {
       
       attachments.value = []
       reminderOffset.value = null
-      await router.push(returnPath.value)
+      await router.back()
     }
   } catch (error) {
     submitError.value = isEditMode.value
