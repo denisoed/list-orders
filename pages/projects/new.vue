@@ -2,12 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useProjects } from '~/composables/useProjects'
-import { useProjectsState } from '~/composables/useProjectTasks'
+import { useProjectsStore } from '~/stores/projects'
 import { useProjectTeam } from '~/composables/useProjectTeam'
 
 const router = useRouter()
 const route = useRoute()
-const projectsState = useProjectsState()
+const projectsStore = useProjectsStore()
 const { createProject, updateProject, isCreating, isUpdating } = useProjects()
 
 const title = ref('')
@@ -30,7 +30,7 @@ const editableProject = computed(() => {
     return undefined
   }
 
-  return projectsState.value.find((project) => project.id === editProjectId.value)
+  return projectsStore.getProjectById(editProjectId.value)
 })
 
 const isEditing = computed(() => editProjectId.value.length > 0)
@@ -111,8 +111,7 @@ const handleSubmit = async () => {
 
   try {
     if (isEditing.value && editableProject.value) {
-      const updatedProject = await updateProject({
-        id: editableProject.value.id,
+      const updatedProject = await updateProject(editableProject.value.id, {
         title: title.value,
         description: description.value,
         color: color.value,

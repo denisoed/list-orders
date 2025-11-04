@@ -1,13 +1,6 @@
-import { useState } from '#imports'
 import { computed, ref, watch, type Ref } from 'vue'
-import {
-  PROJECTS,
-  type Project,
-  type ProjectTask,
-  type TaskAssignee,
-  type TaskAttachment,
-  type TaskReminderOffset,
-} from '~/data/projects'
+import type { Project, ProjectTask, TaskAssignee, TaskAttachment, TaskReminderOffset } from '~/data/projects'
+import { useProjectsStore } from '~/stores/projects'
 
 export const TASK_STATUS_FILTERS = [
   { value: 'all', label: 'Все' },
@@ -49,18 +42,11 @@ export interface UseProjectTasksResult {
   getTaskById: (taskId: string) => ProjectTask | undefined
 }
 
-const cloneProjects = (): Project[] => {
-  return PROJECTS.map((project) => ({
-    ...project,
-    tasks: project.tasks.map((task) => ({
-      ...task,
-      assignee: { ...task.assignee },
-      attachments: task.attachments?.map((attachment) => ({ ...attachment })),
-    })),
-  }))
+// Legacy function for backward compatibility (deprecated, use Pinia store instead)
+export const useProjectsState = () => {
+  const store = useProjectsStore()
+  return store.projects
 }
-
-export const useProjectsState = () => useState<Project[]>('projects-data', cloneProjects)
 
 const generateTaskId = () => `task-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`
 
@@ -82,10 +68,10 @@ export const filterProjectTasks = (
 }
 
 export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTasksResult => {
-  const projectsState = useProjectsState()
+  const store = useProjectsStore()
   const projectIdRef = computed(() => (typeof projectId === 'string' ? projectId : projectId.value))
 
-  const project = computed(() => projectsState.value.find((item) => item.id === projectIdRef.value))
+  const project = computed(() => store.projects.find((item) => item.id === projectIdRef.value))
   const allTasks = computed(() => project.value?.tasks ?? [])
 
   const searchQuery = ref('')
@@ -118,13 +104,12 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
       return allTasks.value.find((task) => task.id === taskId)
     },
     createTask: async (input: CreateProjectTaskInput) => {
-      const currentProjectIndex = projectsState.value.findIndex((item) => item.id === projectIdRef.value)
+      const projectSnapshot = store.getProjectById(projectIdRef.value)
 
-      if (currentProjectIndex === -1) {
+      if (!projectSnapshot) {
         throw new Error('Проект не найден для создания задачи')
       }
 
-      const projectSnapshot = projectsState.value[currentProjectIndex]
       const assignee = input.assignee ?? {
         name: 'Не назначен',
         avatarUrl:
@@ -151,13 +136,11 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
       isCreating.value = true
 
       try {
-        const updatedProject: Project = {
-          ...projectSnapshot,
-          total: projectSnapshot.total + 1,
-          tasks: [nextTask, ...projectSnapshot.tasks],
-        }
-
-        projectsState.value.splice(currentProjectIndex, 1, updatedProject)
+        store.updateProjectTasks(projectIdRef.value, (project) => ({
+          ...project,
+          total: project.total + 1,
+          tasks: [nextTask, ...project.tasks],
+        }))
 
         console.info('[tasks] Создана новая задача', {
           projectId: projectIdRef.value,
@@ -174,13 +157,12 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
       }
     },
     updateTask: async (taskId: string, input: CreateProjectTaskInput) => {
-      const currentProjectIndex = projectsState.value.findIndex((item) => item.id === projectIdRef.value)
+      const projectSnapshot = store.getProjectById(projectIdRef.value)
 
-      if (currentProjectIndex === -1) {
+      if (!projectSnapshot) {
         throw new Error('Проект не найден для обновления задачи')
       }
 
-      const projectSnapshot = projectsState.value[currentProjectIndex]
       const taskIndex = projectSnapshot.tasks.findIndex((task) => task.id === taskId)
 
       if (taskIndex === -1) {
@@ -213,15 +195,14 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
       isUpdating.value = true
 
       try {
-        const updatedTasks = [...projectSnapshot.tasks]
-        updatedTasks[taskIndex] = updatedTask
-
-        const updatedProject: Project = {
-          ...projectSnapshot,
-          tasks: updatedTasks,
-        }
-
-        projectsState.value.splice(currentProjectIndex, 1, updatedProject)
+        store.updateProjectTasks(projectIdRef.value, (project) => {
+          const updatedTasks = [...project.tasks]
+          updatedTasks[taskIndex] = updatedTask
+          return {
+            ...project,
+            tasks: updatedTasks,
+          }
+        })
 
         console.info('[tasks] Обновлена задача', {
           projectId: projectIdRef.value,
@@ -241,14 +222,14 @@ export const useProjectTasks = (projectId: Ref<string> | string): UseProjectTask
 }
 
 export const useAllProjects = () => {
-  const projectsState = useProjectsState()
-  return computed(() => projectsState.value)
+  const store = useProjectsStore()
+  return computed(() => store.projects)
 }
 
 export const findTaskInProjects = (taskId: string): { project: Project; task: ProjectTask } | null => {
-  const projectsState = useProjectsState()
+  const store = useProjectsStore()
   
-  for (const project of projectsState.value) {
+  for (const project of store.projects) {
     const task = project.tasks.find((t) => t.id === taskId)
     if (task) {
       return { project, task }
