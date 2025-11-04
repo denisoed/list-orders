@@ -10,13 +10,15 @@ import { onMounted } from 'vue'
 import { useTelegram } from '~/composables/useTelegram'
 import { useUserStore, type User } from '~/stores/user'
 
-const { getInitData, waitForInitData, getStartParam } = useTelegram()
+const { waitForInitData, getStartParam } = useTelegram()
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 onMounted(async () => {
-  // Wait for Telegram WebApp to be ready before getting initData
-  // This is important for hard reloads when Telegram WebApp might not be initialized yet
+  // waitForInitData will return new valid initData if available,
+  // or fall back to stored initData from localStorage
+  // It also updates localStorage if new valid initData is found
   const initData = await waitForInitData(20, 100)
   
   if (initData) {
@@ -28,12 +30,13 @@ onMounted(async () => {
 
       // After successful validation, set user data directly from response
       if (response.user) {
-        const userStore = useUserStore()
         userStore.setUser(response.user)
       }
     } catch (error) {
       console.warn('[Telegram] Failed to send initData to server', error)
     }
+  } else {
+    console.warn('[Telegram] No valid initData available (neither new nor stored)')
   }
 
   // Handle start_param for deep linking to order details

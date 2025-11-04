@@ -35,6 +35,8 @@ declare global {
 
 type MaybeTelegramWebApp = TelegramWebApp | null
 
+const STORAGE_KEY = 'telegram-init-data'
+
 const LIGHT_THEME: TelegramThemeSettings = {
   headerColor: '#f6f6f8',
   backgroundColor: '#f6f6f8',
@@ -110,6 +112,75 @@ export const useTelegram = () => {
     }
   }
 
+  /**
+   * Validates initData format to ensure it's not empty or invalid
+   * Checks that initData contains required parameters (hash and auth_date)
+   */
+  const isValidInitData = (initData: string | null | undefined): boolean => {
+    if (!initData || typeof initData !== 'string') {
+      return false
+    }
+    
+    // Check that it's not just "query_id" or empty string
+    if (initData === 'query_id' || initData.trim() === '') {
+      return false
+    }
+    
+    // Check that initData contains necessary parameters
+    // Valid initData should contain at least hash and auth_date
+    const hasHash = initData.includes('hash=')
+    const hasAuthDate = initData.includes('auth_date=')
+    
+    return hasHash && hasAuthDate
+  }
+
+  /**
+   * Loads initData from localStorage
+   */
+  const loadInitDataFromStorage = (): string | null => {
+    if (!import.meta.client) {
+      return null
+    }
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored && isValidInitData(stored)) {
+        console.log('[Telegram] Loaded initData from localStorage')
+        return stored
+      }
+      if (stored && !isValidInitData(stored)) {
+        // Remove invalid stored data
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    } catch (error) {
+      console.warn('[Telegram] Failed to load initData from localStorage', error)
+      localStorage.removeItem(STORAGE_KEY)
+    }
+
+    return null
+  }
+
+  /**
+   * Saves initData to localStorage if it's valid
+   */
+  const saveInitDataToStorage = (initData: string | null): void => {
+    if (!import.meta.client) {
+      return
+    }
+
+    try {
+      if (initData && isValidInitData(initData)) {
+        localStorage.setItem(STORAGE_KEY, initData)
+        console.log('[Telegram] Saved valid initData to localStorage')
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
+        console.log('[Telegram] Removed invalid initData from localStorage')
+      }
+    } catch (error) {
+      console.warn('[Telegram] Failed to save initData to localStorage', error)
+    }
+  }
+
   const getInitData = (): string | null => {
     if (!import.meta.client) {
       return null
@@ -117,7 +188,21 @@ export const useTelegram = () => {
 
     // Always get fresh instance to ensure initData is available
     const instance = window.Telegram?.WebApp ?? null
-    return instance?.initData ?? null
+    const newInitData = instance?.initData ?? null
+    
+    // If new initData is valid, use it and update storage
+    if (isValidInitData(newInitData)) {
+      saveInitDataToStorage(newInitData)
+      return newInitData
+    }
+    
+    // If new initData is not valid, try to load from storage
+    const storedInitData = loadInitDataFromStorage()
+    if (storedInitData) {
+      return storedInitData
+    }
+    
+    return null
   }
 
   /**
@@ -150,6 +235,8 @@ export const useTelegram = () => {
 
   /**
    * Waits for Telegram WebApp to be ready and returns initData
+   * Returns new valid initData if available, otherwise falls back to stored initData
+   * Updates stored initData if new valid initData is found
    * This is useful when the app is reloaded and Telegram WebApp might not be initialized yet
    */
   const waitForInitData = async (maxAttempts = 50, delayMs = 100): Promise<string | null> => {
@@ -157,8 +244,24 @@ export const useTelegram = () => {
       return null
     }
 
+    // Try to get new initData from Telegram WebApp
     const instance = await waitForWebAppReady(maxAttempts, delayMs)
-    return instance?.initData ?? null
+    const newInitData = instance?.initData ?? null
+    
+    // If new initData is valid, use it and update storage
+    if (isValidInitData(newInitData)) {
+      saveInitDataToStorage(newInitData)
+      return newInitData
+    }
+    
+    // If new initData is not valid, try to load from storage
+    const storedInitData = loadInitDataFromStorage()
+    if (storedInitData) {
+      console.log('[Telegram] Using stored initData as fallback')
+      return storedInitData
+    }
+    
+    return null
   }
 
   const getStartParam = (): string | null => {
@@ -256,5 +359,7 @@ export const useTelegram = () => {
     getStartParam,
     openLink,
     openTelegramLink,
+    saveInitDataToStorage,
+    loadInitDataFromStorage,
   }
 }
