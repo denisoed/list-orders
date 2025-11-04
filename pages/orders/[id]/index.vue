@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { getOrderDetailMock } from '~/data/orders'
-import type { OrderDetail, OrderStatusTone } from '~/data/orders'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { convertOrderToOrderDetail, getOrderDetailMock } from '~/data/orders'
+import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
-import { findTaskInProjects, useAllProjects } from '~/composables/useProjectTasks'
+import { useOrders } from '~/composables/useOrders'
+import { useProjects } from '~/composables/useProjects'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { fetchOrder, updateOrder } = useOrders()
+const { getProjectById } = useProjects()
 
 const orderId = computed(() => {
   const raw = route.params.id
@@ -18,6 +21,9 @@ const orderId = computed(() => {
 })
 
 const order = ref<OrderDetail>(getOrderDetailMock(orderId.value))
+const orderData = ref<Order | null>(null) // Store original Order data
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 // Handle startapp parameter from query string (for direct link opening)
 const startAppParam = computed(() => {
@@ -28,9 +34,36 @@ const startAppParam = computed(() => {
   return null
 })
 
+// Load order from API
+const loadOrder = async () => {
+  if (!orderId.value) {
+    return
+  }
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const fetchedOrder = await fetchOrder(orderId.value)
+    orderData.value = fetchedOrder
+    const project = getProjectById(fetchedOrder.projectId)
+    const orderDetail = convertOrderToOrderDetail(fetchedOrder, project?.title)
+    order.value = orderDetail
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+    error.value = errorMessage
+    console.error('Error loading order:', err)
+    // Fallback to mock data on error
+    order.value = getOrderDetailMock(orderId.value)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 // Update order when route changes
 watch(orderId, () => {
-  order.value = getOrderDetailMock(orderId.value)
+  loadOrder()
 })
 
 // Handle startapp parameter from query - redirect if it doesn't match current order
@@ -38,6 +71,11 @@ watch([startAppParam, orderId], ([startapp, currentId]) => {
   if (startapp && startapp !== currentId) {
     router.replace(`/orders/${startapp}`)
   }
+})
+
+// Load order on mount
+onMounted(() => {
+  loadOrder()
 })
 
 const hasAssignee = computed(() => Boolean(order.value.assignee))
@@ -191,7 +229,7 @@ const handleImageClick = (attachmentId: string) => {
   })
 }
 
-const handleTakeInWork = () => {
+const handleTakeInWork = async () => {
   const currentUser = userStore.user
 
   if (!currentUser) {
@@ -199,23 +237,21 @@ const handleTakeInWork = () => {
     return
   }
 
-  // Build user name from first_name and last_name
-  const userName = [currentUser.first_name, currentUser.last_name]
-    .filter(Boolean)
-    .join(' ') || 'Пользователь'
+  if (!orderId.value) {
+    return
+  }
 
-  // Set current user as assignee and update status to "В работе" if not set
-  order.value = {
-    ...order.value,
-    assignee: {
-      name: userName,
-      role: 'Исполнитель',
-      avatarUrl: currentUser.photo_url || 'https://i.pravatar.cc/96?img=12',
-    },
-    // If no status chips, add "В работе" status
-    statusChips: order.value.statusChips.length > 0
-      ? order.value.statusChips
-      : [{ id: 'status-in-progress', label: 'В работе', tone: 'warning' }],
+  try {
+    // Update order status to "in_progress" and set assignee
+    const updatedOrderData = await updateOrder(orderId.value, {
+      status: 'in_progress',
+      assignee_telegram_id: currentUser.id,
+    })
+
+    // Reload order to get updated data
+    await loadOrder()
+  } catch (err) {
+    console.error('Не удалось взять заказ в работу:', err)
   }
 }
 
@@ -311,39 +347,18 @@ const handleShare = async () => {
 const handleEdit = () => {
   const targetOrderId = orderId.value
 
-  if (!targetOrderId) {
+  if (!targetOrderId || !orderData.value) {
     return
   }
 
-  // Try to find task in all projects
-  const found = findTaskInProjects(targetOrderId)
-  
-  if (found) {
-    // If task found, redirect to edit page in the project where it exists
-    router.push({
-      path: `/projects/${found.project.id}/tasks/new`,
-      query: {
-        orderId: targetOrderId,
-        from: route.fullPath,
-      },
-    })
-  } else {
-    // If task not found, try to get first project and redirect there
-    const allProjects = useAllProjects()
-    const firstProject = allProjects.value[0]
-    
-    if (firstProject) {
-      router.push({
-        path: `/projects/${firstProject.id}/tasks/new`,
-        query: {
-          orderId: targetOrderId,
-          from: route.fullPath,
-        },
-      })
-    } else {
-      console.warn('No projects available for editing order')
-    }
-  }
+  // Redirect to edit page with projectId
+  router.push({
+    path: `/projects/${orderData.value.projectId}/orders/new`,
+    query: {
+      orderId: targetOrderId,
+      from: route.fullPath,
+    },
+  })
 }
 
 const menuItems: DropdownMenuItem[] = [
