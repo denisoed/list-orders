@@ -654,6 +654,20 @@ useHead({
           ></textarea>
         </label>
 
+        <div class="flex flex-col space-y-4">
+          <p class="text-base font-medium leading-normal">Фото примеров</p>
+          <ImageUploader
+            v-model="attachments"
+            button-size="md"
+            variant="dark"
+            :clickable="true"
+            @image-click="handleImageClick"
+          />
+          <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
+            Поддерживаются изображения в форматах JPEG, PNG и SVG.
+          </p>
+        </div>
+
         <label class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
           <input
@@ -758,20 +772,6 @@ useHead({
             />
             <p v-if="showDeliveryAddressError" class="pt-1 text-sm text-red-400">{{ deliveryAddressError }}</p>
           </label>
-        </div>
-
-        <div class="flex flex-col space-y-4">
-          <p class="text-base font-medium leading-normal">Фото примеров</p>
-          <ImageUploader
-            v-model="attachments"
-            button-size="md"
-            variant="dark"
-            :clickable="true"
-            @image-click="handleImageClick"
-          />
-          <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
-            Поддерживаются изображения в форматах JPEG, PNG и SVG.
-          </p>
         </div>
 
         <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
