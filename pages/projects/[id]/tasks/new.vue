@@ -197,7 +197,7 @@ const handleToggleReminder = (value: TaskReminderOffset) => {
 const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value || isUpdating.value)
 
 // Load order data for edit mode
-onMounted(() => {
+onMounted(async () => {
   if (orderId.value) {
     // First, try to find task in all projects
     const found = findTaskInProjects(orderId.value)
