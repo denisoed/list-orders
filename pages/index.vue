@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAllProjects } from '~/composables/useProjectTasks'
+import { useProjects } from '~/composables/useProjects'
 import type { Project } from '~/data/projects'
 import { useUserStore } from '~/stores/user'
 
@@ -7,6 +8,16 @@ const route = useRoute()
 const projects = useAllProjects()
 const router = useRouter()
 const userStore = useUserStore()
+const { fetchProjects, isFetching } = useProjects()
+
+// Load projects on mount
+onMounted(async () => {
+  try {
+    await fetchProjects()
+  } catch (error) {
+    console.error('Failed to load projects on mount:', error)
+  }
+})
 
 const visibleProjects = computed<Project[]>(() => {
   return route.query.empty === 'true' ? [] : projects.value
