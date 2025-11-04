@@ -168,7 +168,7 @@ const createTimeOptions = (stepMinutes: number): string[] => {
   return options
 }
 
-const timeOptions = createTimeOptions(15)
+const timeOptions = createTimeOptions(60) // Only whole hours (00:00, 01:00, 02:00, ...)
 
 const reminderOptions: ReadonlyArray<{ label: string; value: OrderReminderOffset }> = [
   { label: '1 час', value: '1h' },
@@ -241,7 +241,7 @@ const saveFormToDraft = () => {
     return // Don't save drafts when editing
   }
 
-  // Get attachment URLs (only non-blob URLs)
+  // Get attachment URLs (base64 data URLs and existing URLs, but not blob URLs)
   const attachmentUrls = attachments.value
     .filter(att => att.previewUrl && !att.previewUrl.startsWith('blob:'))
     .map(att => att.previewUrl)
@@ -266,7 +266,7 @@ const saveFormToDraft = () => {
 }
 
 // Load draft data into form (only for creating new orders)
-const loadDraftToForm = () => {
+const loadDraftToForm = async () => {
   if (isEditMode.value) {
     return // Don't load drafts when editing
   }
@@ -292,13 +292,36 @@ const loadDraftToForm = () => {
   prepaymentAmount.value = draft.prepaymentAmount || ''
 
   // Load attachment URLs (convert to ImageAttachment format)
+  // Convert base64 data URLs back to File objects for upload
   if (draft.attachmentUrls && draft.attachmentUrls.length > 0) {
-    attachments.value = draft.attachmentUrls.map((url, index) => ({
-      id: `draft-${index}`,
-      name: `image-${index + 1}`,
-      previewUrl: url,
-      file: new File([], `image-${index + 1}`), // Empty file for draft attachments
-    }))
+    attachments.value = await Promise.all(
+      draft.attachmentUrls.map(async (url, index) => {
+        let file: File = new File([], `image-${index + 1}`)
+        
+        // If it's a base64 data URL, convert it back to File
+        if (url.startsWith('data:')) {
+          try {
+            const response = await fetch(url)
+            const blob = await response.blob()
+            // Extract file extension from data URL or use default
+            const mimeMatch = url.match(/data:([^;]+);/)
+            const extension = mimeMatch 
+              ? (mimeMatch[1] === 'image/jpeg' ? 'jpg' : mimeMatch[1] === 'image/png' ? 'png' : 'jpg')
+              : 'jpg'
+            file = new File([blob], `image-${index + 1}.${extension}`, { type: blob.type })
+          } catch (error) {
+            console.error('Failed to convert base64 to File:', error)
+          }
+        }
+        
+        return {
+          id: `draft-${index}`,
+          name: `image-${index + 1}`,
+          previewUrl: url,
+          file,
+        }
+      })
+    )
   }
 }
 
@@ -443,7 +466,7 @@ onMounted(async () => {
     }
   } else {
     // Load draft for new order creation
-    loadDraftToForm()
+    await loadDraftToForm()
   }
 })
 
@@ -451,6 +474,7 @@ const handleImageClick = async (attachment: ImageAttachment) => {
   let imageUrl = attachment.previewUrl
 
   // If it's a blob URL (local file), convert to data URL for cross-page navigation
+  // Base64 data URLs can be used directly
   if (attachment.previewUrl.startsWith('blob:') && attachment.file && attachment.file.size > 0) {
     try {
       // Convert File to data URL (base64)
@@ -474,6 +498,7 @@ const handleImageClick = async (attachment: ImageAttachment) => {
       imageUrl = attachment.previewUrl
     }
   }
+  // Base64 data URLs are already in the correct format, use them directly
 
   router.push({
     path: `/images/${encodeURIComponent(imageUrl)}`,
@@ -488,9 +513,10 @@ const handleImageClick = async (attachment: ImageAttachment) => {
 const uploadImages = async (): Promise<string[]> => {
   const uploadedUrls: string[] = []
   
-  // Filter only new attachments (with actual file data and blob URL)
+  // Filter only new attachments (with actual file data and base64 data URL or blob URL)
+  // Base64 URLs (data:) are from draft, blob URLs are newly selected but not yet converted
   const newAttachments = attachments.value.filter(att => 
-    att.file && att.file.size > 0 && att.previewUrl.startsWith('blob:')
+    att.file && att.file.size > 0 && (att.previewUrl.startsWith('data:') || att.previewUrl.startsWith('blob:'))
   )
 
   if (newAttachments.length === 0) {
@@ -562,9 +588,15 @@ const handleSubmit = async () => {
       }
     }
 
-    // Get all image URLs (existing + newly uploaded)
+    // Get all image URLs (existing URLs that are already uploaded, not base64 or blob)
+    // Base64 and blob URLs will be uploaded via uploadImages()
     const existingImageUrls = attachments.value
-      .filter(att => !att.previewUrl.startsWith('blob:') && att.previewUrl)
+      .filter(att => 
+        att.previewUrl && 
+        !att.previewUrl.startsWith('blob:') && 
+        !att.previewUrl.startsWith('data:') &&
+        att.previewUrl
+      )
       .map(att => att.previewUrl)
     
     const allImageUrls = [...existingImageUrls, ...newImageUrls]
