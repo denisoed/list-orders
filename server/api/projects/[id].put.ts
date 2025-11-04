@@ -87,7 +87,6 @@ export default defineEventHandler(async (event) => {
       description: project.description || '',
       completed: project.completed || 0,
       total: project.total || 0,
-      tasks: [],
       color: project.color || undefined,
     }
 

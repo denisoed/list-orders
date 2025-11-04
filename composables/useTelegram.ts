@@ -233,37 +233,6 @@ export const useTelegram = () => {
     return null
   }
 
-  /**
-   * Waits for Telegram WebApp to be ready and returns initData
-   * Returns new valid initData if available, otherwise falls back to stored initData
-   * Updates stored initData if new valid initData is found
-   * This is useful when the app is reloaded and Telegram WebApp might not be initialized yet
-   */
-  const waitForInitData = async (maxAttempts = 50, delayMs = 100): Promise<string | null> => {
-    if (!import.meta.client) {
-      return null
-    }
-
-    // Try to get new initData from Telegram WebApp
-    const instance = await waitForWebAppReady(maxAttempts, delayMs)
-    const newInitData = instance?.initData ?? null
-    
-    // If new initData is valid, use it and update storage
-    if (isValidInitData(newInitData)) {
-      saveInitDataToStorage(newInitData)
-      return newInitData
-    }
-    
-    // If new initData is not valid, try to load from storage
-    const storedInitData = loadInitDataFromStorage()
-    if (storedInitData) {
-      console.log('[Telegram] Using stored initData as fallback')
-      return storedInitData
-    }
-    
-    return null
-  }
-
   const getStartParam = (): string | null => {
     if (!import.meta.client) {
       return null
@@ -354,7 +323,6 @@ export const useTelegram = () => {
     initTelegram,
     applyTheme,
     getInitData,
-    waitForInitData,
     waitForWebAppReady,
     getStartParam,
     openLink,

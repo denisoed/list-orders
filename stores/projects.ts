@@ -57,11 +57,7 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       const response = await $fetch<Project[]>('/api/projects', getFetchOptions())
 
-      // Transform response to ensure tasks array exists
-      const transformedProjects = response.map((project) => ({
-        ...project,
-        tasks: project.tasks || [],
-      }))
+      const transformedProjects = response
 
       projects.value = transformedProjects
 
@@ -91,21 +87,12 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       const project = await $fetch<Project>(`/api/projects/${projectId}`, getFetchOptions())
 
-      // Transform response to ensure tasks array exists
-      const projectWithTasks: Project = {
-        ...project,
-        tasks: project.tasks || [],
-      }
-
       // Update or add project in the list
       const projectIndex = projects.value.findIndex((p) => p.id === projectId)
       if (projectIndex !== -1) {
-        // Preserve existing tasks if project already exists in state
-        const existingProject = projects.value[projectIndex]
-        projectWithTasks.tasks = existingProject.tasks || []
-        projects.value.splice(projectIndex, 1, projectWithTasks)
+        projects.value.splice(projectIndex, 1, project)
       } else {
-        projects.value.push(projectWithTasks)
+        projects.value.push(project)
       }
 
       console.info('[ProjectsStore] Project fetched successfully', {
@@ -113,7 +100,7 @@ export const useProjectsStore = defineStore('projects', () => {
         title: project.title,
       })
 
-      return projectWithTasks
+      return project
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Не удалось загрузить проект'
@@ -152,21 +139,17 @@ export const useProjectsStore = defineStore('projects', () => {
         },
       }))
 
-      // Transform response to ensure tasks array exists
-      const projectWithTasks: Project = {
-        ...newProject,
-        tasks: newProject.tasks || [],
-      }
+      const newProjectData: Project = newProject
 
       // Add new project to the beginning of the list
-      projects.value = [projectWithTasks, ...projects.value]
+      projects.value = [newProjectData, ...projects.value]
 
       console.info('[ProjectsStore] Project created successfully', {
         projectId: newProject.id,
         title: newProject.title,
       })
 
-      return projectWithTasks
+      return newProjectData
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Не удалось создать проект'
@@ -187,7 +170,7 @@ export const useProjectsStore = defineStore('projects', () => {
   ): Promise<Project> {
     const trimmedTitle = input.title.trim()
     const hasDescription = typeof input.description === 'string'
-    const trimmedDescription = hasDescription ? input.description.trim() : undefined
+    const trimmedDescription = hasDescription && input.description ? input.description.trim() : undefined
     const projectColor = input.color
 
     if (!trimmedTitle) {
@@ -209,20 +192,12 @@ export const useProjectsStore = defineStore('projects', () => {
         },
       }))
 
-      // Transform response to ensure tasks array exists
       const projectIndex = projects.value.findIndex((project) => project.id === projectId)
-      const projectWithTasks: Project = {
-        ...updatedProject,
-        tasks: updatedProject.tasks || [],
-      }
 
       if (projectIndex !== -1) {
-        // Preserve existing tasks if project already exists in state
-        const existingProject = projects.value[projectIndex]
-        projectWithTasks.tasks = existingProject.tasks || []
-        projects.value.splice(projectIndex, 1, projectWithTasks)
+        projects.value.splice(projectIndex, 1, updatedProject)
       } else {
-        projects.value.push(projectWithTasks)
+        projects.value.push(updatedProject)
       }
 
       console.info('[ProjectsStore] Project updated successfully', {
@@ -230,7 +205,7 @@ export const useProjectsStore = defineStore('projects', () => {
         title: updatedProject.title,
       })
 
-      return projectWithTasks
+      return updatedProject
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Не удалось обновить проект'
@@ -285,10 +260,7 @@ export const useProjectsStore = defineStore('projects', () => {
    * Set projects directly (useful for testing or manual updates)
    */
   function setProjects(newProjects: Project[]): void {
-    projects.value = newProjects.map((project) => ({
-      ...project,
-      tasks: project.tasks || [],
-    }))
+    projects.value = newProjects
   }
 
   /**
@@ -305,20 +277,6 @@ export const useProjectsStore = defineStore('projects', () => {
     error.value = null
   }
 
-  /**
-   * Update project tasks directly (for local task management)
-   * This is used by useProjectTasks for managing tasks within a project
-   */
-  function updateProjectTasks(
-    projectId: string,
-    updater: (project: Project) => Project,
-  ): void {
-    const projectIndex = projects.value.findIndex((p) => p.id === projectId)
-    if (projectIndex !== -1) {
-      const updatedProject = updater(projects.value[projectIndex])
-      projects.value.splice(projectIndex, 1, updatedProject)
-    }
-  }
 
   // Getters as computed refs
   const projectsComputed = computed(() => projects.value)
@@ -346,6 +304,5 @@ export const useProjectsStore = defineStore('projects', () => {
     setProjects,
     clearProjects,
     clearError,
-    updateProjectTasks,
   }
 })

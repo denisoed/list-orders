@@ -72,26 +72,17 @@ describe('filterProjectTasks', () => {
 })
 
 describe('useProjectTasks createTask', () => {
-  it('appends a new task and increases project total', async () => {
-    const { project, allTasks, createTask } = useProjectTasks('design-refresh')
+  it('throws error since tasks should be created as orders', async () => {
+    const { createTask } = useProjectTasks('design-refresh')
 
-    const initialTotal = project.value?.total ?? 0
-    const initialFirstTaskTitle = allTasks.value[0]?.title
-
-    const result = await createTask({
-      title: 'Новая фича',
-      description: 'Добавить поддержку вложений',
-      link: 'https://example.com/task',
-      dueDate: '2024-12-31',
-      attachments: [],
-      assignee: project.value?.tasks[0]?.assignee,
-      status: 'in_progress',
-    })
-
-    expect(result.title).toBe('Новая фича')
-    expect(project.value?.total).toBe(initialTotal + 1)
-    expect(allTasks.value[0]?.id).toBe(result.id)
-    expect(allTasks.value[0]?.title).toBe('Новая фича')
-    expect(allTasks.value[1]?.title).toBe(initialFirstTaskTitle)
+    await expect(
+      createTask({
+        title: 'Новая фича',
+        description: 'Добавить поддержку вложений',
+        dueDate: '2024-12-31',
+        attachments: [],
+        status: 'in_progress',
+      }),
+    ).rejects.toThrow('Tasks should be created as orders using useOrders composable')
   })
 })

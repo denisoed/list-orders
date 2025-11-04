@@ -1,21 +1,35 @@
 <script setup lang="ts">
 import { useAllProjects } from '~/composables/useProjectTasks'
 import { useProjects } from '~/composables/useProjects'
+import { useOrders } from '~/composables/useOrders'
 import type { Project } from '~/data/projects'
+import type { Order } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 
 const route = useRoute()
 const projects = useAllProjects()
 const router = useRouter()
 const userStore = useUserStore()
-const { fetchProjects, isFetching } = useProjects()
+const { fetchProjects } = useProjects()
+const { fetchOrders, orders } = useOrders()
 
-// Load projects on mount
+// Use computed to get orders array
+const ordersList = computed(() => {
+  if (typeof orders === 'function') {
+    return []
+  }
+  return Array.isArray(orders) ? orders : (orders?.value || [])
+})
+
+// Load projects and orders on mount
 onMounted(async () => {
   try {
-    await fetchProjects()
+    await Promise.all([
+      fetchProjects(),
+      fetchOrders(),
+    ])
   } catch (error) {
-    console.error('Failed to load projects on mount:', error)
+    console.error('Failed to load projects or orders on mount:', error)
   }
 })
 
@@ -62,10 +76,17 @@ const declOfNum = (count: number, forms: [string, string, string]) => {
 }
 
 const getTaskCount = (project: Project) => {
-  if (typeof project.total === 'number' && project.total >= project.tasks.length)
+  // Count orders for this project from the database
+  const currentOrders = ordersList.value
+  const projectOrders = currentOrders.filter((order: Order) => order.projectId === project.id)
+  const orderCount = projectOrders.length
+  
+  // Use project.total if available and greater than actual count
+  if (typeof project.total === 'number' && project.total >= orderCount) {
     return project.total
+  }
 
-  return project.tasks.length
+  return orderCount
 }
 
 const formatTaskCount = (project: Project) => {
@@ -74,10 +95,13 @@ const formatTaskCount = (project: Project) => {
 }
 
 const getParticipantCount = (project: Project) => {
+  // Get unique participants from orders for this project
+  const currentOrders = ordersList.value
+  const projectOrders = currentOrders.filter((order: Order) => order.projectId === project.id)
   const uniqueParticipants = new Set(
-    project.tasks
-      .map(task => task.assignee?.name)
-      .filter((name): name is string => Boolean(name))
+    projectOrders
+      .map((order: Order) => order.assigneeTelegramId)
+      .filter((id: number | null): id is number => id !== null && id !== undefined)
   )
 
   return uniqueParticipants.size

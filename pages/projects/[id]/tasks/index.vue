@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import TaskCard from '~/components/TaskCard.vue'
 import TaskEmptyState from '~/components/TaskEmptyState.vue'
@@ -7,14 +7,115 @@ import TaskPageHeader from '~/components/TaskPageHeader.vue'
 import TaskStatusChips from '~/components/TaskStatusChips.vue'
 import { TASK_STATUS_FILTERS, useProjectTasks, type TaskStatusFilter } from '~/composables/useProjectTasks'
 import { useProjects } from '~/composables/useProjects'
+import { useOrders } from '~/composables/useOrders'
+import type { Order } from '~/data/orders'
+import type { ProjectTask, TaskStatus } from '~/data/projects'
 
 const route = useRoute()
 const router = useRouter()
 
 const projectId = computed(() => String(route.params.id ?? ''))
 
-const { project, allTasks, filteredTasks, activeStatus, setActiveStatus } = useProjectTasks(projectId)
+const { project, activeStatus, setActiveStatus } = useProjectTasks(projectId)
 const { fetchProject } = useProjects()
+const { fetchOrders, getOrdersByProjectId } = useOrders()
+
+// Convert Order to ProjectTask format
+const convertOrderToTask = (order: Order): ProjectTask => {
+  // Map order status to task status
+  const statusMap: Record<string, TaskStatus> = {
+    new: 'pending',
+    pending: 'pending',
+    in_progress: 'in_progress',
+    review: 'review',
+    done: 'done',
+    cancelled: 'pending', // cancelled orders treated as pending
+  }
+  
+  const taskStatus: TaskStatus = statusMap[order.status] || 'pending'
+  
+  // Format due date from ISO string to YYYY-MM-DD format
+  let dueDate = new Date().toISOString().slice(0, 10)
+  if (order.dueDate) {
+    try {
+      const date = new Date(order.dueDate)
+      dueDate = date.toISOString().slice(0, 10)
+    } catch (error) {
+      console.error('Error parsing due date:', error)
+    }
+  }
+  
+  // Extract time from dueDate if available
+  let dueTime: string | undefined
+  if (order.dueDate) {
+    try {
+      const date = new Date(order.dueDate)
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      dueTime = `${hours}:${minutes}`
+    } catch (error) {
+      // Ignore time parsing errors
+    }
+  }
+  
+  return {
+    id: order.id,
+    title: order.title,
+    assignee: {
+      name: 'Не назначен',
+      avatarUrl: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
+    },
+    status: taskStatus,
+    dueDate,
+    dueTime,
+    description: order.description || undefined,
+    clientName: order.clientName,
+    clientPhone: order.clientPhone,
+  }
+}
+
+// Get orders for current project and convert to tasks
+const projectOrders = computed(() => getOrdersByProjectId(projectId.value))
+const ordersAsTasks = computed(() => projectOrders.value.map(convertOrderToTask))
+
+// All tasks come from orders (synchronized with database)
+const allTasks = computed(() => {
+  return ordersAsTasks.value || []
+})
+
+// Filter tasks based on status and search query
+const filteredTasks = computed(() => {
+  const tasks = allTasks.value
+  const normalizedQuery = '' // No search query for now
+  const normalizedQueryLower = normalizedQuery.trim().toLocaleLowerCase('ru-RU')
+  
+  return tasks.filter((task) => {
+    const matchesStatus = activeStatus.value === 'all' || task.status === activeStatus.value
+    const matchesQuery =
+      normalizedQueryLower.length === 0 ||
+      [task.title, task.assignee.name].some((value) => value.toLocaleLowerCase('ru-RU').includes(normalizedQueryLower))
+    
+    return matchesStatus && matchesQuery
+  })
+})
+
+// Load orders on mount
+onMounted(async () => {
+  try {
+    await fetchOrders(projectId.value)
+  } catch (error) {
+    console.error('Failed to load orders:', error)
+  }
+})
+
+// Reload orders when project changes
+watch(projectId, async () => {
+  try {
+    await fetchOrders(projectId.value)
+  } catch (error) {
+    console.error('Failed to load orders:', error)
+  }
+})
 
 // Load project if not found in local state
 watch(
