@@ -188,7 +188,7 @@ export const useTelegram = () => {
 
     // Always get fresh instance to ensure initData is available
     const instance = window.Telegram?.WebApp ?? null
-    const newInitData = instance?.initData ?? 'query_id=AAEGKqcZAAAAAAYqpxliT_Fo&user=%7B%22id%22%3A430385670%2C%22first_name%22%3A%22Denis%22%2C%22last_name%22%3A%22Grushkin%22%2C%22username%22%3A%22denisoed%22%2C%22language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F0QNTtSzVHfToFiuf4VCj4UwrYIEdpgws7z-5_fz128c.svg%22%7D&auth_date=1762243785&signature=6qKa6lFmAUgbrkzz-xL4KD2Jz2SHRiT6npYNDzDDq-0NVHq8nHsMTiIpN2BpoQm3rjaNPPKuOtff9zzQcfHcCg&hash=f7d3ccdddc47a1fb996311119f8569d0a719dcfaa65229edb6ca4dbb376536ce'
+    const newInitData = instance?.initData ?? import.meta.env.telegramInitData ?? null
     
     // If new initData is valid, use it and update storage
     if (isValidInitData(newInitData)) {
