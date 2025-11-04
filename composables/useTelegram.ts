@@ -120,6 +120,47 @@ export const useTelegram = () => {
     return instance?.initData ?? null
   }
 
+  /**
+   * Waits for Telegram WebApp to be ready and available
+   * This ensures the script is loaded and WebApp instance exists
+   */
+  const waitForWebAppReady = async (maxAttempts = 50, delayMs = 100): Promise<MaybeTelegramWebApp> => {
+    if (!import.meta.client) {
+      return null
+    }
+
+    // Check if already available
+    if (window.Telegram?.WebApp) {
+      return window.Telegram.WebApp
+    }
+
+    // Wait for script to load
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (window.Telegram?.WebApp) {
+        return window.Telegram.WebApp
+      }
+
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+    }
+
+    // If we reach here, Telegram WebApp is not available
+    return null
+  }
+
+  /**
+   * Waits for Telegram WebApp to be ready and returns initData
+   * This is useful when the app is reloaded and Telegram WebApp might not be initialized yet
+   */
+  const waitForInitData = async (maxAttempts = 50, delayMs = 100): Promise<string | null> => {
+    if (!import.meta.client) {
+      return null
+    }
+
+    const instance = await waitForWebAppReady(maxAttempts, delayMs)
+    return instance?.initData ?? null
+  }
+
   const getStartParam = (): string | null => {
     if (!import.meta.client) {
       return null
@@ -165,13 +206,30 @@ export const useTelegram = () => {
       return
     }
 
+    // Wait for Telegram WebApp script to load
+    const instance = await waitForWebAppReady()
+    if (!instance) {
+      console.warn('[Telegram] WebApp is not available')
+      return
+    }
+
+    // Cache the instance
+    webApp.value = instance
+
+    // Set CSS variables first
     setCssVariables(themeSettings.value)
 
+    // Apply theme
     applyTheme(overrides)
 
-    const instance = getWebAppInstance()
-    if (!instance) {
-      return
+    // Initialize WebApp according to Telegram documentation:
+    // 1. Expand first (to fill the screen)
+    // 2. Disable vertical swipes
+    // 3. Call ready() to signal that Mini App is ready
+    try {
+      instance.expand?.()
+    } catch (error) {
+      console.warn('[Telegram] Unable to expand WebApp', error)
     }
 
     try {
@@ -181,10 +239,9 @@ export const useTelegram = () => {
     }
 
     try {
-      instance.expand?.()
       instance.ready()
     } catch (error) {
-      console.warn('[Telegram] Unable to initialize WebApp', error)
+      console.warn('[Telegram] Unable to call ready()', error)
     }
   }
 
@@ -194,6 +251,8 @@ export const useTelegram = () => {
     initTelegram,
     applyTheme,
     getInitData,
+    waitForInitData,
+    waitForWebAppReady,
     getStartParam,
     openLink,
     openTelegramLink,
