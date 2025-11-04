@@ -82,7 +82,7 @@ const removeButtonClasses = computed(() => {
   return `${sizeClasses[props.buttonSize]} absolute right-1.5 top-1.5 z-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300`
 })
 
-const createAttachmentPreview = (file: File): ImageAttachment => {
+const createAttachmentPreview = async (file: File): Promise<ImageAttachment> => {
   const identifier =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
@@ -90,13 +90,23 @@ const createAttachmentPreview = (file: File): ImageAttachment => {
 
   let previewUrl = ''
   try {
-    if (typeof URL !== 'undefined' && URL.createObjectURL) {
-      previewUrl = URL.createObjectURL(file)
-    } else {
-      console.error('URL.createObjectURL is not available')
-    }
+    // Convert file to base64 data URL for draft storage
+    const reader = new FileReader()
+    previewUrl = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result)
+        } else {
+          reject(new Error('Failed to convert file to base64'))
+        }
+      }
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'))
+      }
+      reader.readAsDataURL(file)
+    })
   } catch (error) {
-    console.error('Failed to create blob URL:', error, file.name)
+    console.error('Failed to create base64 preview URL:', error, file.name)
   }
 
   return {
@@ -108,6 +118,8 @@ const createAttachmentPreview = (file: File): ImageAttachment => {
 }
 
 const revokePreviewUrl = (url: string) => {
+  // Base64 data URLs don't need to be revoked (they're just strings)
+  // Only blob URLs need to be revoked
   if (!url || !url.startsWith('blob:')) {
     return
   }
@@ -140,7 +152,7 @@ const handleAddAttachments = () => {
   fileInputRef.value?.click()
 }
 
-const handleFileChange = (event: Event) => {
+const handleFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement | null
   const fileList = target?.files
 
@@ -149,14 +161,17 @@ const handleFileChange = (event: Event) => {
   }
 
   try {
-    const newAttachments = Array.from(fileList).map((file) => {
-      const attachment = createAttachmentPreview(file)
-      // Verify blob URL was created
-      if (!attachment.previewUrl) {
-        console.error('Failed to create preview URL for file:', file.name)
-      }
-      return attachment
-    })
+    // Create attachments asynchronously (convert to base64)
+    const newAttachments = await Promise.all(
+      Array.from(fileList).map(async (file) => {
+        const attachment = await createAttachmentPreview(file)
+        // Verify base64 URL was created
+        if (!attachment.previewUrl) {
+          console.error('Failed to create preview URL for file:', file.name)
+        }
+        return attachment
+      })
+    )
     
     // Use push to maintain reactivity
     attachments.value = [...attachments.value, ...newAttachments]
@@ -190,7 +205,7 @@ const handleImageClick = (attachmentId: string) => {
   }
 }
 
-const handleImageError = (event: Event) => {
+const handleImageError = async (event: Event) => {
   const target = event.target as HTMLImageElement | null
   if (!target) return
 
@@ -202,18 +217,28 @@ const handleImageError = (event: Event) => {
 
   console.error('Failed to load image preview:', attachment.previewUrl, attachment.name)
 
-  // Try to recreate blob URL if it's a file
+  // Try to recreate base64 URL if it's a file
   if (attachment.file && attachment.file.size > 0) {
     try {
-      // Revoke old URL first
-      revokePreviewUrl(attachment.previewUrl)
-      
-      // Create new blob URL
-      const newUrl = URL.createObjectURL(attachment.file)
+      // Convert file to base64 data URL
+      const reader = new FileReader()
+      const newUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result)
+          } else {
+            reject(new Error('Failed to convert file to base64'))
+          }
+        }
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'))
+        }
+        reader.readAsDataURL(attachment.file)
+      })
       attachment.previewUrl = newUrl
       target.src = newUrl
     } catch (error) {
-      console.error('Failed to recreate blob URL:', error)
+      console.error('Failed to recreate base64 URL:', error)
     }
   }
 }
@@ -232,6 +257,7 @@ const handleImageLoad = (event: Event) => {
 }
 
 onBeforeUnmount(() => {
+  // Only revoke blob URLs, base64 data URLs don't need to be revoked
   attachments.value.forEach((attachment) => revokePreviewUrl(attachment.previewUrl))
 })
 </script>
