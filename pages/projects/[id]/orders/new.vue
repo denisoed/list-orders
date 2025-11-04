@@ -327,10 +327,36 @@ onMounted(async () => {
   }
 })
 
-const handleImageClick = (attachment: ImageAttachment) => {
-  // Use previewUrl as imageId for blob URLs
+const handleImageClick = async (attachment: ImageAttachment) => {
+  let imageUrl = attachment.previewUrl
+
+  // If it's a blob URL (local file), convert to data URL for cross-page navigation
+  if (attachment.previewUrl.startsWith('blob:') && attachment.file && attachment.file.size > 0) {
+    try {
+      // Convert File to data URL (base64)
+      const reader = new FileReader()
+      imageUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result)
+          } else {
+            reject(new Error('Failed to convert file to data URL'))
+          }
+        }
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'))
+        }
+        reader.readAsDataURL(attachment.file)
+      })
+    } catch (error) {
+      console.error('Failed to convert file to data URL:', error)
+      // Fallback to blob URL if conversion fails
+      imageUrl = attachment.previewUrl
+    }
+  }
+
   router.push({
-    path: `/images/${encodeURIComponent(attachment.previewUrl)}`,
+    path: `/images/${encodeURIComponent(imageUrl)}`,
     query: {
       projectId: projectId.value,
       source: 'order-create',

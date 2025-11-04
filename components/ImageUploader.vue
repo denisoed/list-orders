@@ -88,7 +88,16 @@ const createAttachmentPreview = (file: File): ImageAttachment => {
       ? crypto.randomUUID()
       : Math.random().toString(36).slice(2, 11)
 
-  const previewUrl = typeof URL !== 'undefined' ? URL.createObjectURL(file) : ''
+  let previewUrl = ''
+  try {
+    if (typeof URL !== 'undefined' && URL.createObjectURL) {
+      previewUrl = URL.createObjectURL(file)
+    } else {
+      console.error('URL.createObjectURL is not available')
+    }
+  } catch (error) {
+    console.error('Failed to create blob URL:', error, file.name)
+  }
 
   return {
     id: identifier,
@@ -139,8 +148,21 @@ const handleFileChange = (event: Event) => {
     return
   }
 
-  const newAttachments = Array.from(fileList).map(createAttachmentPreview)
-  attachments.value = [...attachments.value, ...newAttachments]
+  try {
+    const newAttachments = Array.from(fileList).map((file) => {
+      const attachment = createAttachmentPreview(file)
+      // Verify blob URL was created
+      if (!attachment.previewUrl) {
+        console.error('Failed to create preview URL for file:', file.name)
+      }
+      return attachment
+    })
+    
+    // Use push to maintain reactivity
+    attachments.value = [...attachments.value, ...newAttachments]
+  } catch (error) {
+    console.error('Error handling file change:', error)
+  }
 
   if (target) {
     target.value = ''
@@ -166,6 +188,47 @@ const handleImageClick = (attachmentId: string) => {
   if (attachment) {
     emit('image-click', attachment)
   }
+}
+
+const handleImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement | null
+  if (!target) return
+
+  const attachmentId = target.getAttribute('data-attachment-id')
+  if (!attachmentId) return
+
+  const attachment = attachments.value.find((item) => item.id === attachmentId)
+  if (!attachment) return
+
+  console.error('Failed to load image preview:', attachment.previewUrl, attachment.name)
+
+  // Try to recreate blob URL if it's a file
+  if (attachment.file && attachment.file.size > 0) {
+    try {
+      // Revoke old URL first
+      revokePreviewUrl(attachment.previewUrl)
+      
+      // Create new blob URL
+      const newUrl = URL.createObjectURL(attachment.file)
+      attachment.previewUrl = newUrl
+      target.src = newUrl
+    } catch (error) {
+      console.error('Failed to recreate blob URL:', error)
+    }
+  }
+}
+
+const handleImageLoad = (event: Event) => {
+  const target = event.target as HTMLImageElement | null
+  if (!target) return
+
+  const attachmentId = target.getAttribute('data-attachment-id')
+  if (!attachmentId) return
+
+  const attachment = attachments.value.find((item) => item.id === attachmentId)
+  if (!attachment) return
+
+  // Image loaded successfully - preview is working
 }
 
 onBeforeUnmount(() => {
@@ -213,6 +276,9 @@ onBeforeUnmount(() => {
               :src="attachment.previewUrl"
               :alt="`Фото ${attachment.name}`"
               :class="imageClasses"
+              :data-attachment-id="attachment.id"
+              @error="handleImageError"
+              @load="handleImageLoad"
             />
             <div
               v-else

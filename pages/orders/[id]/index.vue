@@ -212,9 +212,12 @@ const examplesCountLabel = computed(() => {
   return `${count} примеров`
 })
 
-const handleImageClick = (attachmentId: string) => {
+const handleImageClick = (attachment: { id: string; previewUrl: string }) => {
+  // Use previewUrl (which contains the actual image URL) as imageId
+  // Encode the URL to handle special characters
+  const imageUrl = typeof attachment === 'string' ? attachment : attachment.previewUrl
   router.push({
-    path: `/images/${attachmentId}`,
+    path: `/images/${encodeURIComponent(imageUrl)}`,
     query: {
       orderId: orderId.value,
       source: 'order-details',
@@ -495,12 +498,13 @@ useHead({
               :key="attachment.id"
               role="listitem"
               class="relative cursor-pointer"
-              @click="handleImageClick(attachment.id)"
+              @click="handleImageClick(attachment)"
             >
               <img
                 :src="attachment.previewUrl"
                 :alt="`Пример ${attachment.name}`"
                 class="h-24 w-24 min-h-24 min-w-24 rounded-xl object-cover"
+                @error="(e) => { console.error('Failed to load image:', attachment.previewUrl); (e.target as HTMLImageElement).style.display = 'none'; }"
               />
             </li>
           </ul>

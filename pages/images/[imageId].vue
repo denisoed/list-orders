@@ -54,22 +54,44 @@ const isLoadingImage = ref(false)
 
 // Load image URL based on source
 const loadImageUrl = async () => {
+  // Decode the imageId which may be URL-encoded
+  let decodedImageId = imageId.value
+  try {
+    decodedImageId = decodeURIComponent(imageId.value)
+  } catch (error) {
+    // If decoding fails, use original value
+    console.warn('Failed to decode imageId:', error)
+  }
+
+  // Check if it's a data URL (base64) - this works across pages
+  if (decodedImageId.startsWith('data:')) {
+    imageUrl.value = decodedImageId
+    return
+  }
+
+  // Check if it's a blob URL - may not work on separate page
+  if (decodedImageId.startsWith('blob:')) {
+    // Try to use blob URL, but it might not work
+    imageUrl.value = decodedImageId
+    // Log warning in case blob URL doesn't work
+    console.warn('Using blob URL which may not work on separate page:', decodedImageId)
+    return
+  }
+
   if (source.value === 'order-details' && orderId.value) {
-    // For now, we'll use the imageId directly as URL
-    // In a real implementation, you would fetch the order from API and get the attachment URL
-    // For now, we'll assume the imageId is already a URL or blob URL
-    imageUrl.value = imageId.value
+    // imageId contains the actual image URL (from Supabase Storage)
+    imageUrl.value = decodedImageId
     return
   }
 
   if (source.value === 'order-create') {
-    // For blob URLs, return the imageId as URL
-    imageUrl.value = imageId.value
+    // For blob URLs or data URLs, return the decoded imageId as URL
+    imageUrl.value = decodedImageId
     return
   }
 
-  // Default: use imageId as URL (for blob URLs or direct URLs)
-  imageUrl.value = imageId.value
+  // Default: use decoded imageId as URL (for direct URLs from Supabase Storage)
+  imageUrl.value = decodedImageId
 }
 
 onMounted(() => {
