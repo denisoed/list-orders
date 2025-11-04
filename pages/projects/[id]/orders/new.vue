@@ -8,6 +8,8 @@ import { convertOrderToOrderDetail } from '~/data/orders'
 import { useProjects } from '~/composables/useProjects'
 import { useTelegram } from '~/composables/useTelegram'
 import { useOrderDraft } from '~/composables/useOrderDraft'
+import Checkbox from '~/components/Checkbox.vue'
+import Radio from '~/components/Radio.vue'
 
 interface AssigneeOption {
   id: string
@@ -752,7 +754,7 @@ useHead({
           aria-label="Очистить черновик"
           @click="handleClearDraft"
         >
-          <span class="material-symbols-outlined text-3xl">delete_outline</span>
+          <span class="material-symbols-outlined text-3xl">refresh</span>
         </button>
       </div>
     </header>
@@ -828,12 +830,21 @@ useHead({
 
         <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
           <p class="text-base font-medium leading-normal">Оплата</p>
+          <label class="flex flex-col">
+            <span class="pb-2 text-base font-medium leading-normal">Вся сумма</span>
+            <input
+              v-model="paymentAmount"
+              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+              type="number"
+              inputmode="decimal"
+              placeholder="Введите сумму заказа"
+              min="0"
+            />
+          </label>
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 text-base font-medium leading-normal">
-              <input
+              <Checkbox
                 v-model="hasPrepayment"
-                type="checkbox"
-                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
                 name="payment-prepayment"
               />
               <span>Предоплата</span>
@@ -850,38 +861,23 @@ useHead({
               />
             </label>
           </div>
-          <label class="flex flex-col">
-            <span class="pb-2 text-base font-medium leading-normal">Вся сумма</span>
-            <input
-              v-model="paymentAmount"
-              class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
-              type="number"
-              inputmode="decimal"
-              placeholder="Введите сумму заказа"
-              min="0"
-            />
-          </label>
         </div>
 
         <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
           <p class="text-base font-medium leading-normal">Доставка</p>
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 text-base font-medium leading-normal">
-              <input
+              <Radio
                 v-model="deliveryOption"
-                type="radio"
                 value="pickup"
-                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
                 name="delivery-option"
               />
               <span>Самовывоз</span>
             </label>
             <label class="flex items-center gap-3 text-base font-medium leading-normal">
-              <input
+              <Radio
                 v-model="deliveryOption"
-                type="radio"
                 value="delivery"
-                class="size-5 border-2 border-[#3b4354] bg-[#1c1f27] text-primary focus:ring-primary"
                 name="delivery-option"
               />
               <span>Доставка</span>
