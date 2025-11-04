@@ -1,16 +1,9 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import type { Project } from '~/data/projects'
 import { useProjectsStore } from '~/stores/projects'
+import { ORDER_STATUS_FILTERS, type OrderStatusFilter } from '~/utils/orderStatuses'
 
-export const ORDER_STATUS_FILTERS = [
-  { value: 'all', label: 'Все' },
-  { value: 'pending', label: 'Ожидает' },
-  { value: 'in_progress', label: 'В работе' },
-  { value: 'review', label: 'Проверяется' },
-  { value: 'done', label: 'Сделано' },
-] as const
-
-export type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]['value']
+export { ORDER_STATUS_FILTERS, type OrderStatusFilter }
 
 export interface UseProjectOrdersResult {
   project: Ref<Project | undefined>

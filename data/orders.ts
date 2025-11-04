@@ -1,4 +1,7 @@
-export type OrderStatusTone = 'info' | 'warning' | 'danger' | 'success'
+import type { OrderStatusTone } from '~/utils/orderStatuses'
+import { mapDbStatusToOrderStatus, getOrderStatusMeta } from '~/utils/orderStatuses'
+
+export type { OrderStatusTone }
 
 /**
  * Order interface matching server API response
@@ -103,19 +106,12 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
   // Map status to status chips
   const statusChips: OrderStatusChip[] = []
   if (order.status) {
-    const statusMap: Record<string, { label: string; tone: OrderStatusTone }> = {
-      new: { label: 'Новый', tone: 'info' },
-      pending: { label: 'Ожидает', tone: 'info' },
-      in_progress: { label: 'В работе', tone: 'warning' },
-      review: { label: 'Проверяется', tone: 'warning' },
-      done: { label: 'Сделано', tone: 'success' },
-      cancelled: { label: 'Отменен', tone: 'danger' },
-    }
-    const statusInfo = statusMap[order.status] || { label: order.status, tone: 'info' as OrderStatusTone }
+    const orderStatus = mapDbStatusToOrderStatus(order.status)
+    const statusMeta = getOrderStatusMeta(orderStatus)
     statusChips.push({
       id: `status-${order.status}`,
-      label: statusInfo.label,
-      tone: statusInfo.tone,
+      label: statusMeta.label,
+      tone: statusMeta.tone,
     })
   }
 
