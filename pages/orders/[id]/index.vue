@@ -7,6 +7,7 @@ import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
 import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
+import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,7 +22,7 @@ const orderId = computed(() => {
 
 const order = ref<OrderDetail | null>(null)
 const orderData = ref<Order | null>(null) // Store original Order data
-const isLoading = ref(false)
+const isLoading = ref(true)
 const error = ref<string | null>(null)
 
 // Handle startapp parameter from query string (for direct link opening)
@@ -420,9 +421,7 @@ useHead({
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
-      <div v-if="isLoading" class="flex items-center justify-center py-10">
-        <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
-      </div>
+      <DataLoadingIndicator v-if="isLoading" message="Загрузка заказа..." />
 
       <div v-else-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
         {{ error }}

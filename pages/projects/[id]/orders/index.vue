@@ -435,50 +435,46 @@ useHead({
           <OrderStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
 
           <div class="flex flex-col gap-4 pt-2">
-          <template v-if="hasOrders">
-            <template v-if="hasFilteredOrders">
-              <template v-if="hasOrdersInSelectedMonth">
-                <div v-for="group in groupedOrders" :key="group.key" class="flex gap-4">
-                  <div class="flex flex-col items-center">
-                    <div
-                      class="flex px-3 py-2 flex-col items-center justify-center rounded-xl bg-black text-white shadow-inner dark:bg-white/10"
-                    >
-                      <span class="text-[12px] font-semibold uppercase">{{ group.weekday }}</span>
-                      <span class="text-[14px] font-bold leading-none">{{ group.dayNumber }}</span>
-                    </div>
-                    <div
-                      v-if="!group.isLast"
-                      class="mt-3 h-full w-px flex-1 bg-black/10 dark:bg-white/15"
-                    ></div>
+            <template v-if="hasOrdersInSelectedMonth">
+              <div v-for="group in groupedOrders" :key="group.key" class="flex gap-4">
+                <div class="flex flex-col items-center">
+                  <div
+                    class="flex px-3 py-2 flex-col items-center justify-center rounded-xl bg-black text-white shadow-inner dark:bg-white/10"
+                  >
+                    <span class="text-[12px] font-semibold uppercase">{{ group.weekday }}</span>
+                    <span class="text-[14px] font-bold leading-none">{{ group.dayNumber }}</span>
                   </div>
-                  <div class="flex flex-1 flex-col gap-3">
-                    <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">
-                      {{ group.fullDate }}
-                    </p>
-                    <ul class="flex flex-col gap-3" role="list">
-                      <li v-for="order in group.orders" :key="order.id" role="listitem">
-                        <OrderCard :order="order" />
-                      </li>
-                    </ul>
-                  </div>
+                  <div
+                    v-if="!group.isLast"
+                    class="mt-3 h-full w-px flex-1 bg-black/10 dark:bg-white/15"
+                  ></div>
                 </div>
-              </template>
-              <OrderEmptyState
-                v-else
-                icon="calendar_month"
-                title="Нет заказов в выбранном месяце"
-                description="Попробуйте переключить месяц или изменить фильтр статуса."
-              />
+                <div class="flex flex-1 flex-col gap-3">
+                  <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">
+                    {{ group.fullDate }}
+                  </p>
+                  <ul class="flex flex-col gap-3" role="list">
+                    <li v-for="order in group.orders" :key="order.id" role="listitem">
+                      <OrderCard :order="order" />
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </template>
             <OrderEmptyState
-              v-else
+              v-else-if="hasFilteredOrders"
+              icon="calendar_month"
+              title="Нет заказов в выбранном месяце"
+              description="Попробуйте переключить месяц или изменить фильтр статуса."
+            />
+            <OrderEmptyState
+              v-else-if="hasOrders"
               icon="manage_search"
               title="Нет заказов по выбранным фильтрам"
               description="Измените статус или покажите все заказы."
             />
-          </template>
-          <OrderEmptyState v-else />
-        </div>
+            <OrderEmptyState v-else />
+          </div>
         </template>
       </section>
 
