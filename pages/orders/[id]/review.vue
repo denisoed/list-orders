@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { getOrderDetailMock } from '~/data/orders'
+import { computed, onMounted, ref } from 'vue'
+import { convertOrderToOrderDetail } from '~/data/orders'
+import type { Order, OrderDetail } from '~/data/orders'
 import { submitOrderReview } from '~/utils/orderReviewSubmission'
 import type { ImageAttachment } from '~/components/ImageUploader.vue'
+import { useOrders } from '~/composables/useOrders'
+import { useProjects } from '~/composables/useProjects'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,7 +15,37 @@ const orderId = computed(() => {
   return Array.isArray(raw) ? raw[0] ?? '' : raw?.toString() ?? ''
 })
 
-const order = computed(() => getOrderDetailMock(orderId.value))
+const { fetchOrder } = useOrders()
+const { getProjectById } = useProjects()
+
+const order = ref<OrderDetail | null>(null)
+const isLoading = ref(false)
+const loadError = ref<string | null>(null)
+
+// Load order data
+onMounted(async () => {
+  if (!orderId.value) {
+    loadError.value = 'Order ID is missing'
+    return
+  }
+
+  isLoading.value = true
+  loadError.value = null
+
+  try {
+    const orderData = await fetchOrder(orderId.value)
+    const project = getProjectById(orderData.projectId)
+    const orderDetail = convertOrderToOrderDetail(orderData, project?.title)
+    order.value = orderDetail
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+    loadError.value = errorMessage
+    console.error('Error loading order:', err)
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const attachments = ref<ImageAttachment[]>([])
 const comment = ref('')
@@ -64,7 +97,7 @@ const handleSubmit = async () => {
 }
 
 const pageTitle = computed(() => {
-  const orderTitle = order.value.title
+  const orderTitle = order.value?.title
   return orderTitle ? `Отправка на проверку — ${orderTitle}` : 'Отправка на проверку'
 })
 
@@ -110,12 +143,25 @@ useHead({
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ order.title }}
+          {{ order?.title || 'Отправка на проверку' }}
         </h1>
       </div>
     </header>
 
     <main class="flex-1 space-y-8 px-4 py-6 pb-28 sm:pb-24">
+      <div v-if="isLoading" class="flex items-center justify-center py-10">
+        <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+      </div>
+
+      <div v-else-if="loadError" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+        {{ loadError }}
+      </div>
+
+      <div v-else-if="!order" class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-gray-400">
+        Заказ не найден
+      </div>
+
+      <template v-else>
       <section class="space-y-4">
         <div class="space-y-3">
           <p class="text-base font-semibold text-black dark:text-white">Фото результата</p>
@@ -149,9 +195,11 @@ useHead({
       >
         {{ errorMessage }}
       </p>
+      </template>
     </main>
 
     <footer
+      v-if="order && !isLoading"
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button

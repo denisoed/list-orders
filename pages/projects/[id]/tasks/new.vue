@@ -4,7 +4,9 @@ import { useHead, useRoute, useRouter } from '#imports'
 import type { TaskReminderOffset } from '~/data/projects'
 import { findTaskInProjects, useProjectTasks } from '~/composables/useProjectTasks'
 import type { ImageAttachment } from '~/components/ImageUploader.vue'
-import { getOrderDetailMock } from '~/data/orders'
+import { useOrders } from '~/composables/useOrders'
+import { convertOrderToOrderDetail } from '~/data/orders'
+import { useProjects } from '~/composables/useProjects'
 
 interface AssigneeOption {
   id: string
@@ -24,6 +26,8 @@ const orderId = computed(() => {
 const isEditMode = computed(() => Boolean(orderId.value))
 
 const { project, createTask, updateTask, isCreating, isUpdating } = useProjectTasks(projectId)
+const { fetchOrder } = useOrders()
+const { getProjectById } = useProjects()
 
 const fallbackTasksRoute = computed(() => `/projects/${projectId.value}/tasks`)
 const returnPath = computed(() => {
@@ -193,7 +197,7 @@ const handleToggleReminder = (value: TaskReminderOffset) => {
 const isSubmitDisabled = computed(() => !project.value || !isFormValid.value || isCreating.value || isUpdating.value)
 
 // Load order data for edit mode
-onMounted(() => {
+onMounted(async () => {
   if (orderId.value) {
     // First, try to find task in all projects
     const found = findTaskInProjects(orderId.value)
@@ -243,72 +247,87 @@ onMounted(() => {
         selectedAssigneeId.value = 'unassigned'
       }
     } else {
-      // If task not found in projects, try to load from order data
-      const order = getOrderDetailMock(orderId.value)
-      
-      // Fill form with order data
-      title.value = order.title || ''
-      description.value = order.description || ''
-      clientName.value = order.client.name || ''
-      clientPhone.value = order.client.phone || ''
-      
-      // Parse due date from dueDateLabel (format: "26 октября 2024, 18:00")
-      if (order.dueDateLabel) {
-        const dateMatch = order.dueDateLabel.match(/(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+(\d{4})/)
-        if (dateMatch) {
-          const months: Record<string, string> = {
-            'января': '01', 'февраля': '02', 'марта': '03', 'апреля': '04',
-            'мая': '05', 'июня': '06', 'июля': '07', 'августа': '08',
-            'сентября': '09', 'октября': '10', 'ноября': '11', 'декабря': '12'
-          }
-          const day = dateMatch[1].padStart(2, '0')
-          const month = months[dateMatch[2]] || '01'
-          const year = dateMatch[3]
-          dueDate.value = `${year}-${month}-${day}`
-          
-          // Parse time if available
-          const timeMatch = order.dueDateLabel.match(/(\d{1,2}):(\d{2})/)
-          if (timeMatch) {
-            dueTime.value = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`
+      // If task not found in projects, try to load from order data via API
+      try {
+        const orderData = await fetchOrder(orderId.value)
+        const project = getProjectById(orderData.projectId)
+        const order = convertOrderToOrderDetail(orderData, project?.title)
+        
+        // Fill form with order data
+        title.value = order.title || ''
+        description.value = order.description || ''
+        clientName.value = order.client.name || ''
+        clientPhone.value = order.client.phone || ''
+        
+        // Parse due date from dueDateLabel (format: "26 октября 2024, 18:00")
+        if (order.dueDateLabel) {
+          const dateMatch = order.dueDateLabel.match(/(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+(\d{4})/)
+          if (dateMatch) {
+            const months: Record<string, string> = {
+              'января': '01', 'февраля': '02', 'марта': '03', 'апреля': '04',
+              'мая': '05', 'июня': '06', 'июля': '07', 'августа': '08',
+              'сентября': '09', 'октября': '10', 'ноября': '11', 'декабря': '12'
+            }
+            const day = dateMatch[1].padStart(2, '0')
+            const month = months[dateMatch[2]] || '01'
+            const year = dateMatch[3]
+            dueDate.value = `${year}-${month}-${day}`
+            
+            // Parse time if available
+            const timeMatch = order.dueDateLabel.match(/(\d{1,2}):(\d{2})/)
+            if (timeMatch) {
+              dueTime.value = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`
+            }
           }
         }
-      }
-      
-      // Set delivery option - assume delivery if no specific indication
-      deliveryOption.value = 'pickup'
-      
-      // Set prepayment
-      if (order.client.prepayment) {
-        hasPrepayment.value = true
-        prepaymentAmount.value = order.client.prepayment
-      }
-      
-      if (order.client.totalAmount) {
-        paymentAmount.value = order.client.totalAmount
-      }
-      
-      // Convert attachments
-      if (order.attachments && order.attachments.length > 0) {
-        attachments.value = order.attachments.map((att) => ({
-          id: att.id,
-          name: att.name,
-          previewUrl: att.previewUrl,
-        }))
-      }
-      
-      // Set assignee
-      if (order.assignee) {
-        const assigneeOption = assigneeOptions.value.find((opt) => opt.name === order.assignee?.name)
-        if (assigneeOption) {
-          selectedAssigneeId.value = assigneeOption.id
-        } else {
-          // If assignee not found in options, store it as custom assignee
-          customAssignee.value = {
-            name: order.assignee.name,
-            avatarUrl: order.assignee.avatarUrl,
+        
+        // Set delivery option - assume delivery if no specific indication
+        deliveryOption.value = 'pickup'
+        
+        // Set prepayment - parse from formatted string
+        if (order.client.prepayment) {
+          // Extract numeric value from formatted string like "50 000 ₽"
+          const prepaymentMatch = order.client.prepayment.match(/[\d\s]+/)
+          if (prepaymentMatch) {
+            hasPrepayment.value = true
+            prepaymentAmount.value = prepaymentMatch[0].replace(/\s/g, '')
           }
-          selectedAssigneeId.value = 'unassigned'
         }
+        
+        if (order.client.totalAmount) {
+          // Extract numeric value from formatted string
+          const totalMatch = order.client.totalAmount.match(/[\d\s]+/)
+          if (totalMatch) {
+            paymentAmount.value = totalMatch[0].replace(/\s/g, '')
+          }
+        }
+        
+        // Convert attachments
+        if (order.attachments && order.attachments.length > 0) {
+          attachments.value = order.attachments.map((att) => ({
+            id: att.id,
+            name: att.name,
+            previewUrl: att.previewUrl,
+          }))
+        }
+        
+        // Set assignee
+        if (order.assignee) {
+          const assigneeOption = assigneeOptions.value.find((opt) => opt.name === order.assignee?.name)
+          if (assigneeOption) {
+            selectedAssigneeId.value = assigneeOption.id
+          } else {
+            // If assignee not found in options, store it as custom assignee
+            customAssignee.value = {
+              name: order.assignee.name,
+              avatarUrl: order.assignee.avatarUrl,
+            }
+            selectedAssigneeId.value = 'unassigned'
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load order data:', error)
+        // If order loading fails, form will remain empty
       }
     }
   }
