@@ -5,13 +5,16 @@ import { useOrders } from '~/composables/useOrders'
 import type { Project } from '~/data/projects'
 import type { Order } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
+import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 
 const route = useRoute()
 const projects = useAllProjects()
 const router = useRouter()
 const userStore = useUserStore()
-const { fetchProjects } = useProjects()
-const { fetchOrders, orders } = useOrders()
+const { fetchProjects, isLoading: isLoadingProjects } = useProjects()
+const { fetchOrders, orders, isLoading: isLoadingOrders } = useOrders()
+
+const isLoading = computed(() => isLoadingProjects.value || isLoadingOrders.value)
 
 // Use computed to get orders array
 const ordersList = computed(() => {
@@ -152,7 +155,9 @@ useHead({
     />
 
     <main class="flex-1 px-4 pt-4">
-      <div v-if="hasProjects" class="flex flex-col gap-3">
+      <DataLoadingIndicator v-if="isLoading" />
+
+      <div v-else-if="hasProjects" class="flex flex-col gap-3">
         <NuxtLink
           v-for="project in visibleProjects"
           :key="project.id"
@@ -198,7 +203,7 @@ useHead({
       </div>
 
       <div
-        v-else
+        v-else-if="!isLoading"
         class="mx-auto mt-20 flex w-full max-w-xl flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
       >
         <span class="material-symbols-outlined text-5xl text-primary">folder_off</span>
