@@ -6,16 +6,19 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount } from 'vue'
+import { onMounted } from 'vue'
 import { useTelegram } from '~/composables/useTelegram'
 import { useUserStore, type User } from '~/stores/user'
 
-const { getInitData, getStartParam } = useTelegram()
+const { getInitData, waitForInitData, getStartParam } = useTelegram()
 const router = useRouter()
 const route = useRoute()
 
-onBeforeMount(async () => {
-  const initData = getInitData()
+onMounted(async () => {
+  // Wait for Telegram WebApp to be ready before getting initData
+  // This is important for hard reloads when Telegram WebApp might not be initialized yet
+  const initData = await waitForInitData(20, 100)
+  
   if (initData) {
     try {
       const response = await $fetch<{ success: boolean; user: User | null }>('/api/user', {

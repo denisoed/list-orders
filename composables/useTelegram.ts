@@ -120,6 +120,33 @@ export const useTelegram = () => {
     return instance?.initData ?? null
   }
 
+  /**
+   * Waits for Telegram WebApp to be ready and returns initData
+   * This is useful when the app is reloaded and Telegram WebApp might not be initialized yet
+   */
+  const waitForInitData = async (maxAttempts = 10, delayMs = 100): Promise<string | null> => {
+    if (!import.meta.client) {
+      return null
+    }
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const instance = window.Telegram?.WebApp ?? null
+      const initData = instance?.initData
+
+      if (initData) {
+        return initData
+      }
+
+      // Wait before next attempt
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+
+    // If we reach here, Telegram WebApp is not available or initData is not set
+    return null
+  }
+
   const getStartParam = (): string | null => {
     if (!import.meta.client) {
       return null
@@ -194,6 +221,7 @@ export const useTelegram = () => {
     initTelegram,
     applyTheme,
     getInitData,
+    waitForInitData,
     getStartParam,
     openLink,
     openTelegramLink,
