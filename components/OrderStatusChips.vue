@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { OrderStatusFilter } from '~/composables/useProjectOrders'
-import { STATUS_CHIP_THEMES } from '~/utils/orderStatusThemes'
+import { STATUS_CHIP_THEMES, type OrderStatusFilter } from '~/utils/orderStatuses'
 
 export interface StatusOption {
   value: string

@@ -1,52 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ProjectOrder, OrderStatus } from '~/data/projects'
-
-interface StatusMeta {
-  label: string
-  badgeBg: string
-  badgeText: string
-  dot: string
-  cardClass: string
-}
-
-const STATUS_META: Record<OrderStatus, StatusMeta> = {
-  pending: {
-    label: 'Ожидает',
-    badgeBg: 'bg-red-500/20',
-    badgeText: 'text-red-600 dark:text-red-400',
-    dot: 'bg-red-500 dark:bg-red-400',
-    cardClass: 'bg-red-50 border border-red-100 dark:bg-red-500/10 dark:border-red-500/25',
-  },
-  in_progress: {
-    label: 'В работе',
-    badgeBg: 'bg-yellow-500/20',
-    badgeText: 'text-yellow-600 dark:text-yellow-400',
-    dot: 'bg-yellow-500 dark:bg-yellow-400',
-    cardClass: 'bg-yellow-50 border border-yellow-100 dark:bg-yellow-500/10 dark:border-yellow-500/25',
-  },
-  review: {
-    label: 'Проверяется',
-    badgeBg: 'bg-blue-500/20',
-    badgeText: 'text-blue-500 dark:text-blue-400',
-    dot: 'bg-blue-500 dark:bg-blue-400',
-    cardClass: 'bg-blue-50 border border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/25',
-  },
-  done: {
-    label: 'Сделано',
-    badgeBg: 'bg-green-500/20',
-    badgeText: 'text-green-500 dark:text-green-400',
-    dot: 'bg-green-500 dark:bg-green-400',
-    cardClass:
-      'bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/25',
-  },
-}
+import { getOrderStatusMeta } from '~/utils/orderStatuses'
 
 const props = defineProps<{
   order: ProjectOrder
 }>()
 
-const statusMeta = computed(() => STATUS_META[props.order.status])
+const statusMeta = computed(() => getOrderStatusMeta(props.order.status))
 const isCompleted = computed(() => props.order.status === 'done')
 
 const orderDetailsRoute = computed(() => `/orders/${props.order.id}`)

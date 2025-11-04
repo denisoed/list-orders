@@ -6,6 +6,7 @@ import OrderEmptyState from '~/components/OrderEmptyState.vue'
 import OrderPageHeader from '~/components/OrderPageHeader.vue'
 import OrderStatusChips from '~/components/OrderStatusChips.vue'
 import { ORDER_STATUS_FILTERS, useProjectOrders, type OrderStatusFilter } from '~/composables/useProjectOrders'
+import { mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
 import { useProjects } from '~/composables/useProjects'
 import { useOrders } from '~/composables/useOrders'
 import type { Order } from '~/data/orders'
@@ -26,16 +27,7 @@ const isLoading = computed(() => isLoadingProject.value || isLoadingOrders.value
 // Convert Order to ProjectOrder format
 const convertOrderToOrder = (order: Order): ProjectOrder => {
   // Map order status to order status
-  const statusMap: Record<string, OrderStatus> = {
-    new: 'pending',
-    pending: 'pending',
-    in_progress: 'in_progress',
-    review: 'review',
-    done: 'done',
-    cancelled: 'pending', // cancelled orders treated as pending
-  }
-  
-  const OrderStatus: OrderStatus = statusMap[order.status] || 'pending'
+  const OrderStatus: OrderStatus = mapDbStatusToOrderStatus(order.status)
   
   // Format due date from ISO string to YYYY-MM-DD format
   let dueDate = new Date().toISOString().slice(0, 10)

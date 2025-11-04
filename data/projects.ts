@@ -1,4 +1,6 @@
-export type OrderStatus = 'pending' | 'in_progress' | 'review' | 'done'
+import type { OrderStatus } from '~/utils/orderStatuses'
+
+export type { OrderStatus }
 export type OrderReminderOffset = '1h' | '3h' | '1d'
 
 export interface OrderAttachment {
