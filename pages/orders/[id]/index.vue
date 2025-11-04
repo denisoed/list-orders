@@ -1,23 +1,29 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { getOrderDetailMock } from '~/data/orders'
-import type { OrderDetail, OrderStatusTone } from '~/data/orders'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { convertOrderToOrderDetail } from '~/data/orders'
+import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
-import { findTaskInProjects, useAllProjects } from '~/composables/useProjectTasks'
+import { useOrders } from '~/composables/useOrders'
+import { useProjects } from '~/composables/useProjects'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { fetchOrder, updateOrder } = useOrders()
+const { getProjectById } = useProjects()
 
 const orderId = computed(() => {
   const raw = route.params.id
   return Array.isArray(raw) ? raw[0] ?? '' : raw?.toString() ?? ''
 })
 
-const order = ref<OrderDetail>(getOrderDetailMock(orderId.value))
+const order = ref<OrderDetail | null>(null)
+const orderData = ref<Order | null>(null) // Store original Order data
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 // Handle startapp parameter from query string (for direct link opening)
 const startAppParam = computed(() => {
@@ -28,9 +34,34 @@ const startAppParam = computed(() => {
   return null
 })
 
+// Load order from API
+const loadOrder = async () => {
+  if (!orderId.value) {
+    return
+  }
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const fetchedOrder = await fetchOrder(orderId.value)
+    orderData.value = fetchedOrder
+    const project = getProjectById(fetchedOrder.projectId)
+    const orderDetail = convertOrderToOrderDetail(fetchedOrder, project?.title)
+    order.value = orderDetail
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+    error.value = errorMessage
+    console.error('Error loading order:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 // Update order when route changes
 watch(orderId, () => {
-  order.value = getOrderDetailMock(orderId.value)
+  loadOrder()
 })
 
 // Handle startapp parameter from query - redirect if it doesn't match current order
@@ -40,12 +71,18 @@ watch([startAppParam, orderId], ([startapp, currentId]) => {
   }
 })
 
-const hasAssignee = computed(() => Boolean(order.value.assignee))
+// Load order on mount
+onMounted(() => {
+  loadOrder()
+})
+
+const hasAssignee = computed(() => Boolean(order.value?.assignee))
 
 const isPhoneCopied = ref(false)
 let copyResetTimeout: ReturnType<typeof setTimeout> | null = null
 
 const whatsappLink = computed(() => {
+  if (!order.value) return null
   const digits = order.value.client.phone.replace(/\D+/g, '')
 
   if (!digits) {
@@ -56,6 +93,7 @@ const whatsappLink = computed(() => {
 })
 
 const handleCopyPhone = async () => {
+  if (!order.value) return
   const phone = order.value.client.phone.trim()
 
   if (!phone) {
@@ -84,6 +122,7 @@ const handleCopyPhone = async () => {
 }
 
 const hasClientPaymentDetails = computed(() => {
+  if (!order.value) return false
   const { prepayment, totalAmount } = order.value.client
   return Boolean(prepayment?.trim() || totalAmount?.trim())
 })
@@ -93,7 +132,7 @@ const quickInfoItems = computed(() => [
     id: 'due-date',
     icon: 'calendar_today',
     label: 'Срок выполнения',
-    value: order.value.dueDateLabel,
+    value: order.value?.dueDateLabel || '',
   },
 ])
 
@@ -120,6 +159,7 @@ const primaryStatusChip = computed(() => {
   }
 
   // Otherwise use the status from order
+  if (!order.value) return null
   const chip = order.value.statusChips[0]
   if (!chip) {
     return null
@@ -161,6 +201,7 @@ const quickInfoIconClass = (itemId: string) =>
   ]
 
 const examplesCountLabel = computed(() => {
+  if (!order.value) return '0 примеров'
   const count = order.value.attachments.length
 
   if (count === 0) {
@@ -191,7 +232,7 @@ const handleImageClick = (attachmentId: string) => {
   })
 }
 
-const handleTakeInWork = () => {
+const handleTakeInWork = async () => {
   const currentUser = userStore.user
 
   if (!currentUser) {
@@ -199,23 +240,21 @@ const handleTakeInWork = () => {
     return
   }
 
-  // Build user name from first_name and last_name
-  const userName = [currentUser.first_name, currentUser.last_name]
-    .filter(Boolean)
-    .join(' ') || 'Пользователь'
+  if (!orderId.value) {
+    return
+  }
 
-  // Set current user as assignee and update status to "В работе" if not set
-  order.value = {
-    ...order.value,
-    assignee: {
-      name: userName,
-      role: 'Исполнитель',
-      avatarUrl: currentUser.photo_url || 'https://i.pravatar.cc/96?img=12',
-    },
-    // If no status chips, add "В работе" status
-    statusChips: order.value.statusChips.length > 0
-      ? order.value.statusChips
-      : [{ id: 'status-in-progress', label: 'В работе', tone: 'warning' }],
+  try {
+    // Update order status to "in_progress" and set assignee
+    const updatedOrderData = await updateOrder(orderId.value, {
+      status: 'in_progress',
+      assignee_telegram_id: currentUser.id,
+    })
+
+    // Reload order to get updated data
+    await loadOrder()
+  } catch (err) {
+    console.error('Не удалось взять заказ в работу:', err)
   }
 }
 
@@ -250,6 +289,7 @@ const handleShare = async () => {
   // When opened in Telegram, this will be available as start_param
   const shareUrl = `https://t.me/list_orders_bot/app?startapp=${orderId.value}`
 
+  if (!order.value) return
   const shareData = {
     title: order.value.title || 'Детали заказа',
     text: order.value.description || 'Посмотрите детали заказа',
@@ -311,39 +351,18 @@ const handleShare = async () => {
 const handleEdit = () => {
   const targetOrderId = orderId.value
 
-  if (!targetOrderId) {
+  if (!targetOrderId || !orderData.value) {
     return
   }
 
-  // Try to find task in all projects
-  const found = findTaskInProjects(targetOrderId)
-  
-  if (found) {
-    // If task found, redirect to edit page in the project where it exists
-    router.push({
-      path: `/projects/${found.project.id}/tasks/new`,
-      query: {
-        orderId: targetOrderId,
-        from: route.fullPath,
-      },
-    })
-  } else {
-    // If task not found, try to get first project and redirect there
-    const allProjects = useAllProjects()
-    const firstProject = allProjects.value[0]
-    
-    if (firstProject) {
-      router.push({
-        path: `/projects/${firstProject.id}/tasks/new`,
-        query: {
-          orderId: targetOrderId,
-          from: route.fullPath,
-        },
-      })
-    } else {
-      console.warn('No projects available for editing order')
-    }
-  }
+  // Redirect to edit page with projectId
+  router.push({
+    path: `/projects/${orderData.value.projectId}/orders/new`,
+    query: {
+      orderId: targetOrderId,
+      from: route.fullPath,
+    },
+  })
 }
 
 const menuItems: DropdownMenuItem[] = [
@@ -362,7 +381,7 @@ const menuItems: DropdownMenuItem[] = [
 ]
 
 useHead({
-  title: order.value.title,
+  title: order.value?.title || 'Заказ',
   htmlAttrs: {
     lang: 'ru',
     class: 'dark',
@@ -403,7 +422,7 @@ useHead({
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ order.title }}
+          {{ order?.title || 'Заказ' }}
         </h1>
       </div>
 
@@ -414,6 +433,19 @@ useHead({
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
+      <div v-if="isLoading" class="flex items-center justify-center py-10">
+        <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+      </div>
+
+      <div v-else-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+        {{ error }}
+      </div>
+
+      <div v-else-if="!order" class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-gray-400">
+        Заказ не найден
+      </div>
+
+      <template v-else>
       <section v-if="primaryStatusChip" class="space-y-3">
         <div class="flex flex-wrap gap-2">
           <span
@@ -586,9 +618,11 @@ useHead({
           </div>
         </details>
       </section>
+      </template>
     </main>
 
     <footer
+      v-if="order && !isLoading"
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button

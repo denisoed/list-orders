@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { getOrderDetailMock } from '~/data/orders'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,23 +48,32 @@ const scaleIndicatorTimer = ref<NodeJS.Timeout | null>(null)
 const imageRef = ref<HTMLImageElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 
-// Get image URL based on source
-const imageUrl = computed(() => {
+// Image URL state
+const imageUrl = ref<string>('')
+const isLoadingImage = ref(false)
+
+// Load image URL based on source
+const loadImageUrl = async () => {
   if (source.value === 'order-details' && orderId.value) {
-    const order = getOrderDetailMock(orderId.value)
-    const attachment = order.attachments.find((att) => att.id === imageId.value)
-    if (attachment) {
-      return attachment.previewUrl
-    }
+    // For now, we'll use the imageId directly as URL
+    // In a real implementation, you would fetch the order from API and get the attachment URL
+    // For now, we'll assume the imageId is already a URL or blob URL
+    imageUrl.value = imageId.value
+    return
   }
 
   if (source.value === 'task-create') {
     // For blob URLs, return the imageId as URL
-    // This will be handled by the page that navigates here
-    return imageId.value
+    imageUrl.value = imageId.value
+    return
   }
 
-  return ''
+  // Default: use imageId as URL (for blob URLs or direct URLs)
+  imageUrl.value = imageId.value
+}
+
+onMounted(() => {
+  loadImageUrl()
 })
 
 // Scale indicator
@@ -261,7 +269,7 @@ const handleImageError = () => {
   if (import.meta.dev) {
     console.error('Failed to load image:', {
       imageId: imageId.value,
-      imageUrl: imageUrl.value,
+      imageUrl: imageUrl.value || '',
       source: source.value,
       orderId: orderId.value,
       projectId: projectId.value,
@@ -273,7 +281,7 @@ const handleRetry = () => {
   loadError.value = false
   isLoading.value = true
   if (imageRef.value) {
-    imageRef.value.src = imageUrl.value
+    imageRef.value.src = imageUrl.value || ''
   }
 }
 
