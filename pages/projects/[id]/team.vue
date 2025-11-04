@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import SearchField from '~/components/SearchField.vue'
 import { useProjectTeam } from '~/composables/useProjectTeam'
-import { useProjectsState } from '~/composables/useProjectTasks'
+import { useProjectsStore } from '~/stores/projects'
 import { useProjects } from '~/composables/useProjects'
 
 const route = useRoute()
@@ -14,8 +14,8 @@ const projectId = computed(() => {
   return typeof id === 'string' ? id : Array.isArray(id) ? id[0] : ''
 })
 
-const projectsState = useProjectsState()
-const project = computed(() => projectsState.value.find((item) => item.id === projectId.value))
+const projectsStore = useProjectsStore()
+const project = computed(() => projectsStore.getProjectById(projectId.value))
 const { filteredMembers, members, searchQuery, setSearchQuery } = useProjectTeam(projectId)
 const { fetchProject } = useProjects()
 
