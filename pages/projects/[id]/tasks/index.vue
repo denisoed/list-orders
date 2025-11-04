@@ -6,6 +6,7 @@ import TaskEmptyState from '~/components/TaskEmptyState.vue'
 import TaskPageHeader from '~/components/TaskPageHeader.vue'
 import TaskStatusChips from '~/components/TaskStatusChips.vue'
 import { TASK_STATUS_FILTERS, useProjectTasks, type TaskStatusFilter } from '~/composables/useProjectTasks'
+import { useProjects } from '~/composables/useProjects'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,22 @@ const router = useRouter()
 const projectId = computed(() => String(route.params.id ?? ''))
 
 const { project, allTasks, filteredTasks, activeStatus, setActiveStatus } = useProjectTasks(projectId)
+const { fetchProject } = useProjects()
+
+// Load project if not found in local state
+watch(
+  [projectId, project],
+  async ([id, currentProject]) => {
+    if (id && !currentProject) {
+      try {
+        await fetchProject(id)
+      } catch (error) {
+        console.error('Failed to load project:', error)
+      }
+    }
+  },
+  { immediate: true },
+)
 
 const statusOptions = computed(() =>
   TASK_STATUS_FILTERS.map((option) => ({

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import SearchField from '~/components/SearchField.vue'
 import { useProjectTeam } from '~/composables/useProjectTeam'
 import { useProjectsState } from '~/composables/useProjectTasks'
+import { useProjects } from '~/composables/useProjects'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,6 +17,22 @@ const projectId = computed(() => {
 const projectsState = useProjectsState()
 const project = computed(() => projectsState.value.find((item) => item.id === projectId.value))
 const { filteredMembers, members, searchQuery, setSearchQuery } = useProjectTeam(projectId)
+const { fetchProject } = useProjects()
+
+// Load project if not found in local state
+watch(
+  [projectId, project],
+  async ([id, currentProject]) => {
+    if (id && !currentProject) {
+      try {
+        await fetchProject(id)
+      } catch (error) {
+        console.error('Failed to load project:', error)
+      }
+    }
+  },
+  { immediate: true },
+)
 
 const hasMembers = computed(() => members.value.length > 0)
 const filteredHasItems = computed(() => filteredMembers.value.length > 0)

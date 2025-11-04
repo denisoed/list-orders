@@ -15,13 +15,80 @@ export interface UpdateProjectInput {
   color?: string
 }
 
-const generateProjectId = () => `project-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`
-
 export const useProjects = () => {
   const projectsState = useProjectsState()
   const isCreating = ref(false)
   const isUpdating = ref(false)
+  const isFetching = ref(false)
+  const isDeleting = ref(false)
 
+  /**
+   * Fetch all projects from the server
+   */
+  const fetchProjects = async (): Promise<Project[]> => {
+    isFetching.value = true
+
+    try {
+      const response = await $fetch<Project[]>('/api/projects')
+
+      // Update local state
+      projectsState.value = response.map((project) => ({
+        ...project,
+        tasks: project.tasks || [],
+      }))
+
+      console.info('[projects] Загружены проекты', {
+        count: response.length,
+      })
+
+      return projectsState.value
+    } catch (error) {
+      console.error('[projects] Не удалось загрузить проекты', error)
+      throw error
+    } finally {
+      isFetching.value = false
+    }
+  }
+
+  /**
+   * Fetch a single project by ID from the server
+   */
+  const fetchProject = async (projectId: string): Promise<Project> => {
+    isFetching.value = true
+
+    try {
+      const project = await $fetch<Project>(`/api/projects/${projectId}`)
+
+      // Update local state
+      const projectIndex = projectsState.value.findIndex((p) => p.id === projectId)
+      const projectWithTasks = {
+        ...project,
+        tasks: project.tasks || [],
+      }
+
+      if (projectIndex !== -1) {
+        projectsState.value.splice(projectIndex, 1, projectWithTasks)
+      } else {
+        projectsState.value.push(projectWithTasks)
+      }
+
+      console.info('[projects] Загружен проект', {
+        projectId: project.id,
+        title: project.title,
+      })
+
+      return projectWithTasks
+    } catch (error) {
+      console.error('[projects] Не удалось загрузить проект', error)
+      throw error
+    } finally {
+      isFetching.value = false
+    }
+  }
+
+  /**
+   * Create a new project on the server
+   */
   const createProject = async (input: CreateProjectInput): Promise<Project> => {
     const trimmedTitle = input.title.trim()
     const trimmedDescription = input.description?.trim() ?? ''
@@ -34,24 +101,29 @@ export const useProjects = () => {
     isCreating.value = true
 
     try {
-      const newProject: Project = {
-        id: generateProjectId(),
-        title: trimmedTitle,
-        description: trimmedDescription,
-        completed: 0,
-        total: 0,
-        tasks: [],
-        color: projectColor,
+      const newProject = await $fetch<Project>('/api/projects', {
+        method: 'POST',
+        body: {
+          title: trimmedTitle,
+          description: trimmedDescription,
+          color: projectColor,
+        },
+      })
+
+      // Update local state
+      const projectWithTasks: Project = {
+        ...newProject,
+        tasks: newProject.tasks || [],
       }
 
-      projectsState.value = [newProject, ...projectsState.value]
+      projectsState.value = [projectWithTasks, ...projectsState.value]
 
       console.info('[projects] Создан новый проект', {
         projectId: newProject.id,
         title: newProject.title,
       })
 
-      return newProject
+      return projectWithTasks
     } catch (error) {
       console.error('[projects] Не удалось создать проект', error)
       throw error
@@ -60,6 +132,9 @@ export const useProjects = () => {
     }
   }
 
+  /**
+   * Update an existing project on the server
+   */
   const updateProject = async (input: UpdateProjectInput): Promise<Project> => {
     const trimmedTitle = input.title.trim()
     const hasDescription = typeof input.description === 'string'
@@ -70,32 +145,40 @@ export const useProjects = () => {
       throw new Error('Название проекта не может быть пустым')
     }
 
-    const projectIndex = projectsState.value.findIndex((project) => project.id === input.id)
-
-    if (projectIndex === -1) {
-      throw new Error('Проект не найден')
-    }
-
     isUpdating.value = true
 
     try {
-      const existingProject = projectsState.value[projectIndex]
-      const updatedProject: Project = {
-        ...existingProject,
-        title: trimmedTitle,
-        description:
-          trimmedDescription !== undefined ? trimmedDescription : existingProject.description,
-        color: projectColor !== undefined ? projectColor : existingProject.color,
+      const updatedProject = await $fetch<Project>(`/api/projects/${input.id}`, {
+        method: 'PUT',
+        body: {
+          title: trimmedTitle,
+          description: trimmedDescription,
+          color: projectColor,
+        },
+      })
+
+      // Update local state
+      const projectIndex = projectsState.value.findIndex((project) => project.id === input.id)
+      const projectWithTasks: Project = {
+        ...updatedProject,
+        tasks: updatedProject.tasks || [],
       }
 
-      projectsState.value.splice(projectIndex, 1, updatedProject)
+      if (projectIndex !== -1) {
+        // Preserve existing tasks if project already exists in state
+        const existingProject = projectsState.value[projectIndex]
+        projectWithTasks.tasks = existingProject.tasks || []
+        projectsState.value.splice(projectIndex, 1, projectWithTasks)
+      } else {
+        projectsState.value.push(projectWithTasks)
+      }
 
       console.info('[projects] Обновлен проект', {
         projectId: updatedProject.id,
         title: updatedProject.title,
       })
 
-      return updatedProject
+      return projectWithTasks
     } catch (error) {
       console.error('[projects] Не удалось обновить проект', error)
       throw error
@@ -104,10 +187,43 @@ export const useProjects = () => {
     }
   }
 
+  /**
+   * Delete a project from the server
+   */
+  const deleteProject = async (projectId: string): Promise<void> => {
+    isDeleting.value = true
+
+    try {
+      await $fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      })
+
+      // Update local state
+      const projectIndex = projectsState.value.findIndex((project) => project.id === projectId)
+      if (projectIndex !== -1) {
+        projectsState.value.splice(projectIndex, 1)
+      }
+
+      console.info('[projects] Удален проект', {
+        projectId,
+      })
+    } catch (error) {
+      console.error('[projects] Не удалось удалить проект', error)
+      throw error
+    } finally {
+      isDeleting.value = false
+    }
+  }
+
   return {
     isCreating,
-    createProject,
     isUpdating,
+    isFetching,
+    isDeleting,
+    fetchProjects,
+    fetchProject,
+    createProject,
     updateProject,
+    deleteProject,
   }
 }
