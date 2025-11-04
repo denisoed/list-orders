@@ -94,6 +94,7 @@ export default defineEventHandler(async (event) => {
       payment_type?: string | null
       prepayment_amount?: number | null
       total_amount?: number | null
+      image_urls?: string[]
     } = {
       project_id: body.project_id.trim(),
       user_telegram_id: userTelegramId,
@@ -148,6 +149,15 @@ export default defineEventHandler(async (event) => {
       orderData.total_amount = Number(body.total_amount)
     }
 
+    if (body.image_urls !== undefined) {
+      // Validate image_urls is an array
+      if (Array.isArray(body.image_urls)) {
+        orderData.image_urls = body.image_urls.filter((url: any) => typeof url === 'string' && url.trim().length > 0)
+      } else {
+        orderData.image_urls = []
+      }
+    }
+
     // Insert order
     const { data: order, error } = await supabase
       .from('orders')
@@ -184,6 +194,7 @@ export default defineEventHandler(async (event) => {
       paymentType: order.payment_type || null,
       prepaymentAmount: order.prepayment_amount ? Number(order.prepayment_amount) : null,
       totalAmount: order.total_amount ? Number(order.total_amount) : null,
+      imageUrls: order.image_urls || [],
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }

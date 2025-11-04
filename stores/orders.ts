@@ -18,6 +18,7 @@ export interface CreateOrderInput {
   payment_type?: string | null
   prepayment_amount?: number | null
   total_amount?: number | null
+  image_urls?: string[]
   code?: string
 }
 
@@ -38,6 +39,7 @@ export interface UpdateOrderInput {
   payment_type?: string | null
   prepayment_amount?: number | null
   total_amount?: number | null
+  image_urls?: string[]
 }
 
 /**
@@ -199,6 +201,7 @@ export const useOrdersStore = defineStore('orders', () => {
           payment_type: input.payment_type || null,
           prepayment_amount: input.prepayment_amount || null,
           total_amount: input.total_amount || null,
+          image_urls: input.image_urls || [],
           code: input.code || undefined,
         },
       }))
@@ -277,6 +280,15 @@ export const useOrdersStore = defineStore('orders', () => {
       if (input.due_date !== undefined) {
         body.due_date = input.due_date
       }
+      if (input.due_time !== undefined) {
+        body.due_time = input.due_time
+      }
+      if (input.delivery_address !== undefined) {
+        body.delivery_address = input.delivery_address
+      }
+      if (input.reminder_offset !== undefined) {
+        body.reminder_offset = input.reminder_offset
+      }
       if (input.client_name !== undefined) {
         body.client_name = trimmedClientName
       }
@@ -297,6 +309,9 @@ export const useOrdersStore = defineStore('orders', () => {
       }
       if (input.assignee_telegram_avatar_url !== undefined) {
         body.assignee_telegram_avatar_url = input.assignee_telegram_avatar_url
+      }
+      if (input.image_urls !== undefined) {
+        body.image_urls = input.image_urls
       }
 
       const updatedOrder = await $fetch<Order>(`/api/orders/${orderId}`, getFetchOptions({

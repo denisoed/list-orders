@@ -23,6 +23,7 @@ export interface Order {
   paymentType: string | null
   prepaymentAmount: number | null
   totalAmount: number | null
+  imageUrls: string[]
   createdAt: string
   updatedAt: string
 }
@@ -169,7 +170,13 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
       prepayment: formatAmount(order.prepaymentAmount),
       totalAmount: formatAmount(order.totalAmount),
     },
-    attachments: [], // Will be populated separately if attachments are available
+    attachments: order.imageUrls?.map((url, index) => ({
+      id: `img-${index}`,
+      name: `image-${index + 1}`,
+      size: '',
+      icon: 'image',
+      previewUrl: url,
+    })) || [], // Convert imageUrls to attachments format
     history: [
       {
         id: 'history-created',

@@ -6,6 +6,7 @@ import type { OrderReminderOffset } from '~/data/projects'
 import { useOrders } from '~/composables/useOrders'
 import { convertOrderToOrderDetail } from '~/data/orders'
 import { useProjects } from '~/composables/useProjects'
+import { useTelegram } from '~/composables/useTelegram'
 
 interface AssigneeOption {
   id: string
@@ -299,8 +300,16 @@ onMounted(async () => {
         }
       }
       
-      // Convert attachments
-      if (order.attachments && order.attachments.length > 0) {
+      // Load existing images from orderData.imageUrls
+      if (orderData.imageUrls && orderData.imageUrls.length > 0) {
+        attachments.value = orderData.imageUrls.map((url, index) => ({
+          id: `existing-${index}`,
+          name: `image-${index + 1}`,
+          previewUrl: url,
+          file: new File([], `image-${index + 1}`), // Empty file for existing attachments
+        }))
+      } else if (order.attachments && order.attachments.length > 0) {
+        // Fallback to order.attachments if imageUrls is not available
         attachments.value = order.attachments.map((att) => ({
           id: att.id,
           name: att.name || 'image',
@@ -329,6 +338,57 @@ const handleImageClick = (attachment: ImageAttachment) => {
   })
 }
 
+// Upload images to Supabase Storage
+const uploadImages = async (): Promise<string[]> => {
+  const uploadedUrls: string[] = []
+  
+  // Filter only new attachments (with actual file data and blob URL)
+  const newAttachments = attachments.value.filter(att => 
+    att.file && att.file.size > 0 && att.previewUrl.startsWith('blob:')
+  )
+
+  if (newAttachments.length === 0) {
+    return uploadedUrls
+  }
+
+  const { getInitData } = useTelegram()
+  const initData = getInitData()
+
+  const headers: Record<string, string> = {}
+  if (initData) {
+    headers['x-telegram-init-data'] = initData
+  }
+
+  // Upload each new image
+  for (const attachment of newAttachments) {
+    try {
+      const formData = new FormData()
+      formData.append('file', attachment.file)
+
+      const response = await fetch('/api/images', {
+        method: 'POST',
+        headers,
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to upload image' }))
+        throw new Error(errorData.message || 'Failed to upload image')
+      }
+
+      const data = await response.json()
+      if (data.url) {
+        uploadedUrls.push(data.url)
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      throw new Error(`Не удалось загрузить изображение ${attachment.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  return uploadedUrls
+}
+
 const handleSubmit = async () => {
   submitAttempted.value = true
   submitError.value = ''
@@ -345,6 +405,24 @@ const handleSubmit = async () => {
   }
 
   try {
+    // Upload new images first (for both new and edit modes)
+    let newImageUrls: string[] = []
+    if (attachments.value.length > 0) {
+      try {
+        newImageUrls = await uploadImages()
+      } catch (error) {
+        submitError.value = error instanceof Error ? error.message : 'Не удалось загрузить изображения. Попробуйте ещё раз.'
+        return
+      }
+    }
+
+    // Get all image URLs (existing + newly uploaded)
+    const existingImageUrls = attachments.value
+      .filter(att => !att.previewUrl.startsWith('blob:') && att.previewUrl)
+      .map(att => att.previewUrl)
+    
+    const allImageUrls = [...existingImageUrls, ...newImageUrls]
+
     const dueDateISO = getDueDateISO()
     const paymentType = getPaymentType()
     const prepaymentNum = hasPrepayment.value && prepaymentAmount.value ? Number(prepaymentAmount.value) : null
@@ -367,8 +445,8 @@ const handleSubmit = async () => {
         payment_type: paymentType,
         prepayment_amount: prepayment,
         total_amount: total,
+        image_urls: allImageUrls,
         // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
-        // attachments are not part of order schema, they're handled separately in review flow
       })
       
       await router.back()
@@ -388,9 +466,9 @@ const handleSubmit = async () => {
         payment_type: paymentType,
         prepayment_amount: prepayment,
         total_amount: total,
+        image_urls: allImageUrls,
         status: 'new',
         // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
-        // attachments are not part of order schema, they're handled separately in review flow
       })
       
       attachments.value = []

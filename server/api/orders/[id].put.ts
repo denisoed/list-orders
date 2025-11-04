@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
       total_amount?: number | null
       assignee_telegram_name?: string | null
       assignee_telegram_avatar_url?: string | null
+      image_urls?: string[]
     } = {}
 
     if (body.title !== undefined) {
@@ -133,6 +134,22 @@ export default defineEventHandler(async (event) => {
       updateData.assignee_telegram_avatar_url = body.assignee_telegram_avatar_url || null
     }
 
+    if (body.image_urls !== undefined) {
+      // Validate image_urls is an array
+      if (Array.isArray(body.image_urls)) {
+        const filteredUrls = body.image_urls.filter((url: any) => typeof url === 'string' && url.trim().length > 0)
+        updateData.image_urls = filteredUrls
+        console.log('[Orders API] Updating image_urls:', {
+          orderId,
+          count: filteredUrls.length,
+          urls: filteredUrls,
+        })
+      } else {
+        updateData.image_urls = []
+        console.log('[Orders API] image_urls is not an array, setting to empty array')
+      }
+    }
+
     // Check if there's anything to update
     if (Object.keys(updateData).length === 0) {
       return sendError(event, createError({
@@ -186,6 +203,7 @@ export default defineEventHandler(async (event) => {
       paymentType: order.payment_type || null,
       prepaymentAmount: order.prepayment_amount ? Number(order.prepayment_amount) : null,
       totalAmount: order.total_amount ? Number(order.total_amount) : null,
+      imageUrls: order.image_urls || [],
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }

@@ -67,6 +67,7 @@ export default defineEventHandler(async (event) => {
       paymentType: order.payment_type || null,
       prepaymentAmount: order.prepayment_amount ? Number(order.prepayment_amount) : null,
       totalAmount: order.total_amount ? Number(order.total_amount) : null,
+      imageUrls: order.image_urls || [],
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }))
