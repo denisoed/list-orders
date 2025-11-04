@@ -7,8 +7,11 @@ import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
  */
 export default defineEventHandler(async (event) => {
   try {
-    // Get user telegram_id from request
-    const userTelegramId = await getUserTelegramIdFromRequest(event)
+    // Read body first to avoid reading it twice
+    const body = await readBody(event)
+
+    // Get user telegram_id from request (pass body to avoid reading it again)
+    const userTelegramId = await getUserTelegramIdFromRequest(event, body)
 
     if (!userTelegramId) {
       return sendError(event, createError({
@@ -16,8 +19,6 @@ export default defineEventHandler(async (event) => {
         message: 'Unauthorized: Invalid or missing initData'
       }))
     }
-
-    const body = await readBody(event)
 
     // Validate required fields
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {

@@ -7,16 +7,6 @@ import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
  */
 export default defineEventHandler(async (event) => {
   try {
-    // Get user telegram_id from request
-    const userTelegramId = await getUserTelegramIdFromRequest(event)
-
-    if (!userTelegramId) {
-      return sendError(event, createError({
-        statusCode: 401,
-        message: 'Unauthorized: Invalid or missing initData'
-      }))
-    }
-
     const projectId = getRouterParam(event, 'id')
 
     if (!projectId) {
@@ -26,7 +16,18 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    // Read body first to avoid reading it twice
     const body = await readBody(event)
+
+    // Get user telegram_id from request (pass body to avoid reading it again)
+    const userTelegramId = await getUserTelegramIdFromRequest(event, body)
+
+    if (!userTelegramId) {
+      return sendError(event, createError({
+        statusCode: 401,
+        message: 'Unauthorized: Invalid or missing initData'
+      }))
+    }
 
     // Validate required fields
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
