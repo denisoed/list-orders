@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import SearchField from '~/components/SearchField.vue'
-import { useProjectTeam } from '~/composables/useProjectTeam'
+import TeamMemberCard from '~/components/TeamMemberCard.vue'
+import UserSelectModal from '~/components/UserSelectModal.vue'
+import { useProjectTeam, type AvailableUser } from '~/composables/useProjectTeam'
 import { useProjectsStore } from '~/stores/projects'
 import { useProjects } from '~/composables/useProjects'
 
@@ -16,8 +18,23 @@ const projectId = computed(() => {
 
 const projectsStore = useProjectsStore()
 const project = computed(() => projectsStore.getProjectById(projectId.value))
-const { filteredMembers, members, searchQuery, setSearchQuery } = useProjectTeam(projectId)
+const {
+  filteredMembers,
+  members,
+  searchQuery,
+  isLoading,
+  isAdding,
+  setSearchQuery,
+  fetchMembers,
+  addMember,
+  getAvailableUsers,
+  removeMember,
+} = useProjectTeam(projectId)
 const { fetchProject } = useProjects()
+
+const isUserSelectModalOpen = ref(false)
+const availableUsers = ref<AvailableUser[]>([])
+const isLoadingUsers = ref(false)
 
 // Load project if not found in local state
 watch(
@@ -29,6 +46,17 @@ watch(
       } catch (error) {
         console.error('Failed to load project:', error)
       }
+    }
+  },
+  { immediate: true },
+)
+
+// Load members when projectId changes
+watch(
+  projectId,
+  async (id) => {
+    if (id) {
+      await fetchMembers()
     }
   },
   { immediate: true },
@@ -57,6 +85,35 @@ const handleOpenProfile = (memberId: string) => {
       projectId: projectId.value,
     },
   })
+}
+
+const handleAddClick = async () => {
+  isLoadingUsers.value = true
+  try {
+    const users = await getAvailableUsers()
+    availableUsers.value = users
+    isUserSelectModalOpen.value = true
+  } catch (error) {
+    console.error('Failed to load available users:', error)
+  } finally {
+    isLoadingUsers.value = false
+  }
+}
+
+const handleAddUser = async (user: AvailableUser) => {
+  const member = await addMember(user.telegramId)
+  if (member) {
+    // Remove added user from available list
+    availableUsers.value = availableUsers.value.filter((u) => u.id !== user.id)
+    // Close modal if no more users available
+    if (availableUsers.value.length === 0) {
+      isUserSelectModalOpen.value = false
+    }
+  }
+}
+
+const handleDeleteMember = async (memberId: string) => {
+  await removeMember(memberId)
 }
 
 useHead({
@@ -120,7 +177,10 @@ useHead({
         Проект не найден. Проверьте ссылку и вернитесь назад.
       </div>
       <template v-else>
-        <div v-if="!hasMembers" class="mt-12 text-center text-gray-500 dark:text-[#9da6b9]">
+        <div v-if="isLoading" class="mt-12 text-center text-gray-500 dark:text-[#9da6b9]">
+          Загрузка участников...
+        </div>
+        <div v-else-if="!hasMembers" class="mt-12 text-center text-gray-500 dark:text-[#9da6b9]">
           В команде ещё нет участников. Добавьте коллег, чтобы начать сотрудничество.
         </div>
         <div v-else>
@@ -134,6 +194,7 @@ useHead({
               :action-aria-label="`Открыть действия для ${member.name}`"
               :profile-aria-label="`Открыть профиль ${member.name}`"
               @open-profile="handleOpenProfile(member.id)"
+              @delete="handleDeleteMember(member.id)"
             />
           </div>
           <div v-else class="mt-12 text-center text-gray-500 dark:text-[#9da6b9]">
@@ -146,11 +207,23 @@ useHead({
     <div class="fixed bottom-6 right-6">
       <button
         type="button"
-        class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-95"
+        class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Добавить участника"
+        :disabled="isAdding || isLoading"
+        @click="handleAddClick"
       >
-        <span class="material-symbols-outlined text-3xl">add</span>
+        <span v-if="isAdding" class="material-symbols-outlined text-3xl animate-spin">hourglass_empty</span>
+        <span v-else class="material-symbols-outlined text-3xl">add</span>
       </button>
     </div>
+
+    <UserSelectModal
+      :is-open="isUserSelectModalOpen"
+      :available-users="availableUsers"
+      :is-loading="isLoadingUsers"
+      :is-adding="isAdding"
+      @close="isUserSelectModalOpen = false"
+      @add-user="handleAddUser"
+    />
   </div>
 </template>
