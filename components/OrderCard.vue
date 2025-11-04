@@ -57,6 +57,10 @@ const dueLabel = computed(() => {
     return 'Срок не указан'
   }
 
+  if (props.order.dueTime) {
+    return `Срок: ${formatDate(props.order.dueDate)} ${props.order.dueTime}`
+  }
+
   return `Срок: ${formatDate(props.order.dueDate)}`
 })
 
