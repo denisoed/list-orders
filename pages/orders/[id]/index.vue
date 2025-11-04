@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { convertOrderToOrderDetail, getOrderDetailMock } from '~/data/orders'
+import { convertOrderToOrderDetail } from '~/data/orders'
 import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 import { STATUS_CHIP_THEMES } from '~/utils/taskStatusThemes'
@@ -20,7 +20,7 @@ const orderId = computed(() => {
   return Array.isArray(raw) ? raw[0] ?? '' : raw?.toString() ?? ''
 })
 
-const order = ref<OrderDetail>(getOrderDetailMock(orderId.value))
+const order = ref<OrderDetail | null>(null)
 const orderData = ref<Order | null>(null) // Store original Order data
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -54,8 +54,6 @@ const loadOrder = async () => {
       err instanceof Error ? err.message : 'Не удалось загрузить заказ'
     error.value = errorMessage
     console.error('Error loading order:', err)
-    // Fallback to mock data on error
-    order.value = getOrderDetailMock(orderId.value)
   } finally {
     isLoading.value = false
   }
@@ -78,12 +76,13 @@ onMounted(() => {
   loadOrder()
 })
 
-const hasAssignee = computed(() => Boolean(order.value.assignee))
+const hasAssignee = computed(() => Boolean(order.value?.assignee))
 
 const isPhoneCopied = ref(false)
 let copyResetTimeout: ReturnType<typeof setTimeout> | null = null
 
 const whatsappLink = computed(() => {
+  if (!order.value) return null
   const digits = order.value.client.phone.replace(/\D+/g, '')
 
   if (!digits) {
@@ -94,6 +93,7 @@ const whatsappLink = computed(() => {
 })
 
 const handleCopyPhone = async () => {
+  if (!order.value) return
   const phone = order.value.client.phone.trim()
 
   if (!phone) {
@@ -122,6 +122,7 @@ const handleCopyPhone = async () => {
 }
 
 const hasClientPaymentDetails = computed(() => {
+  if (!order.value) return false
   const { prepayment, totalAmount } = order.value.client
   return Boolean(prepayment?.trim() || totalAmount?.trim())
 })
@@ -131,7 +132,7 @@ const quickInfoItems = computed(() => [
     id: 'due-date',
     icon: 'calendar_today',
     label: 'Срок выполнения',
-    value: order.value.dueDateLabel,
+    value: order.value?.dueDateLabel || '',
   },
 ])
 
@@ -158,6 +159,7 @@ const primaryStatusChip = computed(() => {
   }
 
   // Otherwise use the status from order
+  if (!order.value) return null
   const chip = order.value.statusChips[0]
   if (!chip) {
     return null
@@ -199,6 +201,7 @@ const quickInfoIconClass = (itemId: string) =>
   ]
 
 const examplesCountLabel = computed(() => {
+  if (!order.value) return '0 примеров'
   const count = order.value.attachments.length
 
   if (count === 0) {
@@ -286,6 +289,7 @@ const handleShare = async () => {
   // When opened in Telegram, this will be available as start_param
   const shareUrl = `https://t.me/list_orders_bot/app?startapp=${orderId.value}`
 
+  if (!order.value) return
   const shareData = {
     title: order.value.title || 'Детали заказа',
     text: order.value.description || 'Посмотрите детали заказа',
@@ -377,7 +381,7 @@ const menuItems: DropdownMenuItem[] = [
 ]
 
 useHead({
-  title: order.value.title,
+  title: order.value?.title || 'Заказ',
   htmlAttrs: {
     lang: 'ru',
     class: 'dark',
@@ -418,7 +422,7 @@ useHead({
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ order.title }}
+          {{ order?.title || 'Заказ' }}
         </h1>
       </div>
 
@@ -429,6 +433,19 @@ useHead({
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
+      <div v-if="isLoading" class="flex items-center justify-center py-10">
+        <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+      </div>
+
+      <div v-else-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+        {{ error }}
+      </div>
+
+      <div v-else-if="!order" class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-gray-400">
+        Заказ не найден
+      </div>
+
+      <template v-else>
       <section v-if="primaryStatusChip" class="space-y-3">
         <div class="flex flex-wrap gap-2">
           <span
@@ -601,9 +618,11 @@ useHead({
           </div>
         </details>
       </section>
+      </template>
     </main>
 
     <footer
+      v-if="order && !isLoading"
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
