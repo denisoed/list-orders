@@ -42,7 +42,7 @@ const description = ref('')
 const clientName = ref('')
 const clientPhone = ref('')
 const deliveryAddress = ref('')
-const deliveryOption = ref<'pickup' | 'delivery' | ''>('')
+const deliveryOption = ref<'pickup' | 'delivery' | ''>('pickup')
 const dueDate = ref('')
 const dueTime = ref('')
 const selectedAssigneeId = ref('unassigned')
@@ -282,7 +282,7 @@ const loadDraftToForm = async () => {
   clientName.value = draft.clientName || ''
   clientPhone.value = draft.clientPhone || ''
   deliveryAddress.value = draft.deliveryAddress || ''
-  deliveryOption.value = draft.deliveryOption || ''
+  deliveryOption.value = draft.deliveryOption || 'pickup'
   dueDate.value = draft.dueDate || ''
   dueTime.value = draft.dueTime || ''
   selectedAssigneeId.value = draft.selectedAssigneeId || 'unassigned'
@@ -335,7 +335,7 @@ const handleClearDraft = () => {
   clientName.value = ''
   clientPhone.value = ''
   deliveryAddress.value = ''
-  deliveryOption.value = ''
+  deliveryOption.value = 'pickup'
   dueDate.value = ''
   dueTime.value = ''
   selectedAssigneeId.value = 'unassigned'

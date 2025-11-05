@@ -581,7 +581,7 @@ useHead({
         </details>
       </section>
 
-      <section v-if="order.deliveryAddress" class="space-y-3">
+      <section class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
@@ -591,8 +591,8 @@ useHead({
           </summary>
           <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
             <div>
-              <p class="font-medium text-gray-700 dark:text-gray-300">Адрес доставки</p>
-              <p class="mt-1">{{ order.deliveryAddress }}</p>
+              <p class="font-medium text-gray-700 dark:text-gray-300">{{ order.deliveryAddress ? 'Адрес доставки' : 'Тип доставки' }}</p>
+              <p class="mt-1">{{ order.deliveryAddress || 'Самовывоз' }}</p>
             </div>
           </div>
         </details>
