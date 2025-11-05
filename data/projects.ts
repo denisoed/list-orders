@@ -37,4 +37,6 @@ export interface Project {
   completed: number
   total: number
   color?: string
+  ownerTelegramId?: number
+  membersCount?: number
 }

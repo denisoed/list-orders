@@ -98,16 +98,8 @@ const formatOrderCount = (project: Project) => {
 }
 
 const getParticipantCount = (project: Project) => {
-  // Get unique participants from orders for this project
-  const currentOrders = ordersList.value
-  const projectOrders = currentOrders.filter((order: Order) => order.projectId === project.id)
-  const uniqueParticipants = new Set(
-    projectOrders
-      .map((order: Order) => order.assigneeTelegramId)
-      .filter((id: number | null): id is number => id !== null && id !== undefined)
-  )
-
-  return uniqueParticipants.size
+  // Use membersCount from project (excluding owner)
+  return project.membersCount ?? 0
 }
 
 const formatParticipantCount = (project: Project) => {

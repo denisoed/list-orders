@@ -66,14 +66,33 @@ export default defineEventHandler(async (event) => {
     const projects = Array.from(projectsMap.values())
       .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
+    // Get member counts for all projects (excluding owners)
+    const projectIds = projects.map((p: any) => p.id)
+    const { data: memberCounts, error: memberCountsError } = await supabase
+      .from('project_members')
+      .select('project_id, member_telegram_id')
+      .in('project_id', projectIds)
+
+    // Count members per project (excluding owners)
+    const memberCountMap = new Map<string, number>()
+    projects.forEach((p: any) => {
+      const ownerId = p.user_telegram_id
+      const members = (memberCounts || []).filter((m: any) => 
+        m.project_id === p.id && m.member_telegram_id !== ownerId
+      )
+      memberCountMap.set(p.id, members.length)
+    })
+
     // Transform database fields to match frontend Project interface
-    const transformedProjects = projects.map((project) => ({
+    const transformedProjects = projects.map((project: any) => ({
       id: project.id,
       title: project.title,
       description: project.description || '',
       completed: project.completed || 0,
       total: project.total || 0,
       color: project.color || undefined,
+      ownerTelegramId: project.user_telegram_id,
+      membersCount: memberCountMap.get(project.id) || 0,
     }))
 
     return transformedProjects

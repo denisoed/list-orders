@@ -12,9 +12,11 @@ import { useOrders } from '~/composables/useOrders'
 import type { Order } from '~/data/orders'
 import type { ProjectOrder, OrderStatus } from '~/data/projects'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
+import { useUserStore } from '~/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const projectId = computed(() => String(route.params.id ?? ''))
 
@@ -312,6 +314,13 @@ const pageTitle = computed(() => {
   return `Задачи • ${project.value.title}`
 })
 
+const isProjectOwner = computed(() => {
+  if (!project.value || !userStore.user) {
+    return false
+  }
+  return project.value.ownerTelegramId === userStore.user.telegram_id
+})
+
 const getReturnPath = () => {
   const fallbackPath = `/projects/${projectId.value}/orders`
   const returnPath = typeof route.fullPath === 'string' && route.fullPath.length > 0 ? route.fullPath : fallbackPath
@@ -382,6 +391,7 @@ useHead({
     <OrderPageHeader
       :title="project?.title ?? 'Задачи'"
       :subtitle="subtitle"
+      :is-owner="isProjectOwner"
       @back="$router.back()"
       @edit="handleEditProject"
     />

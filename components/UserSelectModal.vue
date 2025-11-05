@@ -91,7 +91,7 @@ watch(() => props.isOpen, (isOpen) => {
         >
           <div
             v-if="props.isOpen"
-            class="flex max-h-[85vh] w-full flex-col rounded-t-2xl bg-background-light shadow-xl dark:bg-background-dark sm:max-w-md sm:rounded-2xl"
+            class="flex min-h-[70vh] max-h-[85vh] w-full flex-col rounded-t-2xl bg-background-light shadow-xl dark:bg-background-dark sm:max-w-md sm:rounded-2xl"
             @click.stop
           >
             <!-- Header -->
