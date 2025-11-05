@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
+import { sendTelegramMessage } from '~/server/api/telegram'
+import { Markup } from 'telegraf'
 
 /**
  * POST /api/projects/[id]/members
@@ -42,7 +44,7 @@ export default defineEventHandler(async (event) => {
     // Verify that the project belongs to the user
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id')
+      .select('id, title')
       .eq('id', projectId)
       .eq('user_telegram_id', userTelegramId)
       .single()
@@ -155,6 +157,22 @@ export default defineEventHandler(async (event) => {
     }
 
     const userData = memberWithUser.member as any
+
+    // Send Telegram notification to the added member
+    try {
+      const appUrl = process.env.APP_URL || 'https://list-orders.vercel.app'
+      const projectUrl = `${appUrl}/projects/${projectId}`
+      const message = `Вас добавили в проект <b>${project.title}</b>`
+      
+      const replyMarkup = Markup.inlineKeyboard([
+        [Markup.button.webApp('Перейти в проект', projectUrl)],
+      ])
+      
+      await sendTelegramMessage(body.memberTelegramId, message, replyMarkup)
+    } catch (error) {
+      console.error('[Project Members API] Failed to send notification:', error)
+      // Don't fail the request if notification fails
+    }
 
     // Transform to match frontend interface
     const transformedMember = {
