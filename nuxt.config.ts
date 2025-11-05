@@ -21,6 +21,8 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    telegramInitData: process.env.TELEGRAM_INIT_DATA || '',
+    public: {
+      telegramInitData: process.env.TELEGRAM_INIT_DATA || '',
+    }
   },
 })

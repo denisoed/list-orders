@@ -67,6 +67,7 @@ const setCssVariables = (theme: TelegramThemeSettings) => {
 }
 
 export const useTelegram = () => {
+  const config = useRuntimeConfig()
   const webApp = useState<MaybeTelegramWebApp>('telegram-webapp-instance', () => null)
   const themeSettings = useState<TelegramThemeSettings>('telegram-theme-settings', () => pickTheme())
 
@@ -188,7 +189,7 @@ export const useTelegram = () => {
 
     // Always get fresh instance to ensure initData is available
     const instance = window.Telegram?.WebApp ?? null
-    const newInitData = instance?.initData ?? import.meta.env.telegramInitData ?? null
+    const newInitData = instance?.initData || config.public.telegramInitData || null
     
     // If new initData is valid, use it and update storage
     if (isValidInitData(newInitData)) {

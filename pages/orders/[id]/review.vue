@@ -8,6 +8,7 @@ import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
 import { useUserStore } from '~/stores/user'
 import ReturnOrderModal from '~/components/ReturnOrderModal.vue'
+import { mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,6 +35,7 @@ const comment = ref('')
 const isSubmitting = ref(false)
 const isReturning = ref(false)
 const isCompleting = ref(false)
+const isFinishing = ref(false)
 const isReturnModalOpen = ref(false)
 const errorMessage = ref<string | null>(null)
 
@@ -57,14 +59,30 @@ const canEdit = computed(() => {
   return isOrderAssignee.value || isOrderAuthor.value
 })
 
-const showReturnButton = computed(() => {
-  // Both author and assignee can return
-  return isOrderAuthor.value || isOrderAssignee.value
+// Normalized order status
+const orderStatus = computed(() => {
+  if (!order.value) return null
+  return mapDbStatusToOrderStatus(order.value.status)
 })
 
+// Show "Finish" button for assignee when status is in_progress
+const showFinishButton = computed(() => {
+  return isOrderAssignee.value && orderStatus.value === 'in_progress'
+})
+
+// Show "Update" button for assignee when status is review
+const showUpdateButton = computed(() => {
+  return isOrderAssignee.value && orderStatus.value === 'review'
+})
+
+// Show "Return" button for assignee or author when status is review
+const showReturnButton = computed(() => {
+  return (isOrderAssignee.value || isOrderAuthor.value) && orderStatus.value === 'review'
+})
+
+// Show "Complete" button for author when status is review
 const showCompleteButton = computed(() => {
-  // Only author can complete
-  return isOrderAuthor.value
+  return isOrderAuthor.value && orderStatus.value === 'review'
 })
 
 // Load order data
@@ -94,7 +112,8 @@ onMounted(async () => {
     project.value = projectData
 
     // Load existing review data if order is in review status
-    if (orderData.status === 'review') {
+    const normalizedStatus = mapDbStatusToOrderStatus(orderData.status)
+    if (normalizedStatus === 'review') {
       comment.value = orderData.reviewComment || ''
       existingImageUrls.value = orderData.reviewImages || []
 
@@ -221,7 +240,84 @@ const getInitData = (): string | null => {
   return null
 }
 
-// Update review data (for assignee editing)
+// Finish order (for assignee when status is in_progress)
+const handleFinish = async () => {
+  if (!orderId.value || isFinishing.value) {
+    return
+  }
+
+  errorMessage.value = null
+  isFinishing.value = true
+
+  try {
+    const imageUrls = await getAllImageUrls()
+
+    await updateOrder(orderId.value, {
+      status: 'review',
+      review_comment: comment.value.trim() || null,
+      review_images: imageUrls,
+    })
+
+    // Reload order to get updated data
+    const orderData = await fetchOrder(orderId.value)
+    order.value = orderData
+
+    // Update attachments with new URLs
+    existingImageUrls.value = orderData.reviewImages || []
+    
+    // Update attachments: keep non-existing ones (newly uploaded), replace existing ones
+    const updatedAttachments: ImageAttachment[] = []
+    
+    // Add existing URLs from server
+    existingImageUrls.value.forEach((url, index) => {
+      updatedAttachments.push({
+        id: `existing-${index}`,
+        name: `image-${index + 1}.jpg`,
+        previewUrl: url,
+        file: new File([], 'existing-image'),
+      })
+    })
+    
+    // Keep attachments that are not existing (have data URLs or are newly uploaded)
+    attachments.value.forEach((att) => {
+      if (!att.id.startsWith('existing-') && (att.previewUrl.startsWith('http://') || att.previewUrl.startsWith('https://'))) {
+        // This is a newly uploaded file that now has a URL - convert to existing
+        updatedAttachments.push({
+          id: `existing-${updatedAttachments.length}`,
+          name: att.name,
+          previewUrl: att.previewUrl,
+          file: new File([], 'existing-image'),
+        })
+      } else if (!att.id.startsWith('existing-') && att.previewUrl.startsWith('data:')) {
+        // This is a new file not yet uploaded - keep it
+        updatedAttachments.push(att)
+      }
+    })
+    
+    attachments.value = updatedAttachments
+
+    // Redirect to project orders list page
+    if (orderProjectId.value) {
+      await router.replace({
+        path: `/projects/${orderProjectId.value}/orders`,
+      })
+    } else {
+      await router.replace({
+        path: '/',
+      })
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Не удалось завершить заказ. Попробуйте ещё раз.'
+    errorMessage.value = message
+    console.error('Error finishing order:', error)
+    isFinishing.value = false
+  }
+}
+
+// Update review data (for assignee when status is review)
 const handleUpdate = async () => {
   if (!orderId.value || isSubmitting.value) {
     return
@@ -472,8 +568,21 @@ useHead({
       v-if="order && !isLoading"
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
-      <div v-if="canEdit && isOrderAssignee" class="flex gap-3">
-        <!-- Assignee sees only Update and Return buttons -->
+      <!-- Assignee: Finish button when status is in_progress -->
+      <div v-if="showFinishButton" class="flex gap-3">
+        <button
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
+          :disabled="isFinishing"
+          @click="handleFinish"
+        >
+          <span v-if="isFinishing" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+          <span>{{ isFinishing ? 'Завершаем...' : 'Завершить' }}</span>
+        </button>
+      </div>
+
+      <!-- Assignee: Update and Return buttons when status is review -->
+      <div v-else-if="showUpdateButton" class="flex gap-3">
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white py-3 text-base font-semibold text-black shadow-sm transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:hover:bg-white/5"
@@ -488,7 +597,7 @@ useHead({
           v-if="showReturnButton"
           type="button"
           class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500 bg-white py-3 text-base font-semibold text-red-600 shadow-sm transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-red-500/40 dark:bg-[#1C2431] dark:text-red-400 dark:hover:bg-red-500/10"
-          :disabled="isSubmitting || isReturning || isCompleting"
+          :disabled="isSubmitting || isReturning"
           @click="isReturnModalOpen = true"
         >
           <span v-if="isReturning" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
@@ -496,8 +605,8 @@ useHead({
         </button>
       </div>
 
-      <div v-else-if="canEdit && isOrderAuthor" class="flex gap-3">
-        <!-- Author sees Complete and Return buttons -->
+      <!-- Author: Return and Complete buttons when status is review -->
+      <div v-else-if="showCompleteButton" class="flex gap-3">
         <button
           v-if="showReturnButton"
           type="button"
