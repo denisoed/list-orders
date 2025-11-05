@@ -2,6 +2,7 @@ import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 import { sendTelegramMessage } from '~/server/api/telegram'
+import { Markup } from 'telegraf'
 
 /**
  * PUT /api/orders/[id]
@@ -245,8 +246,16 @@ export default defineEventHandler(async (event) => {
       const orderTitle = order.title || 'Заказ'
       const message = `Ваш заказ "<b>${orderTitle}</b>" взят в работу.\n\nИсполнитель: <b>${assigneeName}</b>`
       
+      // Create button with link to order
+      const appUrl = process.env.APP_URL || 'https://list-orders.vercel.app'
+      const orderUrl = `${appUrl}/orders/${orderId}`
+      
+      const replyMarkup = Markup.inlineKeyboard([
+        [Markup.button.webApp('Перейти к задаче', orderUrl)],
+      ])
+      
       try {
-        await sendTelegramMessage(existingOrder.user_telegram_id, message)
+        await sendTelegramMessage(existingOrder.user_telegram_id, message, replyMarkup)
       } catch (error) {
         console.error('[Orders API] Failed to send notification:', error)
         // Don't fail the request if notification fails
