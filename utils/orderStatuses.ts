@@ -53,7 +53,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   },
   review: {
     label: 'Проверяется',
-    tone: 'warning',
+    tone: 'info',
     badgeBg: 'bg-blue-500/20',
     badgeText: 'text-blue-500 dark:text-blue-400',
     dot: 'bg-blue-500 dark:bg-blue-400',
