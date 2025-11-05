@@ -42,14 +42,19 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
     }
   }
   
-  // Extract time from dueDate if available
+  // Use dueTime from database if available, otherwise extract from dueDate
   let dueTime: string | undefined
-  if (order.dueDate) {
+  if (order.dueTime) {
+    dueTime = order.dueTime
+  } else if (order.dueDate) {
     try {
       const date = new Date(order.dueDate)
       const hours = String(date.getHours()).padStart(2, '0')
       const minutes = String(date.getMinutes()).padStart(2, '0')
-      dueTime = `${hours}:${minutes}`
+      // Only use extracted time if it's not midnight (00:00)
+      if (hours !== '00' || minutes !== '00') {
+        dueTime = `${hours}:${minutes}`
+      }
     } catch (error) {
       // Ignore time parsing errors
     }
@@ -245,6 +250,13 @@ const handleNextMonth = () => {
   }
 }
 
+// Reset status filter when month changes
+watch(selectedMonthId, () => {
+  if (activeStatus.value !== 'all') {
+    setActiveStatus('all')
+  }
+})
+
 const filteredOrdersByMonth = computed(() => {
   if (!selectedMonthId.value) {
     return filteredOrders.value
@@ -392,7 +404,7 @@ useHead({
       :title="project?.title ?? 'Задачи'"
       :subtitle="subtitle"
       :is-owner="isProjectOwner"
-      @back="$router.back()"
+      @back="router.push('/')"
       @edit="handleEditProject"
     />
 
