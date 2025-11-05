@@ -85,6 +85,30 @@ const isReviewStatus = computed(() => {
   return orderData.value.status === 'review'
 })
 
+// Check if current user is the assignee (executor)
+const isOrderAssignee = computed(() => {
+  if (!orderData.value || !userStore.user) return false
+  return orderData.value.assigneeTelegramId === userStore.user.telegram_id
+})
+
+// Check if current user is the creator
+const isOrderCreator = computed(() => {
+  if (!orderData.value || !userStore.user) return false
+  return orderData.value.creatorTelegramId === userStore.user.telegram_id
+})
+
+// Check if order is in progress
+const isInProgressStatus = computed(() => {
+  if (!orderData.value) return false
+  return orderData.value.status === 'in_progress'
+})
+
+// Check if order is done
+const isDoneStatus = computed(() => {
+  if (!orderData.value) return false
+  return orderData.value.status === 'done'
+})
+
 const isPhoneCopied = ref(false)
 let copyResetTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -371,20 +395,59 @@ const handleEdit = () => {
   })
 }
 
-const menuItems: DropdownMenuItem[] = [
-  {
-    id: 'share',
-    label: 'Поделиться',
-    icon: 'share',
-    action: handleShare,
-  },
-  {
-    id: 'edit',
-    label: 'Изменить',
-    icon: 'edit',
-    action: handleEdit,
-  },
-]
+const handleDecline = async () => {
+  if (!orderId.value || !isOrderAssignee.value) {
+    return
+  }
+
+  try {
+    // Update order: set status to pending and remove assignee
+    await updateOrder(orderId.value, {
+      status: 'pending',
+      assignee_telegram_id: null,
+      assignee_telegram_name: null,
+      assignee_telegram_avatar_url: null,
+    })
+
+    // Reload order to get updated data
+    await loadOrder()
+  } catch (err) {
+    console.error('Не удалось отказаться от заказа:', err)
+  }
+}
+
+const menuItems = computed<DropdownMenuItem[]>(() => {
+  const items: DropdownMenuItem[] = [
+    {
+      id: 'share',
+      label: 'Поделиться',
+      icon: 'share',
+      action: handleShare,
+    },
+  ]
+
+  // Show "Edit" button only for creator
+  if (isOrderCreator.value) {
+    items.push({
+      id: 'edit',
+      label: 'Изменить',
+      icon: 'edit',
+      action: handleEdit,
+    })
+  }
+
+  // Show "Decline" button only for assignee
+  if (isOrderAssignee.value) {
+    items.push({
+      id: 'decline',
+      label: 'Отказаться',
+      icon: 'cancel',
+      action: handleDecline,
+    })
+  }
+
+  return items
+})
 
 useHead({
   title: order.value?.title || 'Заказ',
@@ -649,7 +712,15 @@ useHead({
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
-        v-if="hasAssignee && isReviewStatus"
+        v-if="isDoneStatus"
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-300 py-3 text-base font-semibold text-gray-600 shadow-lg transition dark:bg-gray-700 dark:text-gray-400"
+        disabled
+      >
+        <span>Сделано</span>
+      </button>
+      <button
+        v-else-if="hasAssignee && isReviewStatus"
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-300 py-3 text-base font-semibold text-gray-600 shadow-lg transition dark:bg-gray-700 dark:text-gray-400"
         disabled
@@ -657,7 +728,15 @@ useHead({
         <span>Проверяется</span>
       </button>
       <button
-        v-else-if="hasAssignee"
+        v-else-if="isInProgressStatus && hasAssignee && !isOrderAssignee"
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-300 py-3 text-base font-semibold text-gray-600 shadow-lg transition dark:bg-gray-700 dark:text-gray-400"
+        disabled
+      >
+        <span>В работе</span>
+      </button>
+      <button
+        v-else-if="hasAssignee && isOrderAssignee && isInProgressStatus"
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
         :disabled="isSubmittingForReview"

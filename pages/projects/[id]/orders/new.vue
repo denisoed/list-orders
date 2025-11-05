@@ -903,35 +903,6 @@ useHead({
           </p>
         </div>
 
-        <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
-          <input
-            v-model="clientName"
-            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
-            type="text"
-            placeholder="Введите имя клиента"
-            :aria-invalid="showClientNameError"
-            enterkeyhint="done"
-            @blur="handleClientNameBlur"
-          />
-          <p v-if="showClientNameError" class="pt-1 text-sm text-red-400">{{ clientNameError }}</p>
-        </label>
-
-        <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Номер телефона клиента</p>
-          <input
-            v-model="clientPhone"
-            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
-            type="tel"
-            inputmode="tel"
-            placeholder="Введите номер телефона"
-            :aria-invalid="showClientPhoneError"
-            enterkeyhint="done"
-            @blur="handleClientPhoneBlur"
-          />
-          <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
-        </label>
-
         <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
           <p class="text-base font-medium leading-normal">Оплата</p>
           <label class="flex flex-col">
@@ -1002,6 +973,35 @@ useHead({
             <p v-if="showDeliveryAddressError" class="pt-1 text-sm text-red-400">{{ deliveryAddressError }}</p>
           </label>
         </div>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
+          <input
+            v-model="clientName"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="text"
+            placeholder="Введите имя клиента"
+            :aria-invalid="showClientNameError"
+            enterkeyhint="done"
+            @blur="handleClientNameBlur"
+          />
+          <p v-if="showClientNameError" class="pt-1 text-sm text-red-400">{{ clientNameError }}</p>
+        </label>
+
+        <label class="flex flex-col">
+          <p class="pb-2 text-base font-medium leading-normal">Номер телефона клиента</p>
+          <input
+            v-model="clientPhone"
+            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+            type="tel"
+            inputmode="tel"
+            placeholder="Введите номер телефона"
+            :aria-invalid="showClientPhoneError"
+            enterkeyhint="done"
+            @blur="handleClientPhoneBlur"
+          />
+          <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
+        </label>
 
         <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
           <!-- Assignee -->
