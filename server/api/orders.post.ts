@@ -81,6 +81,8 @@ export default defineEventHandler(async (event) => {
       description?: string
       status?: string
       assignee_telegram_id?: number | null
+      assignee_telegram_name?: string | null
+      assignee_telegram_avatar_url?: string | null
       due_date?: string | null
       due_time?: string | null
       delivery_address?: string | null
@@ -115,6 +117,14 @@ export default defineEventHandler(async (event) => {
 
     if (body.assignee_telegram_id !== undefined) {
       orderData.assignee_telegram_id = body.assignee_telegram_id || null
+    }
+
+    if (body.assignee_telegram_name !== undefined) {
+      orderData.assignee_telegram_name = body.assignee_telegram_name || null
+    }
+
+    if (body.assignee_telegram_avatar_url !== undefined) {
+      orderData.assignee_telegram_avatar_url = body.assignee_telegram_avatar_url || null
     }
 
     if (body.due_date !== undefined && body.due_date !== null) {
