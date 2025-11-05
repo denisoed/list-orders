@@ -8,6 +8,7 @@ import { convertOrderToOrderDetail } from '~/data/orders'
 import { useProjects } from '~/composables/useProjects'
 import { useTelegram } from '~/composables/useTelegram'
 import { useOrderDraft } from '~/composables/useOrderDraft'
+import { useProjectTeam } from '~/composables/useProjectTeam'
 import Checkbox from '~/components/Checkbox.vue'
 import Radio from '~/components/Radio.vue'
 
@@ -30,6 +31,7 @@ const isEditMode = computed(() => Boolean(orderId.value))
 
 const { getProjectById } = useProjects()
 const { fetchOrder, createOrder, updateOrder, isCreating, isUpdating } = useOrders()
+const { members, fetchMembers, isLoading: isLoadingMembers } = useProjectTeam(projectId)
 
 const project = computed(() => getProjectById(projectId.value))
 
@@ -69,9 +71,19 @@ const DEFAULT_ASSIGNEE: AssigneeOption = {
 }
 
 const assigneeOptions = computed<AssigneeOption[]>(() => {
-  // For now, we only have default assignee option
-  // In the future, this could be populated from team members
-  return [DEFAULT_ASSIGNEE]
+  const options: AssigneeOption[] = [DEFAULT_ASSIGNEE]
+  
+  // Add project team members as assignee options
+  if (members.value && members.value.length > 0) {
+    const teamMemberOptions: AssigneeOption[] = members.value.map((member) => ({
+      id: member.id,
+      name: member.name,
+      avatarUrl: member.avatarUrl || DEFAULT_ASSIGNEE.avatarUrl,
+    }))
+    options.push(...teamMemberOptions)
+  }
+  
+  return options
 })
 
 const selectedAssignee = computed(() => {
@@ -84,6 +96,22 @@ const selectedAssignee = computed(() => {
   }
   const found = assigneeOptions.value.find((option) => option.id === selectedAssigneeId.value)
   return found ?? DEFAULT_ASSIGNEE
+})
+
+// Get selected assignee's telegram ID
+const selectedAssigneeTelegramId = computed(() => {
+  if (selectedAssigneeId.value === 'unassigned' || !selectedAssigneeId.value) {
+    return null
+  }
+  
+  // Find the team member by id to get telegram_id
+  const member = members.value.find((m) => m.id === selectedAssigneeId.value)
+  if (member) {
+    // member.id is the telegram_id as string, convert to number
+    return parseInt(member.id, 10)
+  }
+  
+  return null
 })
 
 const titleError = computed(() => {
@@ -356,6 +384,9 @@ const handleClearDraft = () => {
 
 // Load order data for edit mode or draft for new orders
 onMounted(async () => {
+  // Fetch project team members first
+  await fetchMembers()
+  
   if (orderId.value) {
     try {
       const orderData = await fetchOrder(orderId.value)
@@ -445,18 +476,31 @@ onMounted(async () => {
       }
       
       // Set assignee - load from orderData if available
-      if (orderData.assigneeTelegramName && orderData.assigneeTelegramAvatarUrl) {
-        customAssignee.value = {
-          name: orderData.assigneeTelegramName,
-          avatarUrl: orderData.assigneeTelegramAvatarUrl,
+      if (orderData.assigneeTelegramId) {
+        // Try to find the assignee in the project team members
+        const assigneeMember = members.value.find((m) => m.id === orderData.assigneeTelegramId.toString())
+        if (assigneeMember) {
+          // Assignee is a project team member
+          selectedAssigneeId.value = assigneeMember.id
+          customAssignee.value = null
+        } else if (orderData.assigneeTelegramName && orderData.assigneeTelegramAvatarUrl) {
+          // Assignee is not in the project team, use custom assignee
+          customAssignee.value = {
+            name: orderData.assigneeTelegramName,
+            avatarUrl: orderData.assigneeTelegramAvatarUrl,
+          }
+          selectedAssigneeId.value = 'unassigned'
+        } else {
+          selectedAssigneeId.value = 'unassigned'
+          customAssignee.value = null
         }
-        // Keep selectedAssigneeId as 'unassigned' but customAssignee will be used
       } else if (order.assignee) {
         // Fallback to order.assignee if available
         customAssignee.value = {
           name: order.assignee.name,
           avatarUrl: order.assignee.avatarUrl,
         }
+        selectedAssigneeId.value = 'unassigned'
       } else {
         selectedAssigneeId.value = 'unassigned'
         customAssignee.value = null
@@ -629,11 +673,21 @@ const handleSubmit = async () => {
         image_urls: allImageUrls,
       }
       
-      // Set assignee fields if customAssignee exists, otherwise clear them
-      if (customAssignee.value) {
+      // Set assignee fields
+      if (selectedAssigneeTelegramId.value) {
+        // Assignee is selected from project team members
+        const selectedMember = members.value.find((m) => m.id === selectedAssigneeId.value)
+        updateData.assignee_telegram_id = selectedAssigneeTelegramId.value
+        updateData.assignee_telegram_name = selectedMember?.name || null
+        updateData.assignee_telegram_avatar_url = selectedMember?.avatarUrl || null
+      } else if (customAssignee.value) {
+        // Custom assignee (not in project team)
+        updateData.assignee_telegram_id = null
         updateData.assignee_telegram_name = customAssignee.value.name
         updateData.assignee_telegram_avatar_url = customAssignee.value.avatarUrl
-      } else if (selectedAssigneeId.value === 'unassigned') {
+      } else {
+        // No assignee
+        updateData.assignee_telegram_id = null
         updateData.assignee_telegram_name = null
         updateData.assignee_telegram_avatar_url = null
       }
@@ -650,7 +704,7 @@ const handleSubmit = async () => {
       await router.back()
     } else {
       // Create new order
-      await createOrder({
+      const orderData: any = {
         project_id: projectId.value,
         title: title.value,
         summary: '', // Summary is not used in the form, but we send empty string for consistency
@@ -666,8 +720,20 @@ const handleSubmit = async () => {
         total_amount: total,
         image_urls: allImageUrls,
         status: 'new',
-        // Note: assignee_telegram_id is not set as we don't have mapping from name to telegram_id
-      })
+        assignee_telegram_id: selectedAssigneeTelegramId.value,
+      }
+      
+      // Set assignee name and avatar if assignee is selected from project team
+      if (selectedAssigneeTelegramId.value) {
+        const selectedMember = members.value.find((m) => m.id === selectedAssigneeId.value)
+        if (selectedMember) {
+          // Send assignee name and avatar explicitly
+          orderData.assignee_telegram_name = selectedMember.name
+          orderData.assignee_telegram_avatar_url = selectedMember.avatarUrl || null
+        }
+      }
+      
+      await createOrder(orderData)
       
       // Clear draft after successful order creation
       clearDraft()

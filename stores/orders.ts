@@ -9,6 +9,8 @@ export interface CreateOrderInput {
   description?: string
   status?: string
   assignee_telegram_id?: number | null
+  assignee_telegram_name?: string | null
+  assignee_telegram_avatar_url?: string | null
   due_date?: string | null
   due_time?: string | null
   delivery_address?: string | null
