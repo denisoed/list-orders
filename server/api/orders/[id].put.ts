@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
       assignee_telegram_avatar_url?: string | null
       image_urls?: string[]
       review_comment?: string | null
+      review_images?: string[]
     } = {}
 
     if (body.title !== undefined) {
@@ -163,6 +164,22 @@ export default defineEventHandler(async (event) => {
       updateData.review_comment = body.review_comment?.trim() || null
     }
 
+    if (body.review_images !== undefined) {
+      // Validate review_images is an array
+      if (Array.isArray(body.review_images)) {
+        const filteredUrls = body.review_images.filter((url: any) => typeof url === 'string' && url.trim().length > 0)
+        updateData.review_images = filteredUrls
+        console.log('[Orders API] Updating review_images:', {
+          orderId,
+          count: filteredUrls.length,
+          urls: filteredUrls,
+        })
+      } else {
+        updateData.review_images = []
+        console.log('[Orders API] review_images is not an array, setting to empty array')
+      }
+    }
+
     // Check if there's anything to update
     if (Object.keys(updateData).length === 0) {
       return sendError(event, createError({
@@ -234,6 +251,7 @@ export default defineEventHandler(async (event) => {
       totalAmount: order.total_amount ? Number(order.total_amount) : null,
       imageUrls: order.image_urls || [],
       reviewComment: order.review_comment || null,
+      reviewImages: order.review_images || [],
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }

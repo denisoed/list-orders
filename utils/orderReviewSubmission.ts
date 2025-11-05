@@ -109,7 +109,7 @@ export const submitOrderReview = async (
     // Get image URLs from uploaded attachments
     const imageUrls = uploadedAttachments.map((attachment) => attachment.url)
 
-    // Update order with review comment, image URLs, and status
+    // Update order with review comment, review images, and status
     const initData = getInitData()
     const headers: Record<string, string> = {}
     if (initData) {
@@ -120,7 +120,7 @@ export const submitOrderReview = async (
       method: 'PUT',
       body: {
         review_comment: sanitizedComment || null,
-        image_urls: imageUrls,
+        review_images: imageUrls,
         status: 'review',
       },
       headers,
