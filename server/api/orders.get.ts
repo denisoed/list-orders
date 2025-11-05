@@ -23,19 +23,67 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Build query
-    let ordersQuery = supabase
-      .from('orders')
-      .select('*')
-      .eq('user_telegram_id', userTelegramId)
+    // Get all project IDs where user has access (owned or member)
+    let accessibleProjectIds: string[] = []
 
-    // Filter by project if provided
     if (projectId) {
-      ordersQuery = ordersQuery.eq('project_id', projectId)
+      // If project_id is provided, check if user has access to it (parallel check)
+      const [ownedProjectResult, memberProjectResult] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id')
+          .eq('id', projectId)
+          .eq('user_telegram_id', userTelegramId)
+          .single(),
+        supabase
+          .from('project_members')
+          .select('project_id')
+          .eq('project_id', projectId)
+          .eq('member_telegram_id', userTelegramId)
+          .single(),
+      ])
+
+      const { data: ownedProject } = ownedProjectResult
+      const { data: memberProject } = memberProjectResult
+
+      if (ownedProject || memberProject) {
+        accessibleProjectIds = [projectId]
+      } else {
+        // User doesn't have access to this project
+        return []
+      }
+    } else {
+      // Get all owned project IDs and member project IDs in parallel
+      const [ownedProjectsResult, memberProjectsResult] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id')
+          .eq('user_telegram_id', userTelegramId),
+        supabase
+          .from('project_members')
+          .select('project_id')
+          .eq('member_telegram_id', userTelegramId),
+      ])
+
+      const { data: ownedProjects } = ownedProjectsResult
+      const { data: memberProjects } = memberProjectsResult
+
+      // Combine and deduplicate project IDs
+      const ownedIds = (ownedProjects || []).map((p: any) => p.id)
+      const memberIds = (memberProjects || []).map((p: any) => p.project_id)
+      accessibleProjectIds = [...new Set([...ownedIds, ...memberIds])]
     }
 
-    // Execute query with ordering
-    const { data: orders, error } = await ordersQuery
+    // If no accessible projects, return empty array
+    if (accessibleProjectIds.length === 0) {
+      return []
+    }
+
+    // Build query for orders in accessible projects
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .in('project_id', accessibleProjectIds)
       .order('created_at', { ascending: false })
 
     if (error) {

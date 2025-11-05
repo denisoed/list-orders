@@ -28,26 +28,53 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Fetch project for the user
-    const { data: project, error } = await supabase
+    // First, try to fetch project owned by the user
+    const { data: ownedProject, error: ownedError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
       .eq('user_telegram_id', userTelegramId)
       .single()
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    let project = ownedProject
+
+    // If not owned, check if user is a member
+    if (ownedError && ownedError.code === 'PGRST116') {
+      const { data: memberProject, error: memberError } = await supabase
+        .from('project_members')
+        .select('project_id, projects(*)')
+        .eq('project_id', projectId)
+        .eq('member_telegram_id', userTelegramId)
+        .single()
+
+      if (memberError) {
+        if (memberError.code === 'PGRST116') {
+          return sendError(event, createError({
+            statusCode: 404,
+            message: 'Project not found'
+          }))
+        }
+
+        console.error('[Projects API] Error checking project membership:', memberError)
         return sendError(event, createError({
-          statusCode: 404,
-          message: 'Project not found'
+          statusCode: 500,
+          message: 'Failed to fetch project'
         }))
       }
 
-      console.error('[Projects API] Error fetching project:', error)
+      project = (memberProject as any)?.projects
+    } else if (ownedError) {
+      console.error('[Projects API] Error fetching project:', ownedError)
       return sendError(event, createError({
         statusCode: 500,
         message: 'Failed to fetch project'
+      }))
+    }
+
+    if (!project) {
+      return sendError(event, createError({
+        statusCode: 404,
+        message: 'Project not found'
       }))
     }
 

@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
+import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 
 /**
  * DELETE /api/orders/[id]
@@ -28,12 +29,11 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Check if order exists and belongs to the user
+    // Check if order exists and user has access to its project
     const { data: existingOrder } = await supabase
       .from('orders')
-      .select('id')
+      .select('project_id')
       .eq('id', orderId)
-      .eq('user_telegram_id', userTelegramId)
       .single()
 
     if (!existingOrder) {
@@ -43,12 +43,21 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // Delete order (only if it belongs to the user)
+    // Check if user has access to the project
+    const hasAccess = await checkProjectAccess(supabase, userTelegramId, existingOrder.project_id)
+
+    if (!hasAccess) {
+      return sendError(event, createError({
+        statusCode: 404,
+        message: 'Order not found'
+      }))
+    }
+
+    // Delete order
     const { error } = await supabase
       .from('orders')
       .delete()
       .eq('id', orderId)
-      .eq('user_telegram_id', userTelegramId)
 
     if (error) {
       console.error('[Orders API] Error deleting order:', error)
