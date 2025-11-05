@@ -42,6 +42,7 @@ export interface UpdateOrderInput {
   prepayment_amount?: number | null
   total_amount?: number | null
   image_urls?: string[]
+  review_comment?: string | null
 }
 
 /**
@@ -314,6 +315,9 @@ export const useOrdersStore = defineStore('orders', () => {
       }
       if (input.image_urls !== undefined) {
         body.image_urls = input.image_urls
+      }
+      if (input.review_comment !== undefined) {
+        body.review_comment = input.review_comment?.trim() || null
       }
 
       const updatedOrder = await $fetch<Order>(`/api/orders/${orderId}`, getFetchOptions({

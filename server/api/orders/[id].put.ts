@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
       assignee_telegram_name?: string | null
       assignee_telegram_avatar_url?: string | null
       image_urls?: string[]
+      review_comment?: string | null
     } = {}
 
     if (body.title !== undefined) {
@@ -158,6 +159,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    if (body.review_comment !== undefined) {
+      updateData.review_comment = body.review_comment?.trim() || null
+    }
+
     // Check if there's anything to update
     if (Object.keys(updateData).length === 0) {
       return sendError(event, createError({
@@ -228,6 +233,7 @@ export default defineEventHandler(async (event) => {
       prepaymentAmount: order.prepayment_amount ? Number(order.prepayment_amount) : null,
       totalAmount: order.total_amount ? Number(order.total_amount) : null,
       imageUrls: order.image_urls || [],
+      reviewComment: order.review_comment || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }
