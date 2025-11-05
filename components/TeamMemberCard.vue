@@ -43,7 +43,7 @@ const menuItems: DropdownMenuItem[] = [
 
 <template>
   <article
-    class="flex items-center justify-between gap-4 rounded-lg bg-white p-3 text-zinc-900 dark:bg-[#1C2431] dark:text-white"
+    class="flex items-center justify-between gap-4 rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-lg text-zinc-900 dark:bg-[#1C2431] dark:text-white"
   >
     <button
       type="button"

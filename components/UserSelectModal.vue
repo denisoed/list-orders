@@ -117,7 +117,7 @@ watch(() => props.isOpen, (isOpen) => {
             </div>
 
             <!-- Content -->
-            <div class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="flex-1 overflow-y-auto px-4 py-3 pb-6">
               <div v-if="props.isLoading" class="flex items-center justify-center py-12">
                 <div class="text-gray-500 dark:text-[#9da6b9]">Загрузка...</div>
               </div>
@@ -129,7 +129,7 @@ watch(() => props.isOpen, (isOpen) => {
                   v-for="user in filteredUsers"
                   :key="user.id"
                   type="button"
-                  class="group flex items-center gap-4 rounded-lg bg-white p-3 text-left transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:text-white dark:hover:bg-white/5"
+                  class="group flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm text-left transition-shadow hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:text-white"
                   :disabled="props.isAdding"
                   @click="handleAddUser(user)"
                 >
