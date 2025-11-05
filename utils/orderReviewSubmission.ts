@@ -1,6 +1,9 @@
+import type { Order } from '~/data/orders'
+
 export interface ReviewAttachmentUploadResult {
   id: string
   name: string
+  url: string
 }
 
 export interface SubmitOrderReviewInput {
@@ -10,35 +13,78 @@ export interface SubmitOrderReviewInput {
 }
 
 export interface SubmitOrderReviewResponse {
-  status: 'pending-review'
-  reviewId: string
+  status: 'review'
+  orderId: string
   attachments: ReviewAttachmentUploadResult[]
 }
 
-const delay = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms)
+/**
+ * Gets initData from Telegram WebApp
+ */
+const getInitData = (): string | null => {
+  if (!import.meta.client) {
+    return null
+  }
+
+  const instance = window.Telegram?.WebApp ?? null
+  const newInitData = instance?.initData ?? import.meta.env.telegramInitData ?? null
+
+  // Check if initData is valid (has hash and auth_date)
+  if (newInitData && typeof newInitData === 'string') {
+    const hasHash = newInitData.includes('hash=')
+    const hasAuthDate = newInitData.includes('auth_date=')
+    if (hasHash && hasAuthDate) {
+      return newInitData
+    }
+  }
+
+  // Try to load from localStorage
+  try {
+    const stored = localStorage.getItem('telegram-init-data')
+    if (stored) {
+      const hasHash = stored.includes('hash=')
+      const hasAuthDate = stored.includes('auth_date=')
+      if (hasHash && hasAuthDate) {
+        return stored
+      }
+    }
+  } catch (error) {
+    // Ignore localStorage errors
+  }
+
+  return null
+}
+
+/**
+ * Uploads a single image file to Supabase storage via API
+ */
+const uploadReviewAttachment = async (file: File): Promise<ReviewAttachmentUploadResult> => {
+  const initData = getInitData()
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const headers: Record<string, string> = {}
+  if (initData) {
+    headers['x-telegram-init-data'] = initData
+  }
+
+  const response = await $fetch<{ url: string; path: string }>('/api/images', {
+    method: 'POST',
+    body: formData,
+    headers,
   })
 
-const createIdentifier = (prefix: string) => {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`
-  }
-
-  return `${prefix}-${Math.random().toString(36).slice(2, 11)}`
-}
-
-const uploadReviewAttachment = async (file: File): Promise<ReviewAttachmentUploadResult> => {
-  // Имитация задержки сети и подготовки данных для загрузки
-  await delay(180 + Math.random() * 220)
-
-  // В реальной интеграции здесь будет отправка FormData на бэкенд
   return {
-    id: createIdentifier('review-attachment'),
+    id: response.path,
     name: file.name,
+    url: response.url,
   }
 }
 
+/**
+ * Submits order for review by uploading images and updating order status
+ */
 export const submitOrderReview = async (
   input: SubmitOrderReviewInput,
 ): Promise<SubmitOrderReviewResponse> => {
@@ -48,7 +94,6 @@ export const submitOrderReview = async (
     throw new Error('Не указан идентификатор заказа для отправки на проверку')
   }
 
-  // Имитация подготовки полезной нагрузки
   const sanitizedComment = comment.trim()
 
   if (!sanitizedComment && attachments.length === 0) {
@@ -56,13 +101,34 @@ export const submitOrderReview = async (
   }
 
   try {
-    const uploadedAttachments = await Promise.all(attachments.map(uploadReviewAttachment))
+    // Upload all attachments to Supabase storage
+    const uploadedAttachments = await Promise.all(
+      attachments.map(uploadReviewAttachment)
+    )
 
-    await delay(240 + Math.random() * 260)
+    // Get image URLs from uploaded attachments
+    const imageUrls = uploadedAttachments.map((attachment) => attachment.url)
+
+    // Update order with review comment, image URLs, and status
+    const initData = getInitData()
+    const headers: Record<string, string> = {}
+    if (initData) {
+      headers['x-telegram-init-data'] = initData
+    }
+
+    await $fetch<Order>(`/api/orders/${orderId}`, {
+      method: 'PUT',
+      body: {
+        review_comment: sanitizedComment || null,
+        image_urls: imageUrls,
+        status: 'review',
+      },
+      headers,
+    })
 
     return {
-      status: 'pending-review',
-      reviewId: createIdentifier(`review-${orderId}`),
+      status: 'review',
+      orderId,
       attachments: uploadedAttachments,
     }
   } catch (error) {

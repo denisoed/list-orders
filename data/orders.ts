@@ -27,6 +27,7 @@ export interface Order {
   prepaymentAmount: number | null
   totalAmount: number | null
   imageUrls: string[]
+  reviewComment: string | null
   createdAt: string
   updatedAt: string
 }

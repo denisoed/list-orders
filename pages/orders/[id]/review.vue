@@ -19,6 +19,7 @@ const { fetchOrder } = useOrders()
 const { getProjectById } = useProjects()
 
 const order = ref<OrderDetail | null>(null)
+const orderProjectId = ref<string | null>(null)
 const isLoading = ref(false)
 const loadError = ref<string | null>(null)
 
@@ -37,6 +38,7 @@ onMounted(async () => {
     const project = getProjectById(orderData.projectId)
     const orderDetail = convertOrderToOrderDetail(orderData, project?.title)
     order.value = orderDetail
+    orderProjectId.value = orderData.projectId
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : 'Не удалось загрузить заказ'
@@ -74,17 +76,23 @@ const handleSubmit = async () => {
 
     console.info('Заказ отправлен на проверку', {
       orderId: orderId.value,
-      reviewId: response.reviewId,
       attachments: response.attachments.length,
     })
 
     attachments.value = []
     comment.value = ''
 
-    await router.replace({
-      path: `/orders/${orderId.value}`,
-      query: { status: response.status },
-    })
+    // Redirect to project orders list page
+    if (orderProjectId.value) {
+      await router.replace({
+        path: `/projects/${orderProjectId.value}/orders`,
+      })
+    } else {
+      // Fallback to home page if projectId is not available
+      await router.replace({
+        path: '/',
+      })
+    }
   } catch (error) {
     const message =
       error instanceof Error
