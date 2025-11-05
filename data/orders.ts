@@ -29,6 +29,7 @@ export interface Order {
   imageUrls: string[]
   reviewComment: string | null
   reviewImages: string[]
+  reviewAnswer: string | null
   createdAt: string
   updatedAt: string
 }

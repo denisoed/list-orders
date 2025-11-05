@@ -85,6 +85,7 @@ export default defineEventHandler(async (event) => {
       imageUrls: order.image_urls || [],
       reviewComment: order.review_comment || null,
       reviewImages: order.review_images || [],
+      reviewAnswer: order.review_answer || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }

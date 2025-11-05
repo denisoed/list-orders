@@ -53,6 +53,7 @@ export default defineEventHandler(async (event) => {
       image_urls?: string[]
       review_comment?: string | null
       review_images?: string[]
+      review_answer?: string | null
     } = {}
 
     if (body.title !== undefined) {
@@ -180,6 +181,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    if (body.review_answer !== undefined) {
+      updateData.review_answer = body.review_answer?.trim() || null
+    }
+
     // Check if there's anything to update
     if (Object.keys(updateData).length === 0) {
       return sendError(event, createError({
@@ -252,6 +257,7 @@ export default defineEventHandler(async (event) => {
       imageUrls: order.image_urls || [],
       reviewComment: order.review_comment || null,
       reviewImages: order.review_images || [],
+      reviewAnswer: order.review_answer || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }
