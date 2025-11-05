@@ -3,6 +3,27 @@ import { eventHandler, readBody } from 'h3'
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string)
 
+/**
+ * Sends a message to a Telegram user by their telegram_id
+ * @param telegramId - Telegram user ID
+ * @param message - Message text (supports HTML)
+ * @returns Promise that resolves when message is sent
+ */
+export async function sendTelegramMessage(telegramId: number, message: string): Promise<void> {
+  try {
+    if (!process.env.TELEGRAM_BOT_TOKEN) {
+      console.error('[Telegram] Bot token is not configured')
+      return
+    }
+
+    await bot.telegram.sendMessage(telegramId, message, {
+      parse_mode: 'HTML',
+    })
+  } catch (error) {
+    console.error(`[Telegram] Failed to send message to user ${telegramId}:`, error)
+  }
+}
+
 function createWelcomeMessage(ctx: any) {
     const firstName = ctx.from?.first_name || ''
     const lastName = ctx.from?.last_name || ''
@@ -10,10 +31,9 @@ function createWelcomeMessage(ctx: any) {
 
     return (
       `Привет <b>${fullName}</b>!\n\n` +
-      'Добро пожаловать в систему для управления заказами и проектами!\n\n' +
-      'Здесь ты можешь создавать новые проекты, добавлять задачи и управлять ими в командной работе. ' +
-      'Ты в любой момент можешь получить доступ к своим проектам и задачам.\n\n' +
-      'Нажми кнопку ниже, чтобы открыть приложение и начать работу.'
+      'Добро пожаловать в систему управления заказами!\n\n' +
+      'Мы сделали всё, чтобы ты мог быстро создавать проекты, управлять задачами и легко работать в команде.\n\n' +
+      'Начинай прямо сейчас! Жми кнопку ниже 👇'
     )
   }
 

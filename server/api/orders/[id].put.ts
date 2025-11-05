@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
+import { sendTelegramMessage } from '~/server/api/telegram'
 
 /**
  * PUT /api/orders/[id]
@@ -193,10 +194,10 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // First, fetch the order to check project access
+    // First, fetch the order to check project access and get current status
     const { data: existingOrder } = await supabase
       .from('orders')
-      .select('project_id')
+      .select('project_id, status, user_telegram_id')
       .eq('id', orderId)
       .single()
 
@@ -217,6 +218,11 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    // Check if status is being changed to 'in_progress'
+    const isStatusChangedToInProgress = 
+      updateData.status === 'in_progress' && 
+      existingOrder.status !== 'in_progress'
+
     // Update order
     const { data: order, error } = await supabase
       .from('orders')
@@ -231,6 +237,20 @@ export default defineEventHandler(async (event) => {
         statusCode: 500,
         message: 'Failed to update order'
       }))
+    }
+
+    // Send notification if order was taken in work
+    if (isStatusChangedToInProgress && existingOrder.user_telegram_id) {
+      const assigneeName = order.assignee_telegram_name || 'Исполнитель'
+      const orderTitle = order.title || 'Заказ'
+      const message = `Ваш заказ "<b>${orderTitle}</b>" взят в работу.\n\nИсполнитель: <b>${assigneeName}</b>`
+      
+      try {
+        await sendTelegramMessage(existingOrder.user_telegram_id, message)
+      } catch (error) {
+        console.error('[Orders API] Failed to send notification:', error)
+        // Don't fail the request if notification fails
+      }
     }
 
     // Transform database fields to match frontend Order interface
