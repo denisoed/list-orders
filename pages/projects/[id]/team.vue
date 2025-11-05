@@ -142,7 +142,7 @@ useHead({
 <template>
   <div
     class="relative flex min-h-screen w-full flex-col bg-background-light text-black dark:bg-background-dark dark:text-white"
-    :style="{ backgroundColor: 'var(--tg-theme-bg-color, var(--telegram-background-color, #101622))' }"
+    :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
   >
     <header
       class="sticky top-0 z-20 flex flex-col bg-background-light/95 px-4 pb-3 pt-4 backdrop-blur-sm transition-colors dark:bg-background-dark/80"

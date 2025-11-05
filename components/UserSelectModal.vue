@@ -129,7 +129,7 @@ watch(() => props.isOpen, (isOpen) => {
                   v-for="user in filteredUsers"
                   :key="user.id"
                   type="button"
-                  class="group flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm text-left transition-shadow hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#1C2431] dark:text-white"
+                  class="group flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm text-left transition-shadow hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed dark:bg-[#1C2431] dark:text-white"
                   :disabled="props.isAdding"
                   @click="handleAddUser(user)"
                 >
@@ -154,6 +154,13 @@ watch(() => props.isOpen, (isOpen) => {
                     </p>
                   </div>
                   <span
+                    v-if="props.isAdding"
+                    class="material-symbols-outlined shrink-0 text-2xl animate-spin text-primary"
+                  >
+                    hourglass_empty
+                  </span>
+                  <span
+                    v-else
                     class="material-symbols-outlined shrink-0 text-2xl text-zinc-400 transition group-hover:text-primary dark:text-[#9da6b9]"
                   >
                     add
