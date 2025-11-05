@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Fetch order (without user_telegram_id filter to check project access)
+    // Fetch order
     const { data: order, error } = await supabase
       .from('orders')
       .select('*')
@@ -61,6 +61,20 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    // Get creator name from users table
+    let creatorName: string | null = null
+    if (order.user_telegram_id) {
+      const { data: creator, error: creatorError } = await supabase
+        .from('users')
+        .select('first_name, last_name, username')
+        .eq('telegram_id', order.user_telegram_id)
+        .single()
+
+      if (!creatorError && creator) {
+        creatorName = [creator.first_name, creator.last_name].filter(Boolean).join(' ') || creator.username || 'Неизвестный'
+      }
+    }
+
     // Transform database fields to match frontend Order interface
     const transformedOrder = {
       id: order.id,
@@ -72,6 +86,8 @@ export default defineEventHandler(async (event) => {
       assigneeTelegramId: order.assignee_telegram_id || null,
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,
+      creatorTelegramId: order.user_telegram_id || null,
+      creatorTelegramName: creatorName,
       dueDate: order.due_date || null,
       dueTime: order.due_time || null,
       deliveryAddress: order.delivery_address || null,

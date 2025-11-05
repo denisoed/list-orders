@@ -105,6 +105,8 @@ export default defineEventHandler(async (event) => {
       assigneeTelegramId: order.assignee_telegram_id || null,
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,
+      creatorTelegramId: order.user_telegram_id || null,
+      creatorTelegramName: null, // Not needed for list, only for details
       dueDate: order.due_date || null,
       dueTime: order.due_time || null,
       deliveryAddress: order.delivery_address || null,
@@ -118,6 +120,7 @@ export default defineEventHandler(async (event) => {
       imageUrls: order.image_urls || [],
       reviewComment: order.review_comment || null,
       reviewImages: order.review_images || [],
+      reviewAnswer: order.review_answer || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }))

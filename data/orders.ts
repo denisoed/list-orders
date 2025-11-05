@@ -16,6 +16,8 @@ export interface Order {
   assigneeTelegramId: number | null
   assigneeTelegramAvatarUrl: string | null
   assigneeTelegramName: string | null
+  creatorTelegramId: number | null
+  creatorTelegramName: string | null
   dueDate: string | null
   dueTime: string | null
   deliveryAddress: string | null
@@ -86,7 +88,7 @@ export interface OrderDetail {
   deliveryAddress: string | null
 }
 
-// Format timestamp for history (date and time separately)
+// Format timestamp for history in format "d month yyyy в hh:mm"
 function formatHistoryTimestamp(dateString: string): string {
   try {
     const date = new Date(dateString)
@@ -99,7 +101,7 @@ function formatHistoryTimestamp(dateString: string): string {
       hour: '2-digit',
       minute: '2-digit',
     })
-    return `${dateFormatter.format(date)}, ${timeFormatter.format(date)}`
+    return `${dateFormatter.format(date)} в ${timeFormatter.format(date)}`
   } catch (error) {
     return dateString
   }
@@ -109,19 +111,45 @@ function formatHistoryTimestamp(dateString: string): string {
  * Convert Order from API to OrderDetail for UI display
  */
 export const convertOrderToOrderDetail = (order: Order, projectName?: string): OrderDetail => {
-  // Format due date
+  // Format due date in format "d month yyyy в hh:mm"
   let dueDateLabel = ''
   if (order.dueDate) {
     try {
       const date = new Date(order.dueDate)
-      const formatter = new Intl.DateTimeFormat('ru-RU', {
+      const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
       })
-      dueDateLabel = formatter.format(date)
+      
+      // If dueTime is provided, use it; otherwise use time from dueDate
+      if (order.dueTime) {
+        const timeParts = order.dueTime.split(':')
+        if (timeParts.length >= 2) {
+          const hours = parseInt(timeParts[0], 10)
+          const minutes = parseInt(timeParts[1], 10)
+          if (!isNaN(hours) && !isNaN(minutes)) {
+            dueDateLabel = `${dateFormatter.format(date)} в ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+          } else {
+            dueDateLabel = dateFormatter.format(date)
+          }
+        } else {
+          dueDateLabel = dateFormatter.format(date)
+        }
+      } else {
+        // If no dueTime, check if date has time component
+        const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        const timeStr = timeFormatter.format(date)
+        // If time is 00:00, don't show it
+        if (timeStr === '00:00') {
+          dueDateLabel = dateFormatter.format(date)
+        } else {
+          dueDateLabel = `${dateFormatter.format(date)} в ${timeStr}`
+        }
+      }
     } catch (error) {
       console.error('Error formatting due date:', error)
     }
@@ -203,7 +231,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
         icon: 'add',
         description: 'Заказ создан',
         timestamp: formatHistoryTimestamp(order.createdAt),
-        author: assignee?.name || undefined,
+        author: order.creatorTelegramName || undefined,
       },
     ],
     deliveryAddress: order.deliveryAddress,
