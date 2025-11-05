@@ -19,7 +19,7 @@ const dueLabel = computed(() => {
   }
 
   if (props.order.dueTime) {
-    return `Срок: ${formatDate(props.order.dueDate)} в ${props.order.dueTime}`
+    return `Срок: ${formatDate(props.order.dueDate)} в ${formatTime(props.order.dueTime)}`
   }
 
   return `Срок: ${formatDate(props.order.dueDate)}`
@@ -59,6 +59,27 @@ function formatDate(date: string) {
     return new Intl.DateTimeFormat('ru-RU').format(new Date(date))
   } catch (error) {
     return date
+  }
+}
+
+function formatTime(time: string) {
+  try {
+    // If time is already in HH:mm format, return as is
+    if (/^\d{2}:\d{2}$/.test(time)) {
+      return time
+    }
+    // If time is in HH:mm:ss format, remove seconds
+    if (/^\d{2}:\d{2}:\d{2}$/.test(time)) {
+      return time.substring(0, 5)
+    }
+    // Try to parse as Date and format
+    const date = new Date(`2000-01-01T${time}`)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    }
+    return time
+  } catch (error) {
+    return time
   }
 }
 </script>
