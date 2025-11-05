@@ -19,12 +19,20 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Fetch projects owned by the user
-    const { data: ownedProjects, error: ownedError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('user_telegram_id', userTelegramId)
-      .order('created_at', { ascending: false })
+    // Fetch projects owned by the user and projects where user is a member in parallel
+    const [ownedProjectsResult, memberProjectsResult] = await Promise.all([
+      supabase
+        .from('projects')
+        .select('*')
+        .eq('user_telegram_id', userTelegramId),
+      supabase
+        .from('project_members')
+        .select('project_id, projects(*)')
+        .eq('member_telegram_id', userTelegramId),
+    ])
+
+    const { data: ownedProjects, error: ownedError } = ownedProjectsResult
+    const { data: memberProjects, error: memberError } = memberProjectsResult
 
     if (ownedError) {
       console.error('[Projects API] Error fetching owned projects:', ownedError)
@@ -33,12 +41,6 @@ export default defineEventHandler(async (event) => {
         message: 'Failed to fetch projects'
       }))
     }
-
-    // Fetch projects where user is a member
-    const { data: memberProjects, error: memberError } = await supabase
-      .from('project_members')
-      .select('project_id, projects(*)')
-      .eq('member_telegram_id', userTelegramId)
 
     if (memberError) {
       console.error('[Projects API] Error fetching member projects:', memberError)

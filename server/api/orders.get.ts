@@ -27,44 +27,46 @@ export default defineEventHandler(async (event) => {
     let accessibleProjectIds: string[] = []
 
     if (projectId) {
-      // If project_id is provided, check if user has access to it
-      const { data: ownedProject } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('id', projectId)
-        .eq('user_telegram_id', userTelegramId)
-        .single()
-
-      if (ownedProject) {
-        accessibleProjectIds = [projectId]
-      } else {
-        // Check if user is a member
-        const { data: memberProject } = await supabase
+      // If project_id is provided, check if user has access to it (parallel check)
+      const [ownedProjectResult, memberProjectResult] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id')
+          .eq('id', projectId)
+          .eq('user_telegram_id', userTelegramId)
+          .single(),
+        supabase
           .from('project_members')
           .select('project_id')
           .eq('project_id', projectId)
           .eq('member_telegram_id', userTelegramId)
-          .single()
+          .single(),
+      ])
 
-        if (memberProject) {
-          accessibleProjectIds = [projectId]
-        } else {
-          // User doesn't have access to this project
-          return []
-        }
+      const { data: ownedProject } = ownedProjectResult
+      const { data: memberProject } = memberProjectResult
+
+      if (ownedProject || memberProject) {
+        accessibleProjectIds = [projectId]
+      } else {
+        // User doesn't have access to this project
+        return []
       }
     } else {
-      // Get all owned project IDs
-      const { data: ownedProjects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('user_telegram_id', userTelegramId)
+      // Get all owned project IDs and member project IDs in parallel
+      const [ownedProjectsResult, memberProjectsResult] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id')
+          .eq('user_telegram_id', userTelegramId),
+        supabase
+          .from('project_members')
+          .select('project_id')
+          .eq('member_telegram_id', userTelegramId),
+      ])
 
-      // Get all member project IDs
-      const { data: memberProjects } = await supabase
-        .from('project_members')
-        .select('project_id')
-        .eq('member_telegram_id', userTelegramId)
+      const { data: ownedProjects } = ownedProjectsResult
+      const { data: memberProjects } = memberProjectsResult
 
       // Combine and deduplicate project IDs
       const ownedIds = (ownedProjects || []).map((p: any) => p.id)
