@@ -59,6 +59,7 @@ const clientPhoneTouched = ref(false)
 const deliveryAddressTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
+const isSubmittingLocal = ref(false)
 
 const DEFAULT_ASSIGNEE: AssigneeOption = {
   id: 'unassigned',
@@ -233,7 +234,7 @@ const getPaymentType = (): string | null => {
   return null
 }
 
-const isSubmitDisabled = computed(() => !projectId.value || !isFormValid.value || isCreating.value || isUpdating.value)
+const isSubmitDisabled = computed(() => !projectId.value || !isFormValid.value || isSubmittingLocal.value || isCreating.value || isUpdating.value)
 
 // Save form data to draft (only for creating new orders)
 const saveFormToDraft = () => {
@@ -576,6 +577,8 @@ const handleSubmit = async () => {
     return
   }
 
+  isSubmittingLocal.value = true
+
   try {
     // Upload new images first (for both new and edit modes)
     let newImageUrls: string[] = []
@@ -584,6 +587,7 @@ const handleSubmit = async () => {
         newImageUrls = await uploadImages()
       } catch (error) {
         submitError.value = error instanceof Error ? error.message : 'Не удалось загрузить изображения. Попробуйте ещё раз.'
+        isSubmittingLocal.value = false
         return
       }
     }
@@ -676,6 +680,8 @@ const handleSubmit = async () => {
     submitError.value = isEditMode.value
       ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'
       : 'Не удалось создать заказ. Попробуйте ещё раз.'
+  } finally {
+    isSubmittingLocal.value = false
   }
 }
 
@@ -738,7 +744,7 @@ const draftExists = computed(() => !isEditMode.value && hasDraft())
 
 const pageTitle = computed(() => isEditMode.value ? 'Редактирование заказа' : 'Новая задача')
 const submitButtonLabel = computed(() => {
-  if (isCreating.value) return 'Создание…'
+  if (isSubmittingLocal.value || isCreating.value) return 'Создание…'
   if (isUpdating.value) return 'Сохранение…'
   return isEditMode.value ? 'Сохранить изменения' : 'Создать задачу'
 })

@@ -15,6 +15,7 @@ const color = ref('#3B82F6')
 const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
+const isSubmittingLocal = ref(false)
 
 const editProjectId = computed(() => {
   const edit = route.query.edit
@@ -43,7 +44,7 @@ const titleError = computed(() => {
 })
 
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
-const isSubmitting = computed(() => (isEditing.value ? isUpdating.value : isCreating.value))
+const isSubmitting = computed(() => isSubmittingLocal.value || (isEditing.value ? isUpdating.value : isCreating.value))
 const isSubmitDisabled = computed(
   () => isSubmitting.value || Boolean(titleError.value) || projectNotFound.value,
 )
@@ -104,6 +105,8 @@ const handleSubmit = async () => {
     return
   }
 
+  isSubmittingLocal.value = true
+
   try {
     if (isEditing.value && editableProject.value) {
       const updatedProject = await updateProject(editableProject.value.id, {
@@ -127,6 +130,8 @@ const handleSubmit = async () => {
     submitError.value = isEditing.value
       ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'
       : 'Не удалось создать проект. Попробуйте ещё раз.'
+  } finally {
+    isSubmittingLocal.value = false
   }
 }
 
