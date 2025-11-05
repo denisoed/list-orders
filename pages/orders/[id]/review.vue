@@ -6,22 +6,66 @@ import { submitOrderReview } from '~/utils/orderReviewSubmission'
 import type { ImageAttachment } from '~/components/ImageUploader.vue'
 import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
+import { useUserStore } from '~/stores/user'
+import ReturnOrderModal from '~/components/ReturnOrderModal.vue'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const orderId = computed(() => {
   const raw = route.params.id
   return Array.isArray(raw) ? raw[0] ?? '' : raw?.toString() ?? ''
 })
 
-const { fetchOrder } = useOrders()
-const { getProjectById } = useProjects()
+const { fetchOrder, updateOrder } = useOrders()
+const { getProjectById, fetchProject } = useProjects()
 
-const order = ref<OrderDetail | null>(null)
+const order = ref<Order | null>(null)
 const orderProjectId = ref<string | null>(null)
+const project = ref<ReturnType<typeof getProjectById> | null>(null)
 const isLoading = ref(false)
 const loadError = ref<string | null>(null)
+
+// Review data
+const attachments = ref<ImageAttachment[]>([])
+const existingImageUrls = ref<string[]>([]) // Track existing image URLs separately
+const comment = ref('')
+const isSubmitting = ref(false)
+const isReturning = ref(false)
+const isCompleting = ref(false)
+const isReturnModalOpen = ref(false)
+const errorMessage = ref<string | null>(null)
+
+// Determine user role
+const isOrderAuthor = computed(() => {
+  if (!project.value || !userStore.user) {
+    return false
+  }
+  return project.value.ownerTelegramId === userStore.user.telegram_id
+})
+
+const isOrderAssignee = computed(() => {
+  if (!order.value || !userStore.user) {
+    return false
+  }
+  return order.value.assigneeTelegramId === userStore.user.telegram_id
+})
+
+const canEdit = computed(() => {
+  // Assignee can always edit, author can also edit but sees different buttons
+  return isOrderAssignee.value || isOrderAuthor.value
+})
+
+const showReturnButton = computed(() => {
+  // Both author and assignee can return
+  return isOrderAuthor.value || isOrderAssignee.value
+})
+
+const showCompleteButton = computed(() => {
+  // Only author can complete
+  return isOrderAuthor.value
+})
 
 // Load order data
 onMounted(async () => {
@@ -35,10 +79,34 @@ onMounted(async () => {
 
   try {
     const orderData = await fetchOrder(orderId.value)
-    const project = getProjectById(orderData.projectId)
-    const orderDetail = convertOrderToOrderDetail(orderData, project?.title)
-    order.value = orderDetail
+    order.value = orderData
     orderProjectId.value = orderData.projectId
+
+    // Load project if not already loaded
+    let projectData = getProjectById(orderData.projectId)
+    if (!projectData) {
+      try {
+        projectData = await fetchProject(orderData.projectId)
+      } catch (error) {
+        console.error('Failed to load project:', error)
+      }
+    }
+    project.value = projectData
+
+    // Load existing review data if order is in review status
+    if (orderData.status === 'review') {
+      comment.value = orderData.reviewComment || ''
+      existingImageUrls.value = orderData.reviewImages || []
+
+      // Convert existing image URLs to ImageAttachment format for display
+      // These won't have File objects, only previewUrl
+      attachments.value = existingImageUrls.value.map((url, index) => ({
+        id: `existing-${index}`,
+        name: `image-${index + 1}.jpg`,
+        previewUrl: url,
+        file: new File([], 'existing-image'), // Placeholder file
+      }))
+    }
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : 'Не удалось загрузить заказ'
@@ -49,31 +117,113 @@ onMounted(async () => {
   }
 })
 
-const attachments = ref<ImageAttachment[]>([])
-const comment = ref('')
-const isSubmitting = ref(false)
-const errorMessage = ref<string | null>(null)
-
 const handleImageClick = (attachment: ImageAttachment) => {
-  // Use previewUrl (which contains the base64 data URL) as imageId
-  // Encode the URL to handle special characters
+  // Use previewUrl as imageId
   const imageUrl = attachment.previewUrl
   router.push({
     path: `/images/${encodeURIComponent(imageUrl)}`,
     query: {
       orderId: orderId.value,
-      source: 'order-create',
+      source: 'order-review',
     },
   })
 }
 
-const isSubmitDisabled = computed(() => {
-  const trimmedComment = comment.value.trim()
-  return isSubmitting.value || (!trimmedComment && !attachments.value.length)
-})
+// Separate new files from existing URLs
+const getNewFiles = (): Array<{ attachment: ImageAttachment; file: File }> => {
+  return attachments.value
+    .filter((att) => {
+      // Existing images have IDs starting with "existing-"
+      const isExisting = att.id.startsWith('existing-')
+      // PreviewUrl is a data URL (data:image/...) for new files
+      const isDataUrl = att.previewUrl.startsWith('data:')
+      // New files have actual File objects with size > 0 and data URL preview
+      return !isExisting && att.file && att.file.size > 0 && isDataUrl
+    })
+    .map((att) => ({ attachment: att, file: att.file }))
+}
 
-const handleSubmit = async () => {
-  if (isSubmitDisabled.value) {
+// Get all image URLs (existing that are not deleted + new ones)
+const getAllImageUrls = async (): Promise<string[]> => {
+  const urls: string[] = []
+
+  // Keep existing URLs that are still in attachments (not deleted)
+  const existingUrls = attachments.value
+    .filter((att) => att.id.startsWith('existing-'))
+    .map((att) => att.previewUrl)
+    .filter((url) => url.startsWith('http://') || url.startsWith('https://'))
+  urls.push(...existingUrls)
+
+  // Upload new files and get their URLs
+  const newFiles = getNewFiles()
+  if (newFiles.length > 0) {
+    try {
+      const initData = getInitData()
+      const headers: Record<string, string> = {}
+      if (initData) {
+        headers['x-telegram-init-data'] = initData
+      }
+
+      // Upload each new file and update its previewUrl
+      for (const { attachment, file } of newFiles) {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await $fetch<{ url: string; path: string }>('/api/images', {
+          method: 'POST',
+          body: formData,
+          headers,
+        })
+        
+        // Update attachment previewUrl to the uploaded URL
+        attachment.previewUrl = response.url
+        urls.push(response.url)
+      }
+    } catch (error) {
+      console.error('Failed to upload new images:', error)
+      throw new Error('Не удалось загрузить новые изображения')
+    }
+  }
+
+  return urls
+}
+
+// Get initData helper
+const getInitData = (): string | null => {
+  if (!import.meta.client) {
+    return null
+  }
+
+  const instance = window.Telegram?.WebApp ?? null
+  const newInitData = instance?.initData ?? import.meta.env.telegramInitData ?? null
+
+  if (newInitData && typeof newInitData === 'string') {
+    const hasHash = newInitData.includes('hash=')
+    const hasAuthDate = newInitData.includes('auth_date=')
+    if (hasHash && hasAuthDate) {
+      return newInitData
+    }
+  }
+
+  try {
+    const stored = localStorage.getItem('telegram-init-data')
+    if (stored) {
+      const hasHash = stored.includes('hash=')
+      const hasAuthDate = stored.includes('auth_date=')
+      if (hasHash && hasAuthDate) {
+        return stored
+      }
+    }
+  } catch (error) {
+    // Ignore localStorage errors
+  }
+
+  return null
+}
+
+// Update review data (for assignee editing)
+const handleUpdate = async () => {
+  if (!orderId.value || isSubmitting.value) {
     return
   }
 
@@ -81,19 +231,79 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    const response = await submitOrderReview({
-      orderId: orderId.value,
-      comment: comment.value,
-      attachments: attachments.value.map((item) => item.file),
+    const imageUrls = await getAllImageUrls()
+
+    await updateOrder(orderId.value, {
+      review_comment: comment.value.trim() || null,
+      review_images: imageUrls,
     })
 
-    console.info('Заказ отправлен на проверку', {
-      orderId: orderId.value,
-      attachments: response.attachments.length,
-    })
+    // Reload order to get updated data
+    const orderData = await fetchOrder(orderId.value)
+    order.value = orderData
 
-    attachments.value = []
-    comment.value = ''
+    // Update attachments with new URLs - keep current attachments but update existing ones
+    existingImageUrls.value = orderData.reviewImages || []
+    
+    // Update attachments: keep non-existing ones (newly uploaded), replace existing ones
+    const updatedAttachments: ImageAttachment[] = []
+    
+    // Add existing URLs from server
+    existingImageUrls.value.forEach((url, index) => {
+      updatedAttachments.push({
+        id: `existing-${index}`,
+        name: `image-${index + 1}.jpg`,
+        previewUrl: url,
+        file: new File([], 'existing-image'),
+      })
+    })
+    
+    // Keep attachments that are not existing (have data URLs or are newly uploaded)
+    attachments.value.forEach((att) => {
+      if (!att.id.startsWith('existing-') && (att.previewUrl.startsWith('http://') || att.previewUrl.startsWith('https://'))) {
+        // This is a newly uploaded file that now has a URL - convert to existing
+        updatedAttachments.push({
+          id: `existing-${updatedAttachments.length}`,
+          name: att.name,
+          previewUrl: att.previewUrl,
+          file: new File([], 'existing-image'),
+        })
+      } else if (!att.id.startsWith('existing-') && att.previewUrl.startsWith('data:')) {
+        // This is a new file not yet uploaded - keep it
+        updatedAttachments.push(att)
+      }
+    })
+    
+    attachments.value = updatedAttachments
+
+    // Show success message or just reload silently
+    console.info('Review data updated successfully')
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Не удалось обновить данные проверки. Попробуйте ещё раз.'
+    errorMessage.value = message
+    console.error('Error updating review:', error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// Handle return order
+const handleReturn = async (reason: string) => {
+  if (!orderId.value || isReturning.value) {
+    return
+  }
+
+  isReturning.value = true
+  isReturnModalOpen.value = false
+
+  try {
+    await updateOrder(orderId.value, {
+      status: 'in_progress',
+      review_answer: reason,
+    })
 
     // Redirect to project orders list page
     if (orderProjectId.value) {
@@ -101,25 +311,62 @@ const handleSubmit = async () => {
         path: `/projects/${orderProjectId.value}/orders`,
       })
     } else {
-      // Fallback to home page if projectId is not available
       await router.replace({
         path: '/',
       })
     }
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Не удалось отправить заказ на проверку. Попробуйте ещё раз.'
-    errorMessage.value = message
-  } finally {
-    isSubmitting.value = false
+    console.error('Не удалось вернуть заказ:', error)
+    errorMessage.value = 'Не удалось вернуть заказ. Попробуйте ещё раз.'
+    isReturning.value = false
   }
 }
 
+// Handle complete order
+const handleComplete = async () => {
+  if (!orderId.value || isCompleting.value) {
+    return
+  }
+
+  isCompleting.value = true
+
+  try {
+    await updateOrder(orderId.value, {
+      status: 'done',
+    })
+
+    // Redirect to project orders list page
+    if (orderProjectId.value) {
+      await router.replace({
+        path: `/projects/${orderProjectId.value}/orders`,
+      })
+    } else {
+      await router.replace({
+        path: '/',
+      })
+    }
+  } catch (error) {
+    console.error('Не удалось завершить заказ:', error)
+    errorMessage.value = 'Не удалось завершить заказ. Попробуйте ещё раз.'
+    isCompleting.value = false
+  }
+}
+
+const isUpdateDisabled = computed(() => {
+  if (isSubmitting.value) {
+    return true
+  }
+  // For assignee, allow updating even without comment if there are images
+  if (isOrderAssignee.value) {
+    return false
+  }
+  // For author, updating is not the main action
+  return false
+})
+
 const pageTitle = computed(() => {
   const orderTitle = order.value?.title
-  return orderTitle ? `Отправка на проверку — ${orderTitle}` : 'Отправка на проверку'
+  return orderTitle ? `Проверка заказа — ${orderTitle}` : 'Проверка заказа'
 })
 
 useHead({
@@ -164,7 +411,7 @@ useHead({
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ order?.title || 'Отправка на проверку' }}
+          {{ order?.title || 'Проверка заказа' }}
         </h1>
       </div>
     </header>
@@ -225,16 +472,62 @@ useHead({
       v-if="order && !isLoading"
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
-      <button
-        type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
-        :aria-disabled="isSubmitDisabled"
-        :disabled="isSubmitDisabled"
-        @click="handleSubmit"
-      >
-        <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-        <span>{{ isSubmitting ? 'Отправляем...' : 'Отправить на проверку' }}</span>
-      </button>
+      <div v-if="canEdit && isOrderAssignee" class="flex gap-3">
+        <!-- Assignee sees only Update and Return buttons -->
+        <button
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white py-3 text-base font-semibold text-black shadow-sm transition hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:hover:bg-white/5"
+          :disabled="isUpdateDisabled || isSubmitting || isReturning"
+          @click="handleUpdate"
+        >
+          <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+          <span>{{ isSubmitting ? 'Обновляем...' : 'Обновить' }}</span>
+        </button>
+
+        <button
+          v-if="showReturnButton"
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500 bg-white py-3 text-base font-semibold text-red-600 shadow-sm transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-red-500/40 dark:bg-[#1C2431] dark:text-red-400 dark:hover:bg-red-500/10"
+          :disabled="isSubmitting || isReturning || isCompleting"
+          @click="isReturnModalOpen = true"
+        >
+          <span v-if="isReturning" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+          <span>{{ isReturning ? 'Возвращаем...' : 'Вернуть' }}</span>
+        </button>
+      </div>
+
+      <div v-else-if="canEdit && isOrderAuthor" class="flex gap-3">
+        <!-- Author sees Complete and Return buttons -->
+        <button
+          v-if="showReturnButton"
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500 bg-white py-3 text-base font-semibold text-red-600 shadow-sm transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-red-500/40 dark:bg-[#1C2431] dark:text-red-400 dark:hover:bg-red-500/10"
+          :disabled="isReturning || isCompleting"
+          @click="isReturnModalOpen = true"
+        >
+          <span v-if="isReturning" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+          <span>{{ isReturning ? 'Возвращаем...' : 'Вернуть' }}</span>
+        </button>
+
+        <button
+          v-if="showCompleteButton"
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
+          :disabled="isReturning || isCompleting"
+          @click="handleComplete"
+        >
+          <span v-if="isCompleting" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+          <span>{{ isCompleting ? 'Завершаем...' : 'Готово' }}</span>
+        </button>
+      </div>
     </footer>
+
+    <!-- Return Order Modal -->
+    <ReturnOrderModal
+      :is-open="isReturnModalOpen"
+      :is-loading="isReturning"
+      @close="isReturnModalOpen = false"
+      @return="handleReturn"
+    />
   </div>
 </template>

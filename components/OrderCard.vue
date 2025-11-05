@@ -10,8 +10,19 @@ const props = defineProps<{
 const statusMeta = computed(() => getOrderStatusMeta(props.order.status))
 const isCompleted = computed(() => props.order.status === 'done')
 
-const orderDetailsRoute = computed(() => `/orders/${props.order.id}`)
-const orderAriaLabel = computed(() => `Открыть детали заказа «${props.order.title}»`)
+const orderDetailsRoute = computed(() => {
+  // If order is in review status, redirect to review page
+  if (props.order.status === 'review') {
+    return `/orders/${props.order.id}/review`
+  }
+  return `/orders/${props.order.id}`
+})
+const orderAriaLabel = computed(() => {
+  if (props.order.status === 'review') {
+    return `Открыть проверку заказа «${props.order.title}»`
+  }
+  return `Открыть детали заказа «${props.order.title}»`
+})
 
 const dueLabel = computed(() => {
   if (!props.order.dueDate) {
