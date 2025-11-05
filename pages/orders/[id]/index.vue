@@ -80,6 +80,11 @@ onMounted(() => {
 
 const hasAssignee = computed(() => Boolean(order.value?.assignee))
 
+const isReviewStatus = computed(() => {
+  if (!orderData.value) return false
+  return orderData.value.status === 'review'
+})
+
 const isPhoneCopied = ref(false)
 let copyResetTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -644,7 +649,15 @@ useHead({
       class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
-        v-if="hasAssignee"
+        v-if="hasAssignee && isReviewStatus"
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-300 py-3 text-base font-semibold text-gray-600 shadow-lg transition dark:bg-gray-700 dark:text-gray-400"
+        disabled
+      >
+        <span>Проверяется</span>
+      </button>
+      <button
+        v-else-if="hasAssignee"
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
         :disabled="isSubmittingForReview"
