@@ -56,6 +56,7 @@ export interface OrderHistoryItem {
   icon: string
   description: string
   timestamp: string
+  author?: string
 }
 
 export interface OrderClient {
@@ -79,6 +80,26 @@ export interface OrderDetail {
   client: OrderClient
   attachments: OrderAttachment[]
   history: OrderHistoryItem[]
+  deliveryAddress: string | null
+}
+
+// Format timestamp for history (date and time separately)
+function formatHistoryTimestamp(dateString: string): string {
+  try {
+    const date = new Date(dateString)
+    const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+    const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return `${dateFormatter.format(date)}, ${timeFormatter.format(date)}`
+  } catch (error) {
+    return dateString
+  }
 }
 
 /**
@@ -177,9 +198,11 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
       {
         id: 'history-created',
         icon: 'add',
-        description: `Заказ создан ${new Date(order.createdAt).toLocaleString('ru-RU')}`,
-        timestamp: new Date(order.createdAt).toLocaleString('ru-RU'),
+        description: 'Заказ создан',
+        timestamp: formatHistoryTimestamp(order.createdAt),
+        author: assignee?.name || undefined,
       },
     ],
+    deliveryAddress: order.deliveryAddress,
   }
 }

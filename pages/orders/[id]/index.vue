@@ -581,6 +581,23 @@ useHead({
         </details>
       </section>
 
+      <section v-if="order.deliveryAddress" class="space-y-3">
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
+          >
+            Доставка
+            <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
+          </summary>
+          <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
+            <div>
+              <p class="font-medium text-gray-700 dark:text-gray-300">Адрес доставки</p>
+              <p class="mt-1">{{ order.deliveryAddress }}</p>
+            </div>
+          </div>
+        </details>
+      </section>
+
       <section class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
@@ -603,6 +620,7 @@ useHead({
               <div class="flex-1 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#282e39]">
                 <p class="text-sm leading-6 text-black dark:text-white">{{ entry.description }}</p>
                 <p class="mt-2 text-xs uppercase tracking-wide text-gray-500 dark:text-[#9da6b9]">{{ entry.timestamp }}</p>
+                <p v-if="entry.author" class="mt-1 text-xs text-gray-600 dark:text-[#9da6b9]">{{ entry.author }}</p>
               </div>
             </div>
           </div>
