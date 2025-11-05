@@ -54,6 +54,19 @@ const comment = ref('')
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 
+const handleImageClick = (attachment: ImageAttachment) => {
+  // Use previewUrl (which contains the base64 data URL) as imageId
+  // Encode the URL to handle special characters
+  const imageUrl = attachment.previewUrl
+  router.push({
+    path: `/images/${encodeURIComponent(imageUrl)}`,
+    query: {
+      orderId: orderId.value,
+      source: 'order-create',
+    },
+  })
+}
+
 const isSubmitDisabled = computed(() => {
   const trimmedComment = comment.value.trim()
   return isSubmitting.value || (!trimmedComment && !attachments.value.length)
@@ -177,6 +190,8 @@ useHead({
             v-model="attachments"
             button-size="md"
             variant="light"
+            :clickable="true"
+            @image-click="handleImageClick"
           />
           <p class="text-sm text-gray-500 dark:text-[#9da6b9]">
             Поддерживаются изображения в форматах JPEG, PNG и SVG.
