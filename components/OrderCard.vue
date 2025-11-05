@@ -29,11 +29,7 @@ const dueLabel = computed(() => {
     return 'Срок не указан'
   }
 
-  if (props.order.dueTime) {
-    return `Срок: ${formatDate(props.order.dueDate)} в ${formatTime(props.order.dueTime)}`
-  }
-
-  return `Срок: ${formatDate(props.order.dueDate)}`
+  return `Срок: ${formatDateAndTime(props.order.dueDate, props.order.dueTime)}`
 })
 
 const dueIcon = computed(() => (props.order.status === 'pending' ? 'schedule' : 'calendar_today'))
@@ -65,32 +61,42 @@ const titleClasses = computed(() => {
   ]
 })
 
-function formatDate(date: string) {
+// Format date and time in format "d month yyyy в hh:mm"
+function formatDateAndTime(date: string, time?: string | null): string {
   try {
-    return new Intl.DateTimeFormat('ru-RU').format(new Date(date))
+    const dateObj = new Date(date)
+    const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+    
+    if (time) {
+      // Parse time string (could be HH:mm or HH:mm:ss)
+      const timeParts = time.split(':')
+      if (timeParts.length >= 2) {
+        const hours = parseInt(timeParts[0], 10)
+        const minutes = parseInt(timeParts[1], 10)
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          return `${dateFormatter.format(dateObj)} в ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+        }
+      }
+    }
+    
+    // If no time or time parsing failed, check if date has time component
+    const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    const timeStr = timeFormatter.format(dateObj)
+    // If time is 00:00, don't show it
+    if (timeStr === '00:00') {
+      return dateFormatter.format(dateObj)
+    } else {
+      return `${dateFormatter.format(dateObj)} в ${timeStr}`
+    }
   } catch (error) {
     return date
-  }
-}
-
-function formatTime(time: string) {
-  try {
-    // If time is already in HH:mm format, return as is
-    if (/^\d{2}:\d{2}$/.test(time)) {
-      return time
-    }
-    // If time is in HH:mm:ss format, remove seconds
-    if (/^\d{2}:\d{2}:\d{2}$/.test(time)) {
-      return time.substring(0, 5)
-    }
-    // Try to parse as Date and format
-    const date = new Date(`2000-01-01T${time}`)
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-    }
-    return time
-  } catch (error) {
-    return time
   }
 }
 </script>
