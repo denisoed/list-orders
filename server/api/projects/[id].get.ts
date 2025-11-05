@@ -78,6 +78,16 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    // Get member count (excluding owner)
+    const ownerId = project.user_telegram_id
+    const { data: members, error: membersError } = await supabase
+      .from('project_members')
+      .select('member_telegram_id')
+      .eq('project_id', projectId)
+
+    // Count members excluding owner
+    const membersCount = (members || []).filter((m: any) => m.member_telegram_id !== ownerId).length
+
     // Transform database fields to match frontend Project interface
     const transformedProject = {
       id: project.id,
@@ -86,6 +96,8 @@ export default defineEventHandler(async (event) => {
       completed: project.completed || 0,
       total: project.total || 0,
       color: project.color || undefined,
+      ownerTelegramId: project.user_telegram_id,
+      membersCount,
     }
 
     return transformedProject

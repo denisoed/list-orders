@@ -2,11 +2,13 @@
 interface Props {
   title: string
   subtitle?: string
+  isOwner?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   title: 'Задачи',
   subtitle: undefined,
+  isOwner: false,
 })
 
 const emit = defineEmits<{
@@ -46,6 +48,7 @@ const handleEdit = () => {
         </p>
       </div>
       <button
+        v-if="isOwner"
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
         aria-label="Редактировать проект"
@@ -53,6 +56,7 @@ const handleEdit = () => {
       >
         <span class="material-symbols-outlined">settings</span>
       </button>
+      <div v-else class="flex w-12 items-center justify-end"></div>
     </div>
   </header>
 </template>
