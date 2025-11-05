@@ -198,7 +198,7 @@ export default defineEventHandler(async (event) => {
     // First, fetch the order to check project access and get current status
     const { data: existingOrder } = await supabase
       .from('orders')
-      .select('project_id, status, user_telegram_id')
+      .select('project_id, status, user_telegram_id, assignee_telegram_id')
       .eq('id', orderId)
       .single()
 
@@ -241,7 +241,13 @@ export default defineEventHandler(async (event) => {
     }
 
     // Send notification if order was taken in work
-    if (isStatusChangedToInProgress && existingOrder.user_telegram_id) {
+    // Only send if: status changed to in_progress AND (no assignee OR was pending)
+    const shouldSendNotification = 
+      isStatusChangedToInProgress && 
+      existingOrder.user_telegram_id &&
+      (!existingOrder.assignee_telegram_id || existingOrder.status === 'pending')
+
+    if (shouldSendNotification) {
       const assigneeName = order.assignee_telegram_name || 'Исполнитель'
       const orderTitle = order.title || 'Заказ'
       const message = `Ваш заказ "<b>${orderTitle}</b>" взят в работу.\n\nИсполнитель: <b>${assigneeName}</b>`
