@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
+import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 
 /**
  * POST /api/orders
@@ -51,15 +52,10 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Verify project exists and belongs to the user
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('id', body.project_id)
-      .eq('user_telegram_id', userTelegramId)
-      .single()
+    // Verify project exists and user has access to it
+    const hasAccess = await checkProjectAccess(supabase, userTelegramId, body.project_id.trim())
 
-    if (projectError || !project) {
+    if (!hasAccess) {
       return sendError(event, createError({
         statusCode: 404,
         message: 'Project not found'

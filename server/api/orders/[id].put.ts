@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
+import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 
 /**
  * PUT /api/orders/[id]
@@ -165,23 +166,39 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // Update order (only if it belongs to the user)
+    // First, fetch the order to check project access
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('project_id')
+      .eq('id', orderId)
+      .single()
+
+    if (!existingOrder) {
+      return sendError(event, createError({
+        statusCode: 404,
+        message: 'Order not found'
+      }))
+    }
+
+    // Check if user has access to the project
+    const hasAccess = await checkProjectAccess(supabase, userTelegramId, existingOrder.project_id)
+
+    if (!hasAccess) {
+      return sendError(event, createError({
+        statusCode: 404,
+        message: 'Order not found'
+      }))
+    }
+
+    // Update order
     const { data: order, error } = await supabase
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
-      .eq('user_telegram_id', userTelegramId)
       .select()
       .single()
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return sendError(event, createError({
-          statusCode: 404,
-          message: 'Order not found'
-        }))
-      }
-
       console.error('[Orders API] Error updating order:', error)
       return sendError(event, createError({
         statusCode: 500,

@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
+import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 
 /**
  * GET /api/projects/[id]/members
@@ -28,26 +29,13 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Verify that the project belongs to the user
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('id', projectId)
-      .eq('user_telegram_id', userTelegramId)
-      .single()
+    // Verify that the user has access to the project (owner or member)
+    const hasAccess = await checkProjectAccess(supabase, userTelegramId, projectId)
 
-    if (projectError || !project) {
-      if (projectError?.code === 'PGRST116') {
-        return sendError(event, createError({
-          statusCode: 404,
-          message: 'Project not found'
-        }))
-      }
-
-      console.error('[Project Members API] Error fetching project:', projectError)
+    if (!hasAccess) {
       return sendError(event, createError({
-        statusCode: 500,
-        message: 'Failed to verify project ownership'
+        statusCode: 404,
+        message: 'Project not found'
       }))
     }
 
