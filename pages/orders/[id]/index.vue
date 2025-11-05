@@ -24,6 +24,8 @@ const order = ref<OrderDetail | null>(null)
 const orderData = ref<Order | null>(null) // Store original Order data
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+const isTakingInWork = ref(false)
+const isSubmittingForReview = ref(false)
 
 // Handle startapp parameter from query string (for direct link opening)
 const startAppParam = computed(() => {
@@ -233,9 +235,11 @@ const handleTakeInWork = async () => {
     return
   }
 
-  if (!orderId.value) {
+  if (!orderId.value || isTakingInWork.value) {
     return
   }
+
+  isTakingInWork.value = true
 
   try {
     // Update order status to "in_progress" and set assignee
@@ -250,18 +254,24 @@ const handleTakeInWork = async () => {
     await loadOrder()
   } catch (err) {
     console.error('Не удалось взять заказ в работу:', err)
+  } finally {
+    isTakingInWork.value = false
   }
 }
 
 const handleMarkCompleted = () => {
   const targetOrderId = orderId.value
 
-  if (!targetOrderId) {
+  if (!targetOrderId || isSubmittingForReview.value) {
     return
   }
 
+  isSubmittingForReview.value = true
+
   router.push({
     path: `/orders/${targetOrderId}/review`,
+  }).finally(() => {
+    isSubmittingForReview.value = false
   })
 }
 
@@ -636,18 +646,22 @@ useHead({
       <button
         v-if="hasAssignee"
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
+        :disabled="isSubmittingForReview"
         @click="handleMarkCompleted"
       >
-        <span>Отдать на проверку</span>
+        <span v-if="isSubmittingForReview" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+        <span>{{ isSubmittingForReview ? 'Отправляем...' : 'Отдать на проверку' }}</span>
       </button>
       <button
         v-else
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
+        :disabled="isTakingInWork"
         @click="handleTakeInWork"
       >
-        <span>Взять в работу</span>
+        <span v-if="isTakingInWork" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+        <span>{{ isTakingInWork ? 'Обрабатываем...' : 'Взять в работу' }}</span>
       </button>
     </footer>
   </div>
