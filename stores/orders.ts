@@ -4,7 +4,7 @@ import { useTelegram } from '~/composables/useTelegram'
 
 export interface CreateOrderInput {
   project_id: string
-  title: string
+  title?: string | null
   summary?: string
   description?: string
   status?: string
@@ -15,8 +15,8 @@ export interface CreateOrderInput {
   due_time?: string | null
   delivery_address?: string | null
   reminder_offset?: string | null
-  client_name: string
-  client_phone: string
+  client_name?: string | null
+  client_phone?: string | null
   payment_type?: string | null
   prepayment_amount?: number | null
   total_amount?: number | null
@@ -25,7 +25,7 @@ export interface CreateOrderInput {
 }
 
 export interface UpdateOrderInput {
-  title?: string
+  title?: string | null
   summary?: string
   description?: string
   status?: string
@@ -36,8 +36,8 @@ export interface UpdateOrderInput {
   due_time?: string | null
   delivery_address?: string | null
   reminder_offset?: string | null
-  client_name?: string
-  client_phone?: string
+  client_name?: string | null
+  client_phone?: string | null
   payment_type?: string | null
   prepayment_amount?: number | null
   total_amount?: number | null
@@ -158,29 +158,17 @@ export const useOrdersStore = defineStore('orders', () => {
    * Create a new order on the server
    */
   async function createOrder(input: CreateOrderInput): Promise<Order> {
-    const trimmedTitle = input.title.trim()
-    const trimmedClientName = input.client_name.trim()
-    const trimmedClientPhone = input.client_phone.trim()
+    const projectId = typeof input.project_id === 'string' ? input.project_id.trim() : ''
+    const toNullableString = (value: string | null | undefined): string | null => {
+      if (value === undefined || value === null) {
+        return null
+      }
 
-    if (!trimmedTitle) {
-      const errorMessage = 'Название задачи не может быть пустым'
-      error.value = errorMessage
-      throw new Error(errorMessage)
+      const trimmed = value.trim()
+      return trimmed.length > 0 ? trimmed : null
     }
 
-    if (!trimmedClientName) {
-      const errorMessage = 'Имя клиента не может быть пустым'
-      error.value = errorMessage
-      throw new Error(errorMessage)
-    }
-
-    if (!trimmedClientPhone) {
-      const errorMessage = 'Номер телефона клиента не может быть пустым'
-      error.value = errorMessage
-      throw new Error(errorMessage)
-    }
-
-    if (!input.project_id) {
+    if (!projectId) {
       const errorMessage = 'ID проекта обязателен для создания задачи'
       error.value = errorMessage
       throw new Error(errorMessage)
@@ -193,18 +181,23 @@ export const useOrdersStore = defineStore('orders', () => {
       const newOrder = await $fetch<Order>('/api/orders', getFetchOptions({
         method: 'POST',
         body: {
-          project_id: input.project_id,
-          title: trimmedTitle,
+          project_id: projectId,
+          title: toNullableString(input.title ?? null),
           summary: input.summary?.trim() || '',
           description: input.description?.trim() || '',
           status: input.status || 'new',
-          assignee_telegram_id: input.assignee_telegram_id || null,
+          assignee_telegram_id: input.assignee_telegram_id ?? null,
+          assignee_telegram_name: input.assignee_telegram_name ?? null,
+          assignee_telegram_avatar_url: input.assignee_telegram_avatar_url ?? null,
           due_date: input.due_date || null,
-          client_name: trimmedClientName,
-          client_phone: trimmedClientPhone,
+          due_time: input.due_time || null,
+          delivery_address: input.delivery_address || null,
+          reminder_offset: input.reminder_offset ?? null,
+          client_name: toNullableString(input.client_name ?? null),
+          client_phone: toNullableString(input.client_phone ?? null),
           payment_type: input.payment_type || null,
-          prepayment_amount: input.prepayment_amount || null,
-          total_amount: input.total_amount || null,
+          prepayment_amount: input.prepayment_amount ?? null,
+          total_amount: input.total_amount ?? null,
           image_urls: input.image_urls || [],
           code: input.code || undefined,
         },
@@ -238,26 +231,17 @@ export const useOrdersStore = defineStore('orders', () => {
     orderId: string,
     input: UpdateOrderInput,
   ): Promise<Order> {
-    const trimmedTitle = input.title?.trim()
-    const trimmedClientName = input.client_name?.trim()
-    const trimmedClientPhone = input.client_phone?.trim()
+    const toNullableString = (value: string | null | undefined): string | null | undefined => {
+      if (value === undefined) {
+        return undefined
+      }
 
-    if (trimmedTitle !== undefined && !trimmedTitle) {
-      const errorMessage = 'Название задачи не может быть пустым'
-      error.value = errorMessage
-      throw new Error(errorMessage)
-    }
+      if (value === null) {
+        return null
+      }
 
-    if (trimmedClientName !== undefined && !trimmedClientName) {
-      const errorMessage = 'Имя клиента не может быть пустым'
-      error.value = errorMessage
-      throw new Error(errorMessage)
-    }
-
-    if (trimmedClientPhone !== undefined && !trimmedClientPhone) {
-      const errorMessage = 'Номер телефона клиента не может быть пустым'
-      error.value = errorMessage
-      throw new Error(errorMessage)
+      const trimmed = value.trim()
+      return trimmed.length > 0 ? trimmed : null
     }
 
     isUpdating.value = true
@@ -267,7 +251,7 @@ export const useOrdersStore = defineStore('orders', () => {
       const body: any = {}
 
       if (input.title !== undefined) {
-        body.title = trimmedTitle
+        body.title = toNullableString(input.title)
       }
       if (input.summary !== undefined) {
         body.summary = input.summary.trim() || ''
@@ -294,10 +278,10 @@ export const useOrdersStore = defineStore('orders', () => {
         body.reminder_offset = input.reminder_offset
       }
       if (input.client_name !== undefined) {
-        body.client_name = trimmedClientName
+        body.client_name = toNullableString(input.client_name)
       }
       if (input.client_phone !== undefined) {
-        body.client_phone = trimmedClientPhone
+        body.client_phone = toNullableString(input.client_phone)
       }
       if (input.payment_type !== undefined) {
         body.payment_type = input.payment_type
