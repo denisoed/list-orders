@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
-import { useProjectTeam } from '~/composables/useProjectTeam'
-import { useProjectsStore } from '~/stores/projects'
-import { useProjects } from '~/composables/useProjects'
 import { useTelegram } from '~/composables/useTelegram'
 
 const route = useRoute()
@@ -14,11 +11,6 @@ const projectId = computed(() => {
   return typeof id === 'string' ? id : Array.isArray(id) ? id[0] : ''
 })
 
-const projectsStore = useProjectsStore()
-const project = computed(() => projectId.value ? projectsStore.getProjectById(projectId.value) : undefined)
-const { fetchProject } = useProjects()
-const projectIdRef = computed(() => projectId.value || '')
-const { members, fetchMembers } = useProjectTeam(projectIdRef)
 const { getInitData } = useTelegram()
 
 const isLoading = ref(true)
@@ -89,15 +81,6 @@ const checkAndAddMember = async () => {
       })
 
       success.value = true
-      // Refresh members list
-      await fetchMembers()
-      // Load project to display its title (user now has access)
-      try {
-        await fetchProject(projectId.value)
-      } catch (err) {
-        // Ignore errors when loading project for display
-        console.warn('Failed to load project for display:', err)
-      }
       
       // Redirect after a short delay
       setTimeout(() => {
@@ -107,14 +90,6 @@ const checkAndAddMember = async () => {
       if (err.statusCode === 409) {
         // User is already a member (race condition)
         success.value = true
-        await fetchMembers()
-        // Load project to display its title (user now has access)
-        try {
-          await fetchProject(projectId.value)
-        } catch (fetchErr) {
-          // Ignore errors when loading project for display
-          console.warn('Failed to load project for display:', fetchErr)
-        }
         setTimeout(() => {
           router.push(`/projects/${projectId.value}/orders`)
         }, 2000)
@@ -192,7 +167,7 @@ useHead({
       <div v-else-if="success" class="flex flex-col items-center gap-4">
         <span class="material-symbols-outlined text-5xl text-green-500">check_circle</span>
         <p class="text-center text-base font-medium text-zinc-900 dark:text-white">
-          Вы успешно добавлены в проект{{ project ? ` «${project.title}»` : '' }}!
+          Вы успешно добавлены в проект!
         </p>
         <p class="text-center text-sm text-zinc-600 dark:text-zinc-400">
           Перенаправление...
