@@ -476,9 +476,9 @@ onMounted(async () => {
       }
       
       // Set assignee - load from orderData if available
-      if (orderData.assigneeTelegramId) {
+      if (orderData.assigneeTelegramId !== null && orderData.assigneeTelegramId !== undefined) {
         // Try to find the assignee in the project team members
-        const assigneeMember = members.value.find((m) => m.id === orderData.assigneeTelegramId.toString())
+        const assigneeMember = members.value.find((m) => m.id === orderData.assigneeTelegramId!.toString())
         if (assigneeMember) {
           // Assignee is a project team member
           selectedAssigneeId.value = assigneeMember.id
@@ -735,11 +735,9 @@ const handleSubmit = async () => {
       
       await createOrder(orderData)
       
-      // Clear draft after successful order creation
-      clearDraft()
+      // Re-enable draft saving after successful order creation
+      handleClearDraft()
       
-      attachments.value = []
-      reminderOffset.value = null
       await router.back()
     }
   } catch (error) {
@@ -1087,7 +1085,7 @@ useHead({
           </div>
         </div>
 
-        <div class="flex flex-col space-y-3">
+        <div v-if="dueTime" class="flex flex-col space-y-3">
           <p class="text-base font-medium leading-normal">Напомнить за:</p>
           <div class="flex items-center gap-3">
             <button
