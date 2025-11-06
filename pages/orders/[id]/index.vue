@@ -396,7 +396,7 @@ const handleEdit = () => {
 }
 
 const handleDecline = async () => {
-  if (!orderId.value || !isOrderAssignee.value) {
+  if (!orderId.value || !isOrderAssignee.value || !isInProgressStatus.value) {
     return
   }
 
@@ -436,8 +436,8 @@ const menuItems = computed<DropdownMenuItem[]>(() => {
     })
   }
 
-  // Show "Decline" button only for assignee
-  if (isOrderAssignee.value) {
+  // Show "Decline" button only for assignee and when order is in progress
+  if (isOrderAssignee.value && isInProgressStatus.value) {
     items.push({
       id: 'decline',
       label: 'Отказаться',
