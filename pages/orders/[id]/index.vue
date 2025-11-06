@@ -13,7 +13,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { fetchOrder, updateOrder } = useOrders()
-const { getProjectById } = useProjects()
+const { getProjectById, fetchProject } = useProjects()
 
 const orderId = computed(() => {
   const raw = route.params.id
@@ -22,10 +22,12 @@ const orderId = computed(() => {
 
 const order = ref<OrderDetail | null>(null)
 const orderData = ref<Order | null>(null) // Store original Order data
+const project = ref<ReturnType<typeof getProjectById> | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
 const isTakingInWork = ref(false)
 const isSubmittingForReview = ref(false)
+const isMarkingAsDone = ref(false)
 
 // Handle startapp parameter from query string (for direct link opening)
 const startAppParam = computed(() => {
@@ -48,8 +50,19 @@ const loadOrder = async () => {
   try {
     const fetchedOrder = await fetchOrder(orderId.value)
     orderData.value = fetchedOrder
-    const project = getProjectById(fetchedOrder.projectId)
-    const orderDetail = convertOrderToOrderDetail(fetchedOrder, project?.title)
+    
+    // Load project to check features settings
+    let projectData = getProjectById(fetchedOrder.projectId)
+    if (!projectData) {
+      try {
+        projectData = await fetchProject(fetchedOrder.projectId)
+      } catch (error) {
+        console.error('Failed to load project:', error)
+      }
+    }
+    project.value = projectData
+    
+    const orderDetail = convertOrderToOrderDetail(fetchedOrder, projectData?.title)
     order.value = orderDetail
   } catch (err) {
     const errorMessage =
@@ -288,13 +301,39 @@ const handleTakeInWork = async () => {
   }
 }
 
-const handleMarkCompleted = () => {
+// Check if project requires review
+const requiresReview = computed(() => {
+  if (!project.value?.featuresSettings) {
+    return true // Default to requiring review
+  }
+  return project.value.featuresSettings.requireReview !== false
+})
+
+const handleMarkCompleted = async () => {
   const targetOrderId = orderId.value
 
-  if (!targetOrderId || isSubmittingForReview.value) {
+  if (!targetOrderId || isSubmittingForReview.value || isMarkingAsDone.value) {
     return
   }
 
+  // If review is not required, mark as done directly
+  if (!requiresReview.value) {
+    isMarkingAsDone.value = true
+    try {
+      await updateOrder(targetOrderId, {
+        status: 'done',
+      })
+      // Reload order to get updated data
+      await loadOrder()
+    } catch (err) {
+      console.error('Не удалось завершить задачу:', err)
+    } finally {
+      isMarkingAsDone.value = false
+    }
+    return
+  }
+
+  // If review is required, navigate to review page
   isSubmittingForReview.value = true
 
   router.push({
@@ -739,11 +778,17 @@ useHead({
         v-else-if="hasAssignee && isOrderAssignee && isInProgressStatus"
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
-        :disabled="isSubmittingForReview"
+        :disabled="isSubmittingForReview || isMarkingAsDone"
         @click="handleMarkCompleted"
       >
-        <span v-if="isSubmittingForReview" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-        <span>{{ isSubmittingForReview ? 'Отправляем...' : 'Отдать на проверку' }}</span>
+        <template v-if="isSubmittingForReview || isMarkingAsDone">
+          <span class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+          <span>{{ isSubmittingForReview ? 'Отправляем...' : 'Завершаем...' }}</span>
+        </template>
+        <template v-else>
+          <span v-if="requiresReview">Отдать на проверку</span>
+          <span v-else>Готово</span>
+        </template>
       </button>
       <button
         v-else

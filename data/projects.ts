@@ -30,6 +30,10 @@ export interface ProjectOrder {
   remindBefore?: OrderReminderOffset
 }
 
+export interface ProjectFeaturesSettings {
+  requireReview?: boolean
+}
+
 export interface Project {
   id: string
   title: string
@@ -40,4 +44,5 @@ export interface Project {
   ownerTelegramId?: number
   membersCount?: number
   archived?: boolean
+  featuresSettings?: ProjectFeaturesSettings
 }

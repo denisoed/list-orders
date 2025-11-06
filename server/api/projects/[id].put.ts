@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
       description?: string
       color?: string | null
       archived?: boolean
+      features_settings?: any
     } = {
       title: body.title.trim(),
     }
@@ -59,6 +60,18 @@ export default defineEventHandler(async (event) => {
 
     if (body.archived !== undefined) {
       updateData.archived = body.archived === true
+    }
+
+    if (body.featuresSettings !== undefined) {
+      // Validate featuresSettings is an object
+      if (typeof body.featuresSettings === 'object' && body.featuresSettings !== null) {
+        updateData.features_settings = body.featuresSettings
+      } else {
+        return sendError(event, createError({
+          statusCode: 400,
+          message: 'featuresSettings must be an object'
+        }))
+      }
     }
 
     // Update project (only if it belongs to the user)
@@ -85,6 +98,19 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    // Parse features_settings from JSONB, default to { requireReview: true }
+    let featuresSettings: { requireReview?: boolean } = { requireReview: true }
+    if (project.features_settings) {
+      try {
+        featuresSettings = typeof project.features_settings === 'string'
+          ? JSON.parse(project.features_settings)
+          : project.features_settings
+      } catch (error) {
+        console.error('[Projects API] Error parsing features_settings:', error)
+        featuresSettings = { requireReview: true }
+      }
+    }
+
     // Transform database fields to match frontend Project interface
     const transformedProject = {
       id: project.id,
@@ -94,6 +120,7 @@ export default defineEventHandler(async (event) => {
       total: project.total || 0,
       color: project.color || undefined,
       archived: project.archived || false,
+      featuresSettings,
     }
 
     return transformedProject

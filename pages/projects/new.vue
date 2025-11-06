@@ -4,6 +4,8 @@ import { useHead, useRoute, useRouter } from '#imports'
 import { useProjects } from '~/composables/useProjects'
 import { useProjectsStore } from '~/stores/projects'
 import { useUserStore } from '~/stores/user'
+import Toggle from '~/components/Toggle.vue'
+import type { ProjectFeaturesSettings } from '~/data/projects'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,6 +16,7 @@ const { createProject, updateProject, archiveProject, isCreating, isUpdating } =
 const title = ref('')
 const description = ref('')
 const color = ref('#3B82F6')
+const featuresSettings = ref<ProjectFeaturesSettings>({ requireReview: true })
 const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
@@ -128,6 +131,7 @@ const handleSubmit = async () => {
         title: title.value,
         description: description.value,
         color: color.value,
+        featuresSettings: featuresSettings.value,
       })
 
       await router.push(returnPath.value || `/projects/${updatedProject.id}/orders`)
@@ -222,6 +226,16 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  () => editableProject.value?.featuresSettings,
+  (projectFeaturesSettings) => {
+    if (isEditing.value) {
+      featuresSettings.value = projectFeaturesSettings || { requireReview: true }
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -290,6 +304,22 @@ watch(
               <span class="material-symbols-outlined text-base">group_add</span>
               Открыть список коллег
             </button>
+          </div>
+        </div>
+
+        <div v-if="isEditing && isProjectOwner && !isProjectArchived" class="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div class="space-y-4">
+            <div>
+              <h3 class="text-base font-semibold leading-tight text-white">Настройки функций</h3>
+              <p class="mt-1 text-sm text-gray-400">Управление функциями проекта</p>
+            </div>
+            <div class="space-y-4">
+              <Toggle
+                v-model="featuresSettings.requireReview"
+                label="Требовать проверку"
+                description="Если включено, задачи отправляются на проверку. Если выключено, исполнитель может сразу завершить задачу."
+              />
+            </div>
           </div>
         </div>
 

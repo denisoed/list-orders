@@ -88,6 +88,19 @@ export default defineEventHandler(async (event) => {
     // Count members excluding owner
     const membersCount = (members || []).filter((m: any) => m.member_telegram_id !== ownerId).length
 
+    // Parse features_settings from JSONB, default to { requireReview: true }
+    let featuresSettings: { requireReview?: boolean } = { requireReview: true }
+    if (project.features_settings) {
+      try {
+        featuresSettings = typeof project.features_settings === 'string'
+          ? JSON.parse(project.features_settings)
+          : project.features_settings
+      } catch (error) {
+        console.error('[Projects API] Error parsing features_settings:', error)
+        featuresSettings = { requireReview: true }
+      }
+    }
+
     // Transform database fields to match frontend Project interface
     const transformedProject = {
       id: project.id,
@@ -99,6 +112,7 @@ export default defineEventHandler(async (event) => {
       ownerTelegramId: project.user_telegram_id,
       membersCount,
       archived: project.archived || false,
+      featuresSettings,
     }
 
     return transformedProject

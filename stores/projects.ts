@@ -13,6 +13,7 @@ export interface UpdateProjectInput {
   description?: string
   color?: string
   archived?: boolean
+  featuresSettings?: import('~/data/projects').ProjectFeaturesSettings
 }
 
 /**
@@ -193,6 +194,7 @@ export const useProjectsStore = defineStore('projects', () => {
           description: trimmedDescription,
           color: projectColor,
           archived: input.archived,
+          featuresSettings: input.featuresSettings,
         },
       }))
 

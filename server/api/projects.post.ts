@@ -55,6 +55,19 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    // Parse features_settings from JSONB, default to { requireReview: true }
+    let featuresSettings: { requireReview?: boolean } = { requireReview: true }
+    if (project.features_settings) {
+      try {
+        featuresSettings = typeof project.features_settings === 'string'
+          ? JSON.parse(project.features_settings)
+          : project.features_settings
+      } catch (error) {
+        console.error('[Projects API] Error parsing features_settings:', error)
+        featuresSettings = { requireReview: true }
+      }
+    }
+
     // Transform database fields to match frontend Project interface
     const transformedProject = {
       id: project.id,
@@ -63,6 +76,7 @@ export default defineEventHandler(async (event) => {
       completed: project.completed || 0,
       total: project.total || 0,
       color: project.color || undefined,
+      featuresSettings,
     }
 
     return transformedProject

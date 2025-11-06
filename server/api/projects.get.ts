@@ -91,17 +91,33 @@ export default defineEventHandler(async (event) => {
     })
 
     // Transform database fields to match frontend Project interface
-    const transformedProjects = projects.map((project: any) => ({
-      id: project.id,
-      title: project.title,
-      description: project.description || '',
-      completed: project.completed || 0,
-      total: project.total || 0,
-      color: project.color || undefined,
-      ownerTelegramId: project.user_telegram_id,
-      membersCount: memberCountMap.get(project.id) || 0,
-      archived: project.archived || false,
-    }))
+    const transformedProjects = projects.map((project: any) => {
+      // Parse features_settings from JSONB, default to { requireReview: true }
+      let featuresSettings: { requireReview?: boolean } = { requireReview: true }
+      if (project.features_settings) {
+        try {
+          featuresSettings = typeof project.features_settings === 'string'
+            ? JSON.parse(project.features_settings)
+            : project.features_settings
+        } catch (error) {
+          console.error('[Projects API] Error parsing features_settings:', error)
+          featuresSettings = { requireReview: true }
+        }
+      }
+
+      return {
+        id: project.id,
+        title: project.title,
+        description: project.description || '',
+        completed: project.completed || 0,
+        total: project.total || 0,
+        color: project.color || undefined,
+        ownerTelegramId: project.user_telegram_id,
+        membersCount: memberCountMap.get(project.id) || 0,
+        archived: project.archived || false,
+        featuresSettings,
+      }
+    })
 
     return transformedProjects
   } catch (error) {
