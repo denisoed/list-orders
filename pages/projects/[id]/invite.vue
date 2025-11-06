@@ -41,20 +41,6 @@ const checkAndAddMember = async () => {
   }
 
   try {
-    // Load project if not in store
-    if (!project.value) {
-      await fetchProject(projectId.value)
-    }
-
-    if (!project.value) {
-      error.value = 'Проект не найден'
-      isLoading.value = false
-      return
-    }
-
-    // Fetch current members to check if user is already a member
-    await fetchMembers()
-
     // Get current user's telegram_id from initData
     const response = await $fetch<{ success: boolean; user: { telegram_id: number } | null }>('/api/user', {
       method: 'POST',
@@ -74,12 +60,8 @@ const checkAndAddMember = async () => {
 
     const userTelegramId = response.user.telegram_id
 
-    // Check if user is the project owner
-    if (project.value.ownerTelegramId && project.value.ownerTelegramId === userTelegramId) {
-      error.value = 'Владелец проекта не может приглашать себя в свой проект'
-      isLoading.value = false
-      return
-    }
+    // Fetch current members to check if user is already a member
+    await fetchMembers()
 
     // Check if user is already a member
     const isAlreadyMember = members.value.some(
@@ -89,6 +71,13 @@ const checkAndAddMember = async () => {
     if (isAlreadyMember) {
       success.value = true
       isLoading.value = false
+      // Load project to display its title (user already has access)
+      try {
+        await fetchProject(projectId.value)
+      } catch (err) {
+        // Ignore errors when loading project for display
+        console.warn('Failed to load project for display:', err)
+      }
       // Redirect after a short delay
       setTimeout(() => {
         router.push(`/projects/${projectId.value}/orders`)
@@ -114,6 +103,13 @@ const checkAndAddMember = async () => {
       success.value = true
       // Refresh members list
       await fetchMembers()
+      // Load project to display its title (user now has access)
+      try {
+        await fetchProject(projectId.value)
+      } catch (err) {
+        // Ignore errors when loading project for display
+        console.warn('Failed to load project for display:', err)
+      }
       
       // Redirect after a short delay
       setTimeout(() => {
@@ -124,6 +120,13 @@ const checkAndAddMember = async () => {
         // User is already a member (race condition)
         success.value = true
         await fetchMembers()
+        // Load project to display its title (user now has access)
+        try {
+          await fetchProject(projectId.value)
+        } catch (fetchErr) {
+          // Ignore errors when loading project for display
+          console.warn('Failed to load project for display:', fetchErr)
+        }
         setTimeout(() => {
           router.push(`/projects/${projectId.value}/orders`)
         }, 2000)
