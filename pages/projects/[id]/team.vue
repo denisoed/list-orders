@@ -3,8 +3,8 @@ import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import SearchField from '~/components/SearchField.vue'
 import TeamMemberCard from '~/components/TeamMemberCard.vue'
-import UserSelectModal from '~/components/UserSelectModal.vue'
-import { useProjectTeam, type AvailableUser } from '~/composables/useProjectTeam'
+import ProjectInviteModal from '~/components/ProjectInviteModal.vue'
+import { useProjectTeam } from '~/composables/useProjectTeam'
 import { useProjectsStore } from '~/stores/projects'
 import { useProjects } from '~/composables/useProjects'
 
@@ -23,18 +23,13 @@ const {
   members,
   searchQuery,
   isLoading,
-  isAdding,
   setSearchQuery,
   fetchMembers,
-  addMember,
-  getAvailableUsers,
   removeMember,
 } = useProjectTeam(projectId)
 const { fetchProject } = useProjects()
 
-const isUserSelectModalOpen = ref(false)
-const availableUsers = ref<AvailableUser[]>([])
-const isLoadingUsers = ref(false)
+const isInviteModalOpen = ref(false)
 
 // Load project if not found in local state
 watch(
@@ -87,29 +82,8 @@ const handleOpenProfile = (memberId: string) => {
   })
 }
 
-const handleAddClick = async () => {
-  isLoadingUsers.value = true
-  try {
-    const users = await getAvailableUsers()
-    availableUsers.value = users
-    isUserSelectModalOpen.value = true
-  } catch (error) {
-    console.error('Failed to load available users:', error)
-  } finally {
-    isLoadingUsers.value = false
-  }
-}
-
-const handleAddUser = async (user: AvailableUser) => {
-  const member = await addMember(user.telegramId)
-  if (member) {
-    // Remove added user from available list
-    availableUsers.value = availableUsers.value.filter((u) => u.id !== user.id)
-    // Close modal if no more users available
-    if (availableUsers.value.length === 0) {
-      isUserSelectModalOpen.value = false
-    }
-  }
+const handleAddClick = () => {
+  isInviteModalOpen.value = true
 }
 
 const handleDeleteMember = async (memberId: string) => {
@@ -208,22 +182,19 @@ useHead({
       <button
         type="button"
         class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-        aria-label="Добавить участника"
-        :disabled="isAdding || isLoading"
+        aria-label="Пригласить участника"
+        :disabled="isLoading"
         @click="handleAddClick"
       >
-        <span v-if="isAdding" class="material-symbols-outlined text-3xl animate-spin">hourglass_empty</span>
-        <span v-else class="material-symbols-outlined text-3xl">add</span>
+        <span class="material-symbols-outlined text-3xl">add</span>
       </button>
     </div>
 
-    <UserSelectModal
-      :is-open="isUserSelectModalOpen"
-      :available-users="availableUsers"
-      :is-loading="isLoadingUsers"
-      :is-adding="isAdding"
-      @close="isUserSelectModalOpen = false"
-      @add-user="handleAddUser"
+    <ProjectInviteModal
+      :is-open="isInviteModalOpen"
+      :project-id="projectId"
+      :project-title="project?.title"
+      @close="isInviteModalOpen = false"
     />
   </div>
 </template>

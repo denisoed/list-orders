@@ -236,21 +236,7 @@ watch(
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
       <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-[-0.015em]">{{ pageTitle }}</h1>
-      <button
-        v-if="isEditing && !projectNotFound"
-        type="button"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
-        aria-label="Управление коллегами"
-        @click="
-          $router.push({
-            path: `/projects/${inviteProjectId}/team`,
-            query: returnPath ? { from: returnPath } : {},
-          })
-        "
-      >
-        <span class="material-symbols-outlined text-3xl">group_add</span>
-      </button>
-      <div v-else class="flex w-12 items-center justify-end"></div>
+      <div class="flex w-12 items-center justify-end"></div>
     </header>
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
@@ -284,6 +270,28 @@ watch(
             enterkeyhint="done"
           ></textarea>
         </label>
+
+        <div v-if="isEditing && !projectNotFound && inviteProjectId" class="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div class="space-y-3">
+            <div>
+              <h3 class="text-base font-semibold leading-tight text-white">Список коллег</h3>
+              <p class="mt-1 text-sm text-gray-400">Управление участниками проекта</p>
+            </div>
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-transparent px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              @click="
+                $router.push({
+                  path: `/projects/${inviteProjectId}/team`,
+                  query: returnPath ? { from: returnPath } : {},
+                })
+              "
+            >
+              <span class="material-symbols-outlined text-base">group_add</span>
+              Открыть список коллег
+            </button>
+          </div>
+        </div>
 
         <div v-if="isEditing && isProjectOwner && !isProjectArchived" class="rounded-xl border border-white/10 bg-white/5 p-4">
           <div class="space-y-3">

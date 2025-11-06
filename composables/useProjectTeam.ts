@@ -4,14 +4,6 @@ import type { ProjectTeamMember } from '~/data/team'
 import { filterTeamMembers } from '~/utils/projectTeam'
 import { useTelegram } from '~/composables/useTelegram'
 
-export interface AvailableUser {
-  id: string
-  telegramId: number
-  name: string
-  username: string | null
-  avatarUrl: string | null
-}
-
 interface ProjectTeamState {
   projectId: string
   members: ProjectTeamMember[]
@@ -31,7 +23,6 @@ export interface UseProjectTeamResult {
   setSearchQuery: (value: string) => void
   fetchMembers: () => Promise<void>
   addMember: (telegramId: number, role?: string) => Promise<ProjectTeamMember | null>
-  getAvailableUsers: () => Promise<AvailableUser[]>
   removeMember: (memberId: string) => Promise<void>
 }
 
@@ -139,18 +130,6 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
     }
   }
 
-  const getAvailableUsers = async (): Promise<AvailableUser[]> => {
-    if (!projectIdRef.value) return []
-
-    try {
-      const users = await $fetch<AvailableUser[]>(`/api/users?excludeProjectId=${projectIdRef.value}`, getFetchOptions())
-      return users || []
-    } catch (error) {
-      console.error('Failed to fetch available users:', error)
-      return []
-    }
-  }
-
   const removeMember = async (memberId: string): Promise<void> => {
     if (!projectIdRef.value) return
 
@@ -182,7 +161,6 @@ export const useProjectTeam = (projectId: Ref<string> | string): UseProjectTeamR
     },
     fetchMembers,
     addMember,
-    getAvailableUsers,
     removeMember,
   }
 }
