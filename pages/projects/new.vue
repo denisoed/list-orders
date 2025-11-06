@@ -5,6 +5,7 @@ import { useProjects } from '~/composables/useProjects'
 import { useProjectsStore } from '~/stores/projects'
 import { useUserStore } from '~/stores/user'
 import Toggle from '~/components/Toggle.vue'
+import ConfirmationModal from '~/components/ConfirmationModal.vue'
 import type { ProjectFeaturesSettings } from '~/data/projects'
 
 const router = useRouter()
@@ -23,6 +24,7 @@ const submitError = ref('')
 const isSubmittingLocal = ref(false)
 const isArchiving = ref(false)
 const archiveError = ref('')
+const isArchiveModalOpen = ref(false)
 
 const editProjectId = computed(() => {
   const edit = route.query.edit
@@ -154,7 +156,15 @@ const handleSubmit = async () => {
   }
 }
 
-const handleArchive = async () => {
+const handleArchive = () => {
+  if (!editableProject.value || isArchiving.value) {
+    return
+  }
+
+  isArchiveModalOpen.value = true
+}
+
+const handleArchiveConfirm = async () => {
   if (!editableProject.value || isArchiving.value) {
     return
   }
@@ -164,11 +174,13 @@ const handleArchive = async () => {
 
   try {
     await archiveProject(editableProject.value.id)
+    isArchiveModalOpen.value = false
     // Redirect to home page after archiving
     await router.push('/')
   } catch (error) {
     console.error('Failed to archive project:', error)
     archiveError.value = 'Не удалось заархивировать проект. Попробуйте ещё раз.'
+    isArchiveModalOpen.value = false
   } finally {
     isArchiving.value = false
   }
@@ -344,9 +356,8 @@ watch(
               :disabled="isArchiving || isSubmitting"
               @click="handleArchive"
             >
-              <span v-if="isArchiving" class="material-symbols-outlined text-base animate-spin">hourglass_empty</span>
-              <span v-else class="material-symbols-outlined text-base">archive</span>
-              {{ isArchiving ? 'Архивирование…' : 'Заархивировать проект' }}
+              <span class="material-symbols-outlined text-base">archive</span>
+              Заархивировать проект
             </button>
           </div>
         </div>
@@ -366,5 +377,17 @@ watch(
         </button>
       </div>
     </footer>
+
+    <ConfirmationModal
+      :is-open="isArchiveModalOpen"
+      :is-loading="isArchiving"
+      title="Заархивировать проект"
+      message="Вы уверены, что хотите заархивировать этот проект? Проект будет скрыт из основного списка, но его можно будет восстановить из архива."
+      confirm-text="Заархивировать"
+      cancel-text="Отмена"
+      variant="danger"
+      @close="isArchiveModalOpen = false"
+      @confirm="handleArchiveConfirm"
+    />
   </div>
 </template>

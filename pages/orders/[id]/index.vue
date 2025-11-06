@@ -5,6 +5,7 @@ import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
+import ConfirmationModal from '~/components/ConfirmationModal.vue'
 import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
@@ -28,6 +29,8 @@ const error = ref<string | null>(null)
 const isTakingInWork = ref(false)
 const isSubmittingForReview = ref(false)
 const isMarkingAsDone = ref(false)
+const isDeclineModalOpen = ref(false)
+const isDeclining = ref(false)
 
 // Get order fields settings from project
 const orderFieldsSettings = computed(() => {
@@ -474,10 +477,20 @@ const handleEdit = () => {
   })
 }
 
-const handleDecline = async () => {
-  if (!orderId.value || !isOrderAssignee.value || !isInProgressStatus.value) {
+const handleDecline = () => {
+  if (!orderId.value || !isOrderAssignee.value || !isInProgressStatus.value || isDeclining.value) {
     return
   }
+
+  isDeclineModalOpen.value = true
+}
+
+const handleDeclineConfirm = async () => {
+  if (!orderId.value || !isOrderAssignee.value || !isInProgressStatus.value || isDeclining.value) {
+    return
+  }
+
+  isDeclining.value = true
 
   try {
     // Update order: set status to pending and remove assignee
@@ -488,10 +501,14 @@ const handleDecline = async () => {
       assignee_telegram_avatar_url: null,
     })
 
+    isDeclineModalOpen.value = false
     // Reload order to get updated data
     await loadOrder()
   } catch (err) {
     console.error('Не удалось отказаться от задачи:', err)
+    isDeclineModalOpen.value = false
+  } finally {
+    isDeclining.value = false
   }
 }
 
@@ -841,5 +858,17 @@ useHead({
         <span>{{ isTakingInWork ? 'Обрабатываем...' : 'Взять в работу' }}</span>
       </button>
     </footer>
+
+    <ConfirmationModal
+      :is-open="isDeclineModalOpen"
+      :is-loading="isDeclining"
+      title="Отказаться от задачи"
+      message="Вы уверены, что хотите отказаться от этой задачи? Задача вернётся в статус «Ожидает выполнения» и будет доступна другим исполнителям."
+      confirm-text="Отказаться"
+      cancel-text="Отмена"
+      variant="warning"
+      @close="isDeclineModalOpen = false"
+      @confirm="handleDeclineConfirm"
+    />
   </div>
 </template>
