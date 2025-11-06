@@ -98,6 +98,7 @@ export default defineEventHandler(async (event) => {
       color: project.color || undefined,
       ownerTelegramId: project.user_telegram_id,
       membersCount,
+      archived: project.archived || false,
     }
 
     return transformedProject

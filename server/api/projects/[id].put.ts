@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
       title: string
       description?: string
       color?: string | null
+      archived?: boolean
     } = {
       title: body.title.trim(),
     }
@@ -54,6 +55,10 @@ export default defineEventHandler(async (event) => {
 
     if (body.color !== undefined) {
       updateData.color = body.color || null
+    }
+
+    if (body.archived !== undefined) {
+      updateData.archived = body.archived === true
     }
 
     // Update project (only if it belongs to the user)
@@ -88,6 +93,7 @@ export default defineEventHandler(async (event) => {
       completed: project.completed || 0,
       total: project.total || 0,
       color: project.color || undefined,
+      archived: project.archived || false,
     }
 
     return transformedProject

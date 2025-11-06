@@ -39,4 +39,5 @@ export interface Project {
   color?: string
   ownerTelegramId?: number
   membersCount?: number
+  archived?: boolean
 }

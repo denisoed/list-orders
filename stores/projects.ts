@@ -12,6 +12,7 @@ export interface UpdateProjectInput {
   title: string
   description?: string
   color?: string
+  archived?: boolean
 }
 
 /**
@@ -20,7 +21,9 @@ export interface UpdateProjectInput {
 export const useProjectsStore = defineStore('projects', () => {
   // State
   const projects = ref<Project[]>([])
+  const archivedProjects = ref<Project[]>([])
   const isLoading = ref(false)
+  const isLoadingArchived = ref(false)
   const isCreating = ref(false)
   const isUpdating = ref(false)
   const isDeleting = ref(false)
@@ -189,20 +192,42 @@ export const useProjectsStore = defineStore('projects', () => {
           title: trimmedTitle,
           description: trimmedDescription,
           color: projectColor,
+          archived: input.archived,
         },
       }))
 
       const projectIndex = projects.value.findIndex((project) => project.id === projectId)
+      const archivedProjectIndex = archivedProjects.value.findIndex((project) => project.id === projectId)
 
-      if (projectIndex !== -1) {
-        projects.value.splice(projectIndex, 1, updatedProject)
+      // If project is archived, remove from active projects and add/update in archived
+      if (updatedProject.archived) {
+        // Remove from active projects if it was there
+        if (projectIndex !== -1) {
+          projects.value.splice(projectIndex, 1)
+        }
+        // Update or add to archived projects
+        if (archivedProjectIndex !== -1) {
+          archivedProjects.value.splice(archivedProjectIndex, 1, updatedProject)
+        } else {
+          archivedProjects.value.push(updatedProject)
+        }
       } else {
-        projects.value.push(updatedProject)
+        // If project is not archived, remove from archived and add/update in active
+        if (archivedProjectIndex !== -1) {
+          archivedProjects.value.splice(archivedProjectIndex, 1)
+        }
+        // Update or add to active projects
+        if (projectIndex !== -1) {
+          projects.value.splice(projectIndex, 1, updatedProject)
+        } else {
+          projects.value.push(updatedProject)
+        }
       }
 
       console.info('[ProjectsStore] Project updated successfully', {
         projectId: updatedProject.id,
         title: updatedProject.title,
+        archived: updatedProject.archived,
       })
 
       return updatedProject
@@ -271,6 +296,68 @@ export const useProjectsStore = defineStore('projects', () => {
   }
 
   /**
+   * Fetch archived projects from the server
+   */
+  async function fetchArchivedProjects(): Promise<Project[]> {
+    isLoadingArchived.value = true
+    error.value = null
+
+    try {
+      const response = await $fetch<Project[]>('/api/projects/archived', getFetchOptions())
+
+      archivedProjects.value = response
+
+      console.info('[ProjectsStore] Archived projects fetched successfully', {
+        count: response.length,
+      })
+
+      return response
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Не удалось загрузить заархивированные проекты'
+      error.value = errorMessage
+      console.error('[ProjectsStore] Error fetching archived projects:', err)
+      throw err
+    } finally {
+      isLoadingArchived.value = false
+    }
+  }
+
+  /**
+   * Archive a project
+   */
+  async function archiveProject(projectId: string): Promise<Project> {
+    const project = projects.value.find((p) => p.id === projectId)
+    if (!project) {
+      throw new Error('Project not found')
+    }
+
+    return await updateProject(projectId, {
+      title: project.title,
+      description: project.description,
+      color: project.color,
+      archived: true,
+    })
+  }
+
+  /**
+   * Unarchive a project
+   */
+  async function unarchiveProject(projectId: string): Promise<Project> {
+    const project = archivedProjects.value.find((p) => p.id === projectId)
+    if (!project) {
+      throw new Error('Project not found')
+    }
+
+    return await updateProject(projectId, {
+      title: project.title,
+      description: project.description,
+      color: project.color,
+      archived: false,
+    })
+  }
+
+  /**
    * Clear error state
    */
   function clearError(): void {
@@ -279,7 +366,9 @@ export const useProjectsStore = defineStore('projects', () => {
 
   return {
     projects,
+    archivedProjects,
     isLoading,
+    isLoadingArchived,
     isCreating,
     isUpdating,
     isDeleting,
@@ -287,9 +376,12 @@ export const useProjectsStore = defineStore('projects', () => {
     // Actions
     fetchProjects,
     fetchProject,
+    fetchArchivedProjects,
     createProject,
     updateProject,
     deleteProject,
+    archiveProject,
+    unarchiveProject,
     getProjectById,
     setProjects,
     clearProjects,

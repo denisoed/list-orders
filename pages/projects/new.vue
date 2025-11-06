@@ -3,11 +3,13 @@ import { computed, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useProjects } from '~/composables/useProjects'
 import { useProjectsStore } from '~/stores/projects'
+import { useUserStore } from '~/stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const projectsStore = useProjectsStore()
-const { createProject, updateProject, isCreating, isUpdating } = useProjects()
+const userStore = useUserStore()
+const { createProject, updateProject, archiveProject, isCreating, isUpdating } = useProjects()
 
 const title = ref('')
 const description = ref('')
@@ -16,6 +18,8 @@ const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
 const isSubmittingLocal = ref(false)
+const isArchiving = ref(false)
+const archiveError = ref('')
 
 const editProjectId = computed(() => {
   const edit = route.query.edit
@@ -79,6 +83,17 @@ const inviteProjectId = computed(() => {
   return editableProject.value.id
 })
 
+const isProjectOwner = computed(() => {
+  if (!isEditing.value || !editableProject.value || !userStore.user) {
+    return false
+  }
+  return editableProject.value.ownerTelegramId === userStore.user.telegram_id
+})
+
+const isProjectArchived = computed(() => {
+  return editableProject.value?.archived === true
+})
+
 const pageTitle = computed(() => (isEditing.value ? 'Редактирование проекта' : 'Новый проект'))
 const closeAriaLabel = computed(() =>
   isEditing.value ? 'Закрыть редактирование проекта' : 'Закрыть создание проекта',
@@ -132,6 +147,26 @@ const handleSubmit = async () => {
       : 'Не удалось создать проект. Попробуйте ещё раз.'
   } finally {
     isSubmittingLocal.value = false
+  }
+}
+
+const handleArchive = async () => {
+  if (!editableProject.value || isArchiving.value) {
+    return
+  }
+
+  isArchiving.value = true
+  archiveError.value = ''
+
+  try {
+    await archiveProject(editableProject.value.id)
+    // Redirect to home page after archiving
+    await router.push('/')
+  } catch (error) {
+    console.error('Failed to archive project:', error)
+    archiveError.value = 'Не удалось заархивировать проект. Попробуйте ещё раз.'
+  } finally {
+    isArchiving.value = false
   }
 }
 
@@ -249,6 +284,28 @@ watch(
             enterkeyhint="done"
           ></textarea>
         </label>
+
+        <div v-if="isEditing && isProjectOwner && !isProjectArchived" class="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div class="space-y-3">
+            <div>
+              <h3 class="text-base font-semibold leading-tight text-white">Действия с проектом</h3>
+              <p class="mt-1 text-sm text-gray-400">Управление проектом</p>
+            </div>
+            <div v-if="archiveError" class="rounded-lg bg-red-500/10 p-3 text-sm text-red-300">
+              {{ archiveError }}
+            </div>
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-transparent px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="isArchiving || isSubmitting"
+              @click="handleArchive"
+            >
+              <span v-if="isArchiving" class="material-symbols-outlined text-base animate-spin">hourglass_empty</span>
+              <span v-else class="material-symbols-outlined text-base">archive</span>
+              {{ isArchiving ? 'Архивирование…' : 'Заархивировать проект' }}
+            </button>
+          </div>
+        </div>
       </div>
     </main>
 

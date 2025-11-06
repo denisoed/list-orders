@@ -12,7 +12,9 @@ import {
 export const useProjects = () => {
   const store = useProjectsStore()
   const projects = computed(() => store.projects)
+  const archivedProjects = computed(() => store.archivedProjects)
   const isLoading = computed(() => store.isLoading)
+  const isLoadingArchived = computed(() => store.isLoadingArchived)
   const isCreating = computed(() => store.isCreating)
   const isUpdating = computed(() => store.isUpdating)
   const isDeleting = computed(() => store.isDeleting)
@@ -23,6 +25,13 @@ export const useProjects = () => {
    */
   const fetchProjects = async (): Promise<Project[]> => {
     return await store.fetchProjects()
+  }
+
+  /**
+   * Fetch archived projects from the server
+   */
+  const fetchArchivedProjects = async (): Promise<Project[]> => {
+    return await store.fetchArchivedProjects()
   }
 
   /**
@@ -50,6 +59,20 @@ export const useProjects = () => {
   }
 
   /**
+   * Archive a project
+   */
+  const archiveProject = async (projectId: string): Promise<Project> => {
+    return await store.archiveProject(projectId)
+  }
+
+  /**
+   * Unarchive a project
+   */
+  const unarchiveProject = async (projectId: string): Promise<Project> => {
+    return await store.unarchiveProject(projectId)
+  }
+
+  /**
    * Delete a project from the server
    */
   const deleteProject = async (projectId: string): Promise<void> => {
@@ -59,16 +82,21 @@ export const useProjects = () => {
   return {
     // State
     projects,
+    archivedProjects,
     isLoading,
+    isLoadingArchived,
     isCreating,
     isUpdating,
     isDeleting,
     error,
     // Actions
     fetchProjects,
+    fetchArchivedProjects,
     fetchProject,
     createProject,
     updateProject,
+    archiveProject,
+    unarchiveProject,
     deleteProject,
     // Additional helpers
     getProjectById: store.getProjectById,

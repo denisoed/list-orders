@@ -37,7 +37,11 @@ onMounted(async () => {
 })
 
 const visibleProjects = computed<Project[]>(() => {
-  return route.query.empty === 'true' ? [] : projects.value
+  if (route.query.empty === 'true') {
+    return []
+  }
+  // Filter out archived projects (additional client-side filtering for safety)
+  return projects.value.filter((project) => !project.archived)
 })
 
 const hasProjects = computed(() => visibleProjects.value.length > 0)

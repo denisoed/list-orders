@@ -20,11 +20,13 @@ export default defineEventHandler(async (event) => {
     const supabase = getSupabaseClient()
 
     // Fetch projects owned by the user and projects where user is a member in parallel
+    // Exclude archived projects from the list
     const [ownedProjectsResult, memberProjectsResult] = await Promise.all([
       supabase
         .from('projects')
         .select('*')
-        .eq('user_telegram_id', userTelegramId),
+        .eq('user_telegram_id', userTelegramId)
+        .or('archived.is.null,archived.eq.false'),
       supabase
         .from('project_members')
         .select('project_id, projects(*)')
@@ -51,9 +53,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // Combine owned projects and member projects
+    // Filter out archived projects from member projects
     const memberProjectsData = (memberProjects || [])
       .map((item: any) => item.projects)
-      .filter((project: any) => project !== null && project.user_telegram_id !== userTelegramId) // Exclude projects already owned by user
+      .filter((project: any) => 
+        project !== null && 
+        project.user_telegram_id !== userTelegramId &&
+        (project.archived === null || project.archived === false) // Exclude archived projects
+      )
 
     // Merge and deduplicate projects by ID
     const allProjects = [...(ownedProjects || []), ...memberProjectsData]
@@ -93,6 +100,7 @@ export default defineEventHandler(async (event) => {
       color: project.color || undefined,
       ownerTelegramId: project.user_telegram_id,
       membersCount: memberCountMap.get(project.id) || 0,
+      archived: project.archived || false,
     }))
 
     return transformedProjects
