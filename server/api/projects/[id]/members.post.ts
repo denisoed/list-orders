@@ -41,12 +41,14 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Verify that the project belongs to the user
+    // Check if user is adding themselves (invitation case) or is the project owner
+    const isSelfInvitation = userTelegramId === body.memberTelegramId
+
+    // Verify that the project exists
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, title')
+      .select('id, title, user_telegram_id')
       .eq('id', projectId)
-      .eq('user_telegram_id', userTelegramId)
       .single()
 
     if (projectError || !project) {
@@ -60,7 +62,23 @@ export default defineEventHandler(async (event) => {
       console.error('[Project Members API] Error fetching project:', projectError)
       return sendError(event, createError({
         statusCode: 500,
-        message: 'Failed to verify project ownership'
+        message: 'Failed to verify project'
+      }))
+    }
+
+    // Check permissions: user must be either the project owner OR adding themselves
+    if (!isSelfInvitation && project.user_telegram_id !== userTelegramId) {
+      return sendError(event, createError({
+        statusCode: 403,
+        message: 'Forbidden: Only project owner can add other members'
+      }))
+    }
+
+    // Prevent owner from adding themselves
+    if (isSelfInvitation && project.user_telegram_id === userTelegramId) {
+      return sendError(event, createError({
+        statusCode: 400,
+        message: 'Project owner cannot add themselves as a member'
       }))
     }
 
