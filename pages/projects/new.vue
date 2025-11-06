@@ -308,18 +308,24 @@ watch(
         </div>
 
         <div v-if="isEditing && isProjectOwner && !isProjectArchived" class="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div class="space-y-4">
+          <div class="space-y-3">
             <div>
               <h3 class="text-base font-semibold leading-tight text-white">Настройки функций</h3>
               <p class="mt-1 text-sm text-gray-400">Управление функциями проекта</p>
             </div>
-            <div class="space-y-4">
-              <Toggle
-                v-model="featuresSettings.requireReview"
-                label="Требовать проверку"
-                description="Если включено, задачи отправляются на проверку. Если выключено, исполнитель может сразу завершить задачу."
-              />
-            </div>
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-transparent px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              @click="
+                $router.push({
+                  path: `/projects/${editProjectId}/settings`,
+                  query: returnPath ? { from: returnPath } : {},
+                })
+              "
+            >
+              <span class="material-symbols-outlined text-base">settings</span>
+              Открыть настройки проекта
+            </button>
           </div>
         </div>
 

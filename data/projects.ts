@@ -32,6 +32,19 @@ export interface ProjectOrder {
 
 export interface ProjectFeaturesSettings {
   requireReview?: boolean
+  orderFields?: {
+    title?: boolean
+    description?: boolean
+    assignee?: boolean
+    attachments?: boolean
+    payment?: boolean
+    delivery?: boolean
+    clientName?: boolean
+    clientPhone?: boolean
+    dueDate?: boolean
+    dueTime?: boolean
+    reminder?: boolean
+  }
 }
 
 export interface Project {

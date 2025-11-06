@@ -29,6 +29,40 @@ const isTakingInWork = ref(false)
 const isSubmittingForReview = ref(false)
 const isMarkingAsDone = ref(false)
 
+// Get order fields settings from project
+const orderFieldsSettings = computed(() => {
+  const defaultFields = {
+    title: true,
+    description: true,
+    assignee: false,
+    attachments: false,
+    payment: false,
+    delivery: false,
+    clientName: false,
+    clientPhone: false,
+    dueDate: false,
+    dueTime: false,
+    reminder: false,
+  }
+  
+  if (!project.value?.featuresSettings?.orderFields) {
+    return defaultFields
+  }
+  
+  return {
+    ...defaultFields,
+    ...project.value.featuresSettings.orderFields,
+  }
+})
+
+// Computed properties for field visibility
+const showDescription = computed(() => orderFieldsSettings.value.description !== false)
+const showAttachments = computed(() => orderFieldsSettings.value.attachments === true)
+const showPayment = computed(() => orderFieldsSettings.value.payment === true)
+const showDelivery = computed(() => orderFieldsSettings.value.delivery === true)
+const showClient = computed(() => orderFieldsSettings.value.clientName === true || orderFieldsSettings.value.clientPhone === true)
+const showDueDate = computed(() => orderFieldsSettings.value.dueDate === true || orderFieldsSettings.value.dueTime === true)
+
 // Handle startapp parameter from query string (for direct link opening)
 const startAppParam = computed(() => {
   const startapp = route.query.startapp
@@ -171,14 +205,20 @@ const hasClientPaymentDetails = computed(() => {
   return Boolean(prepayment?.trim() || totalAmount?.trim())
 })
 
-const quickInfoItems = computed(() => [
-  {
-    id: 'due-date',
-    icon: 'calendar_today',
-    label: 'Срок выполнения',
-    value: order.value?.dueDateLabel || '',
-  },
-])
+const quickInfoItems = computed(() => {
+  const items = []
+  
+  if (orderFieldsSettings.value.dueDate !== false || orderFieldsSettings.value.dueTime !== false) {
+    items.push({
+      id: 'due-date',
+      icon: 'calendar_today',
+      label: 'Срок выполнения',
+      value: order.value?.dueDateLabel || '',
+    })
+  }
+  
+  return items
+})
 
 const statusToneClass = (tone: OrderStatusTone) => {
   const toneClasses: Record<OrderStatusTone, string> = {
@@ -564,8 +604,8 @@ useHead({
         </div>
       </section>
 
-      <section class="grid gap-4 lg:grid-cols-2">
-        <article v-if="hasAssignee" class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+      <section v-if="(orderFieldsSettings.assignee !== false && hasAssignee) || quickInfoItems.length > 0" class="grid gap-4 lg:grid-cols-2">
+        <article v-if="orderFieldsSettings.assignee !== false && hasAssignee" class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <img
             :src="order.assignee!.avatarUrl"
             :alt="`Аватар ответственного ${order.assignee!.name}`"
@@ -589,7 +629,7 @@ useHead({
         </article>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="showDescription" class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]" open>
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
@@ -603,7 +643,7 @@ useHead({
         </details>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="showAttachments" class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-base font-semibold">Примеры</h2>
           <span class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ examplesCountLabel }}</span>
@@ -631,7 +671,7 @@ useHead({
         </p>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="showClient" class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
@@ -640,11 +680,11 @@ useHead({
             <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
           </summary>
           <div class="mt-3 space-y-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
-            <div>
+            <div v-if="orderFieldsSettings.clientName !== false">
               <p class="font-medium text-gray-700 dark:text-gray-300">Имя клиента</p>
               <p class="mt-1">{{ order.client.name }}</p>
             </div>
-            <div>
+            <div v-if="orderFieldsSettings.clientPhone !== false">
               <p class="font-medium text-gray-700 dark:text-gray-300">Номер телефона</p>
               <div class="mt-1 flex flex-wrap items-center justify-between gap-3">
                 <p class="mt-1">{{ order.client.phone }}</p>
@@ -677,7 +717,7 @@ useHead({
         </details>
       </section>
 
-      <section v-if="hasClientPaymentDetails" class="space-y-3">
+      <section v-if="showPayment && hasClientPaymentDetails" class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
@@ -698,7 +738,7 @@ useHead({
         </details>
       </section>
 
-      <section class="space-y-3">
+      <section v-if="showDelivery" class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"

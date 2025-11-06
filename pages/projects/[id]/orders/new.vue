@@ -35,6 +35,45 @@ const { members, fetchMembers, isLoading: isLoadingMembers } = useProjectTeam(pr
 
 const project = computed(() => getProjectById(projectId.value))
 
+// Get order fields settings from project
+const orderFieldsSettings = computed(() => {
+  const defaultFields = {
+    title: true,
+    description: true,
+    assignee: false,
+    attachments: false,
+    payment: false,
+    delivery: false,
+    clientName: false,
+    clientPhone: false,
+    dueDate: false,
+    dueTime: false,
+    reminder: false,
+  }
+  
+  if (!project.value?.featuresSettings?.orderFields) {
+    return defaultFields
+  }
+  
+  return {
+    ...defaultFields,
+    ...project.value.featuresSettings.orderFields,
+  }
+})
+
+// Computed properties for field visibility
+const showTitle = computed(() => orderFieldsSettings.value.title !== false)
+const showDescription = computed(() => orderFieldsSettings.value.description !== false)
+const showAssignee = computed(() => orderFieldsSettings.value.assignee !== false)
+const showAttachments = computed(() => orderFieldsSettings.value.attachments === true)
+const showPayment = computed(() => orderFieldsSettings.value.payment === true)
+const showDelivery = computed(() => orderFieldsSettings.value.delivery === true)
+const showClientName = computed(() => orderFieldsSettings.value.clientName === true)
+const showClientPhone = computed(() => orderFieldsSettings.value.clientPhone === true)
+const showDueDate = computed(() => orderFieldsSettings.value.dueDate === true)
+const showDueTime = computed(() => orderFieldsSettings.value.dueTime === true)
+const showReminder = computed(() => orderFieldsSettings.value.reminder === true && showDueTime.value)
+
 // Initialize draft functionality (only for creating new orders, not editing)
 const { saveDraft, loadDraft, clearDraft, hasDraft, createDebouncedSave } = useOrderDraft(projectId)
 const debouncedSave = createDebouncedSave(500)
@@ -122,6 +161,9 @@ const titleError = computed(() => {
 })
 
 const clientNameError = computed(() => {
+  if (!showClientName.value) {
+    return ''
+  }
   if (clientName.value.trim().length > 0) {
     return ''
   }
@@ -129,6 +171,9 @@ const clientNameError = computed(() => {
 })
 
 const clientPhoneError = computed(() => {
+  if (!showClientPhone.value) {
+    return ''
+  }
   const digits = clientPhone.value.replace(/\D/g, '')
   if (digits.length >= 10) {
     return ''
@@ -139,6 +184,9 @@ const clientPhoneError = computed(() => {
 const isDeliverySelected = computed(() => deliveryOption.value === 'delivery')
 
 const deliveryAddressError = computed(() => {
+  if (!showDelivery.value) {
+    return ''
+  }
   if (!isDeliverySelected.value) {
     return ''
   }
@@ -152,17 +200,17 @@ const deliveryAddressError = computed(() => {
 
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
 const showClientNameError = computed(
-  () => (clientNameTouched.value || submitAttempted.value) && Boolean(clientNameError.value),
+  () => showClientName.value && (clientNameTouched.value || submitAttempted.value) && Boolean(clientNameError.value),
 )
 const showClientPhoneError = computed(
-  () => (clientPhoneTouched.value || submitAttempted.value) && Boolean(clientPhoneError.value),
+  () => showClientPhone.value && (clientPhoneTouched.value || submitAttempted.value) && Boolean(clientPhoneError.value),
 )
 const showDeliveryAddressError = computed(
   () =>
-    isDeliverySelected.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
+    showDelivery.value && isDeliverySelected.value && (deliveryAddressTouched.value || submitAttempted.value) && Boolean(deliveryAddressError.value),
 )
 
-const shouldShowDeliveryAddress = computed(() => isDeliverySelected.value)
+const shouldShowDeliveryAddress = computed(() => showDelivery.value && isDeliverySelected.value)
 
 const dueDateLabel = computed(() => {
   if (!dueDate.value) {
@@ -177,9 +225,9 @@ const dueDateLabel = computed(() => {
 const isFormValid = computed(() => {
   return (
     titleError.value.length === 0 &&
-    clientNameError.value.length === 0 &&
-    clientPhoneError.value.length === 0 &&
-    deliveryAddressError.value.length === 0
+    (!showClientName.value || clientNameError.value.length === 0) &&
+    (!showClientPhone.value || clientPhoneError.value.length === 0) &&
+    (!showDelivery.value || deliveryAddressError.value.length === 0)
   )
 })
 
@@ -863,7 +911,7 @@ useHead({
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
       <div v-if="projectId" class="flex flex-col space-y-6">
-        <label class="flex flex-col">
+        <label v-if="showTitle" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Название задачи</p>
           <input
             v-model="title"
@@ -877,7 +925,7 @@ useHead({
           <p v-if="showTitleError" class="pt-1 text-sm text-red-400">{{ titleError }}</p>
         </label>
 
-        <label class="flex flex-col">
+        <label v-if="showDescription" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Описание</p>
           <textarea
             v-model="description"
@@ -887,7 +935,7 @@ useHead({
           ></textarea>
         </label>
 
-        <div class="flex flex-col space-y-4">
+        <div v-if="showAttachments" class="flex flex-col space-y-4">
           <p class="text-base font-medium leading-normal">Фото примеров</p>
           <ImageUploader
             v-model="attachments"
@@ -901,7 +949,7 @@ useHead({
           </p>
         </div>
 
-        <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
+        <div v-if="showPayment" class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
           <p class="text-base font-medium leading-normal">Оплата</p>
           <label class="flex flex-col">
             <span class="pb-2 text-base font-medium leading-normal">Вся сумма</span>
@@ -936,7 +984,7 @@ useHead({
           </div>
         </div>
 
-        <div class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
+        <div v-if="showDelivery" class="flex flex-col space-y-4 rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4">
           <p class="text-base font-medium leading-normal">Доставка</p>
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 text-base font-medium leading-normal">
@@ -972,7 +1020,7 @@ useHead({
           </label>
         </div>
 
-        <label class="flex flex-col">
+        <label v-if="showClientName" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Имя клиента</p>
           <input
             v-model="clientName"
@@ -986,7 +1034,7 @@ useHead({
           <p v-if="showClientNameError" class="pt-1 text-sm text-red-400">{{ clientNameError }}</p>
         </label>
 
-        <label class="flex flex-col">
+        <label v-if="showClientPhone" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Номер телефона клиента</p>
           <input
             v-model="clientPhone"
@@ -1001,9 +1049,9 @@ useHead({
           <p v-if="showClientPhoneError" class="pt-1 text-sm text-red-400">{{ clientPhoneError }}</p>
         </label>
 
-        <div class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
+        <div v-if="showAssignee || showDueDate || showDueTime" class="flex flex-col divide-y divide-[#3b4354] rounded-lg border border-[#3b4354] bg-[#1c1f27]">
           <!-- Assignee -->
-          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+          <div v-if="showAssignee" class="flex min-h-14 items-center justify-between gap-4 p-4">
             <div class="flex items-center gap-4">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
                 <span class="material-symbols-outlined">person</span>
@@ -1031,7 +1079,7 @@ useHead({
           </div>
 
           <!-- Due Date -->
-          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+          <div v-if="showDueDate" class="flex min-h-14 items-center justify-between gap-4 p-4">
             <div class="flex items-center gap-4">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
                 <span class="material-symbols-outlined">calendar_today</span>
@@ -1056,7 +1104,7 @@ useHead({
           </div>
 
           <!-- Due Time -->
-          <div class="flex min-h-14 items-center justify-between gap-4 p-4">
+          <div v-if="showDueTime" class="flex min-h-14 items-center justify-between gap-4 p-4">
             <div class="flex items-center gap-4">
               <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#282e39] text-white">
                 <span class="material-symbols-outlined">schedule</span>
@@ -1085,7 +1133,7 @@ useHead({
           </div>
         </div>
 
-        <div v-if="dueTime" class="flex flex-col space-y-3">
+        <div v-if="showReminder && dueTime" class="flex flex-col space-y-3">
           <p class="text-base font-medium leading-normal">Напомнить за:</p>
           <div class="flex items-center gap-3">
             <button
