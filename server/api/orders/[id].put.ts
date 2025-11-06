@@ -4,6 +4,22 @@ import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 import { sendTelegramMessage } from '~/server/api/telegram'
 import { Markup } from 'telegraf'
 
+const applyRequiredFieldFallback = (
+  value: string | null | undefined,
+  fallback: string,
+): string | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (value === null) {
+    return fallback
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? value : fallback
+}
+
 /**
  * PUT /api/orders/[id]
  * Updates an existing order for the authenticated user
@@ -202,6 +218,21 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         message: 'No fields to update'
       }))
+    }
+
+    const titleWithFallback = applyRequiredFieldFallback(updateData.title, 'Без названия')
+    if (titleWithFallback !== undefined) {
+      updateData.title = titleWithFallback
+    }
+
+    const clientNameWithFallback = applyRequiredFieldFallback(updateData.client_name, 'Без имени')
+    if (clientNameWithFallback !== undefined) {
+      updateData.client_name = clientNameWithFallback
+    }
+
+    const clientPhoneWithFallback = applyRequiredFieldFallback(updateData.client_phone, 'Не указан')
+    if (clientPhoneWithFallback !== undefined) {
+      updateData.client_phone = clientPhoneWithFallback
     }
 
     // First, fetch the order to check project access and get current status

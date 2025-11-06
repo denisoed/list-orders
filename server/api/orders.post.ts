@@ -2,6 +2,15 @@ import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 
+const ensureRequiredField = (value: string | null | undefined, fallback: string): string => {
+  if (typeof value !== 'string') {
+    return fallback
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : fallback
+}
+
 /**
  * POST /api/orders
  * Creates a new order for the authenticated user
@@ -111,9 +120,9 @@ export default defineEventHandler(async (event) => {
       project_id: sanitizedProjectId,
       user_telegram_id: userTelegramId,
       code: orderCode.trim(),
-      title: sanitizedTitle,
-      client_name: sanitizedClientName,
-      client_phone: sanitizedClientPhone,
+      title: ensureRequiredField(sanitizedTitle, 'Без названия'),
+      client_name: ensureRequiredField(sanitizedClientName, 'Без имени'),
+      client_phone: ensureRequiredField(sanitizedClientPhone, 'Не указан'),
     }
 
     // Add optional fields
