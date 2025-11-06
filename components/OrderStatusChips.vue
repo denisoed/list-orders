@@ -32,7 +32,7 @@ const handleSelect = (value: string) => {
   <div
     role="radiogroup"
     aria-label="Фильтр задач по статусу"
-    class="flex gap-2 overflow-x-auto py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    class="flex gap-2 overflow-x-auto py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-[1] relative"
   >
     <button
       v-for="option in props.options"

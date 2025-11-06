@@ -5,6 +5,7 @@ import OrderCard from '~/components/OrderCard.vue'
 import OrderEmptyState from '~/components/OrderEmptyState.vue'
 import OrderPageHeader from '~/components/OrderPageHeader.vue'
 import OrderStatusChips from '~/components/OrderStatusChips.vue'
+import MonthSelector from '~/components/MonthSelector.vue'
 import { ORDER_STATUS_FILTERS, useProjectOrders, type OrderStatusFilter } from '~/composables/useProjectOrders'
 import { mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
 import { useProjects } from '~/composables/useProjects'
@@ -166,7 +167,18 @@ const parseOrderDate = (value: string | undefined) => {
     return null
   }
 
-  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10))
+  const parts = value.split('-').map((part) => Number.parseInt(part, 10))
+  if (parts.length !== 3) {
+    return null
+  }
+
+  const year = parts[0]
+  const month = parts[1]
+  const day = parts[2]
+
+  if (year === undefined || month === undefined || day === undefined) {
+    return null
+  }
 
   if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
     return null
@@ -215,39 +227,14 @@ watch(
     }
 
     const currentOption = options.find((option) => option.value === currentMonthId.value)
-    selectedMonthId.value = currentOption ? currentOption.value : options[0].value
+    const firstOption = options[0]
+    selectedMonthId.value = currentOption ? currentOption.value : firstOption?.value ?? ''
   },
   { immediate: true },
 )
 
-const selectedMonth = computed(() => monthOptions.value.find((option) => option.value === selectedMonthId.value) ?? null)
-const selectedMonthIndex = computed(() => monthOptions.value.findIndex((option) => option.value === selectedMonthId.value))
-
-const canGoToPreviousMonth = computed(() => selectedMonthIndex.value > 0)
-const canGoToNextMonth = computed(
-  () => selectedMonthIndex.value >= 0 && selectedMonthIndex.value < monthOptions.value.length - 1,
-)
-
-const handlePreviousMonth = () => {
-  if (!canGoToPreviousMonth.value) {
-    return
-  }
-
-  const previous = monthOptions.value[selectedMonthIndex.value - 1]
-  if (previous) {
-    selectedMonthId.value = previous.value
-  }
-}
-
-const handleNextMonth = () => {
-  if (!canGoToNextMonth.value) {
-    return
-  }
-
-  const next = monthOptions.value[selectedMonthIndex.value + 1]
-  if (next) {
-    selectedMonthId.value = next.value
-  }
+const handleMonthChange = (value: string) => {
+  selectedMonthId.value = value
 }
 
 // Reset status filter when month changes
@@ -413,39 +400,7 @@ useHead({
         <DataLoadingIndicator v-if="isLoading" message="Загрузка задач..." />
 
         <template v-else>
-          <div
-            class="rounded-3xl border border-black/5 bg-white/80 px-2 py-2 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#1C2431]/70"
-          >
-            <div class="flex flex-col gap-4">
-              <div class="flex items-center gap-3">
-                <button
-                  type="button"
-                  class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-                  :disabled="!canGoToPreviousMonth"
-                  aria-label="Предыдущий месяц"
-                  @click="handlePreviousMonth"
-                >
-                  <span class="material-symbols-outlined text-2xl">chevron_left</span>
-                </button>
-                <div
-                  class="flex flex-1 items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-medium text-white shadow-inner dark:bg-white/10"
-                >
-                  <span class="truncate">
-                    {{ selectedMonth?.label ?? 'Месяц не выбран' }}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  class="flex size-12 items-center justify-center rounded-full bg-black/5 text-black transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
-                  :disabled="!canGoToNextMonth"
-                  aria-label="Следующий месяц"
-                  @click="handleNextMonth"
-                >
-                  <span class="material-symbols-outlined text-2xl">chevron_right</span>
-                </button>
-              </div>
-            </div>
-          </div>
+          <MonthSelector :model-value="selectedMonthId" :options="monthOptions" @update:model-value="handleMonthChange" />
           <OrderStatusChips :model-value="activeStatus" :options="statusOptions" @update:model-value="handleStatusChange" />
 
           <div class="flex flex-col gap-4 pt-2">
