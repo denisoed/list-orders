@@ -32,16 +32,28 @@ onMounted(async () => {
     console.warn('[Telegram] Failed to send initData to server', error)
   }
 
-  // Handle start_param for deep linking to order details
+  // Handle start_param for deep linking
   const startParam = getStartParam()
   if (startParam) {
-    // Check if we're already on the order details page for this order
-    const currentOrderId = route.params.id
-    const isOrderDetailsPage = route.path.startsWith('/orders/')
-    
-    // Only redirect if we're not already on the target page
-    if (!isOrderDetailsPage || currentOrderId !== startParam) {
-      router.push(`/orders/${startParam}`)
+    // Check if it's an invite link (format: invite_{projectId})
+    if (startParam.startsWith('invite_')) {
+      const projectId = startParam.replace('invite_', '')
+      const currentProjectId = route.params.id
+      const isInvitePage = route.path.startsWith(`/projects/${projectId}/invite`)
+      
+      // Only redirect if we're not already on the target invite page
+      if (!isInvitePage || currentProjectId !== projectId) {
+        router.push(`/projects/${projectId}/invite`)
+      }
+    } else {
+      // Handle order details deep linking
+      const currentOrderId = route.params.id
+      const isOrderDetailsPage = route.path.startsWith('/orders/')
+      
+      // Only redirect if we're not already on the target page
+      if (!isOrderDetailsPage || currentOrderId !== startParam) {
+        router.push(`/orders/${startParam}`)
+      }
     }
   }
 })

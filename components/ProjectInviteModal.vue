@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from '#imports'
 
 interface Props {
   isOpen: boolean
@@ -16,11 +15,11 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const route = useRoute()
 const inviteLink = computed(() => {
   if (!props.projectId) return ''
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${baseUrl}/projects/${props.projectId}/invite`
+  // Telegram Mini App link format: https://t.me/bot_username?start=parameter
+  const botUsername = 'list_orders_bot'
+  return `https://t.me/${botUsername}/app?start=invite_${props.projectId}`
 })
 
 const isCopied = ref(false)
