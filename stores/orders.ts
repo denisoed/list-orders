@@ -110,7 +110,7 @@ export const useOrdersStore = defineStore('orders', () => {
       return response
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Не удалось загрузить заказы'
+        err instanceof Error ? err.message : 'Не удалось загрузить задачи'
       error.value = errorMessage
       console.error('[OrdersStore] Error fetching orders:', err)
       throw err
@@ -145,7 +145,7 @@ export const useOrdersStore = defineStore('orders', () => {
       return order
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+        err instanceof Error ? err.message : 'Не удалось загрузить задачу'
       error.value = errorMessage
       console.error('[OrdersStore] Error fetching order:', err)
       throw err
@@ -163,7 +163,7 @@ export const useOrdersStore = defineStore('orders', () => {
     const trimmedClientPhone = input.client_phone.trim()
 
     if (!trimmedTitle) {
-      const errorMessage = 'Название заказа не может быть пустым'
+      const errorMessage = 'Название задачи не может быть пустым'
       error.value = errorMessage
       throw new Error(errorMessage)
     }
@@ -181,7 +181,7 @@ export const useOrdersStore = defineStore('orders', () => {
     }
 
     if (!input.project_id) {
-      const errorMessage = 'ID проекта обязателен для создания заказа'
+      const errorMessage = 'ID проекта обязателен для создания задачи'
       error.value = errorMessage
       throw new Error(errorMessage)
     }
@@ -222,7 +222,7 @@ export const useOrdersStore = defineStore('orders', () => {
       return newOrder
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Не удалось создать заказ'
+        err instanceof Error ? err.message : 'Не удалось создать задачу'
       error.value = errorMessage
       console.error('[OrdersStore] Error creating order:', err)
       throw err
@@ -243,7 +243,7 @@ export const useOrdersStore = defineStore('orders', () => {
     const trimmedClientPhone = input.client_phone?.trim()
 
     if (trimmedTitle !== undefined && !trimmedTitle) {
-      const errorMessage = 'Название заказа не может быть пустым'
+      const errorMessage = 'Название задачи не может быть пустым'
       error.value = errorMessage
       throw new Error(errorMessage)
     }
@@ -345,7 +345,7 @@ export const useOrdersStore = defineStore('orders', () => {
       return updatedOrder
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Не удалось обновить заказ'
+        err instanceof Error ? err.message : 'Не удалось обновить задачу'
       error.value = errorMessage
       console.error('[OrdersStore] Error updating order:', err)
       throw err
@@ -377,7 +377,7 @@ export const useOrdersStore = defineStore('orders', () => {
       })
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Не удалось удалить заказ'
+        err instanceof Error ? err.message : 'Не удалось удалить задачу'
       error.value = errorMessage
       console.error('[OrdersStore] Error deleting order:', err)
       throw err

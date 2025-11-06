@@ -229,7 +229,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
       {
         id: 'history-created',
         icon: 'add',
-        description: 'Заказ создан',
+        description: 'Задача создана',
         timestamp: formatHistoryTimestamp(order.createdAt),
         author: order.creatorTelegramName || undefined,
       },

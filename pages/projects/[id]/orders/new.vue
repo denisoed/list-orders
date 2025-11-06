@@ -118,7 +118,7 @@ const titleError = computed(() => {
   if (title.value.trim().length > 0) {
     return ''
   }
-  return 'Введите название заказа'
+  return 'Введите название задачи'
 })
 
 const clientNameError = computed(() => {
@@ -616,8 +616,8 @@ const handleSubmit = async () => {
 
   if (!projectId.value) {
     submitError.value = isEditMode.value 
-      ? 'Проект недоступен для редактирования заказа.'
-      : 'Проект недоступен для создания заказа.'
+      ? 'Проект недоступен для редактирования задачи.'
+      : 'Проект недоступен для создания задачи.'
     return
   }
 
@@ -745,7 +745,7 @@ const handleSubmit = async () => {
   } catch (error) {
     submitError.value = isEditMode.value
       ? 'Не удалось сохранить изменения. Попробуйте ещё раз.'
-      : 'Не удалось создать заказ. Попробуйте ещё раз.'
+      : 'Не удалось создать задачу. Попробуйте ещё раз.'
   } finally {
     isSubmittingLocal.value = false
   }
@@ -808,7 +808,7 @@ watch(attachments, () => {
 // Check if draft exists
 const draftExists = computed(() => !isEditMode.value && hasDraft())
 
-const pageTitle = computed(() => isEditMode.value ? 'Редактирование заказа' : 'Новая задача')
+const pageTitle = computed(() => isEditMode.value ? 'Редактирование задачи' : 'Новая задача')
 const submitButtonLabel = computed(() => {
   if (isSubmittingLocal.value || isCreating.value) return 'Создание…'
   if (isUpdating.value) return 'Сохранение…'
@@ -866,12 +866,12 @@ useHead({
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
       <div v-if="projectId" class="flex flex-col space-y-6">
         <label class="flex flex-col">
-          <p class="pb-2 text-base font-medium leading-normal">Название заказа</p>
+          <p class="pb-2 text-base font-medium leading-normal">Название задачи</p>
           <input
             v-model="title"
             class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
             type="text"
-            placeholder="Введите короткое название заказа"
+            placeholder="Введите короткое название задачи"
             :aria-invalid="showTitleError"
             enterkeyhint="done"
             @blur="handleTitleBlur"
@@ -912,7 +912,7 @@ useHead({
               class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
               type="number"
               inputmode="decimal"
-              placeholder="Введите сумму заказа"
+              placeholder="Введите сумму"
               min="0"
             />
           </label>

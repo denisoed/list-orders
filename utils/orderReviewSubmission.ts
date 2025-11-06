@@ -91,7 +91,7 @@ export const submitOrderReview = async (
   const { orderId, comment, attachments } = input
 
   if (!orderId) {
-    throw new Error('Не указан идентификатор заказа для отправки на проверку')
+    throw new Error('Не указан идентификатор задачи для отправки на проверку')
   }
 
   const sanitizedComment = comment.trim()
@@ -132,7 +132,7 @@ export const submitOrderReview = async (
       attachments: uploadedAttachments,
     }
   } catch (error) {
-    console.error('Ошибка отправки заказа на проверку', error)
+    console.error('Ошибка отправки задачи на проверку', error)
     throw error
   }
 }

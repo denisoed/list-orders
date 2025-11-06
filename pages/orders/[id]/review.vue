@@ -128,9 +128,9 @@ onMounted(async () => {
     }
   } catch (err) {
     const errorMessage =
-      err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+      err instanceof Error ? err.message : 'Не удалось загрузить задачу'
     loadError.value = errorMessage
-    console.error('Error loading order:', err)
+    console.error('Error loading task:', err)
   } finally {
     isLoading.value = false
   }
@@ -310,7 +310,7 @@ const handleFinish = async () => {
     const message =
       error instanceof Error
         ? error.message
-        : 'Не удалось завершить заказ. Попробуйте ещё раз.'
+        : 'Не удалось завершить задачу. Попробуйте ещё раз.'
     errorMessage.value = message
     console.error('Error finishing order:', error)
     isFinishing.value = false
@@ -412,8 +412,8 @@ const handleReturn = async (reason: string) => {
       })
     }
   } catch (error) {
-    console.error('Не удалось вернуть заказ:', error)
-    errorMessage.value = 'Не удалось вернуть заказ. Попробуйте ещё раз.'
+    console.error('Не удалось вернуть задачу:', error)
+    errorMessage.value = 'Не удалось вернуть задачу. Попробуйте ещё раз.'
     isReturning.value = false
   }
 }
@@ -442,8 +442,8 @@ const handleComplete = async () => {
       })
     }
   } catch (error) {
-    console.error('Не удалось завершить заказ:', error)
-    errorMessage.value = 'Не удалось завершить заказ. Попробуйте ещё раз.'
+    console.error('Не удалось завершить задачу:', error)
+    errorMessage.value = 'Не удалось завершить задачу. Попробуйте ещё раз.'
     isCompleting.value = false
   }
 }
@@ -462,7 +462,7 @@ const isUpdateDisabled = computed(() => {
 
 const pageTitle = computed(() => {
   const orderTitle = order.value?.title
-  return orderTitle ? `Проверка заказа — ${orderTitle}` : 'Проверка заказа'
+  return orderTitle ? `Проверка задачи — ${orderTitle}` : 'Проверка задачи'
 })
 
 useHead({
@@ -507,7 +507,7 @@ useHead({
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ order?.title || 'Проверка заказа' }}
+          {{ order?.title || 'Проверка задачи' }}
         </h1>
       </div>
     </header>
@@ -522,7 +522,7 @@ useHead({
       </div>
 
       <div v-else-if="!order" class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-gray-400">
-        Заказ не найден
+        Задача не найдена
       </div>
 
       <template v-else>
@@ -547,7 +547,7 @@ useHead({
             <textarea
               v-model="comment"
               class="min-h-32 w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
-              placeholder="Опишите выполненную работу, чтобы ускорить проверку заказа"
+              placeholder="Опишите выполненную работу, чтобы ускорить проверку задачи"
               enterkeyhint="done"
             ></textarea>
           </label>

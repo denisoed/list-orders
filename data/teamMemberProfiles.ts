@@ -280,7 +280,7 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
       },
       {
         id: 'history-2',
-        title: 'Провела стратегическую сессию с ключевыми заказчиками',
+        title: 'Провела стратегическую сессию с ключевыми людьми',
         completedAtLabel: '20 сентября 2024',
       },
     ],

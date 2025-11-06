@@ -46,9 +46,9 @@ onMounted(async () => {
     orderDetail.value = detail
   } catch (err) {
     const errorMessage =
-      err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+      err instanceof Error ? err.message : 'Не удалось загрузить задачу'
     loadError.value = errorMessage
-    console.error('Error loading order:', err)
+    console.error('Error loading task:', err)
   } finally {
     isLoading.value = false
   }
@@ -122,9 +122,9 @@ const handleReturn = async (reason: string) => {
     const detail = convertOrderToOrderDetail(orderData, project?.title)
     orderDetail.value = detail
   } catch (error) {
-    console.error('Не удалось вернуть заказ:', error)
+    console.error('Не удалось вернуть задачу:', error)
     // Show error message to user
-    alert('Не удалось вернуть заказ. Попробуйте ещё раз.')
+    alert('Не удалось вернуть задачу. Попробуйте ещё раз.')
   } finally {
     isReturning.value = false
   }
@@ -155,16 +155,16 @@ const handleComplete = async () => {
       })
     }
   } catch (error) {
-    console.error('Не удалось завершить заказ:', error)
+    console.error('Не удалось завершить задачу:', error)
     // Show error message to user
-    alert('Не удалось завершить заказ. Попробуйте ещё раз.')
+    alert('Не удалось завершить задачу. Попробуйте ещё раз.')
     isCompleting.value = false
   }
 }
 
 const pageTitle = computed(() => {
   const orderTitle = order.value?.title
-  return orderTitle ? `Проверка задачи — ${orderTitle}` : 'Проверка задачи'
+  return orderTitle ? `Подтверждение задачи — ${orderTitle}` : 'Подтверждение задачи'
 })
 
 useHead({
@@ -224,7 +224,7 @@ useHead({
       </div>
 
       <div v-else-if="!order || !orderDetail" class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-gray-400">
-        Заказ не найден
+        Задача не найдена
       </div>
 
       <template v-else>

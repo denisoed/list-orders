@@ -19,9 +19,9 @@ const orderDetailsRoute = computed(() => {
 })
 const orderAriaLabel = computed(() => {
   if (props.order.status === 'review') {
-    return `Открыть проверку заказа «${props.order.title}»`
+    return `Открыть проверку задачи «${props.order.title}»`
   }
-  return `Открыть детали заказа «${props.order.title}»`
+  return `Открыть детали задачи «${props.order.title}»`
 })
 
 const dueLabel = computed(() => {

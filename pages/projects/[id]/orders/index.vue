@@ -478,14 +478,14 @@ useHead({
             <OrderEmptyState
               v-else-if="hasFilteredOrders"
               icon="calendar_month"
-              title="Нет заказов в выбранном месяце"
+              title="Нет задач в выбранном месяце"
               description="Попробуйте переключить месяц или изменить фильтр статуса."
             />
             <OrderEmptyState
               v-else-if="hasOrders"
               icon="manage_search"
-              title="Нет заказов по выбранным фильтрам"
-              description="Измените статус или покажите все заказы."
+              title="Нет задач по выбранным фильтрам"
+              description="Измените статус или покажите все задачи."
             />
             <OrderEmptyState v-else />
           </div>

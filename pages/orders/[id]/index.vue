@@ -53,7 +53,7 @@ const loadOrder = async () => {
     order.value = orderDetail
   } catch (err) {
     const errorMessage =
-      err instanceof Error ? err.message : 'Не удалось загрузить заказ'
+      err instanceof Error ? err.message : 'Не удалось загрузить задачу'
     error.value = errorMessage
     console.error('Error loading order:', err)
   } finally {
@@ -282,7 +282,7 @@ const handleTakeInWork = async () => {
     // Reload order to get updated data
     await loadOrder()
   } catch (err) {
-    console.error('Не удалось взять заказ в работу:', err)
+    console.error('Не удалось взять задачу в работу:', err)
   } finally {
     isTakingInWork.value = false
   }
@@ -321,8 +321,8 @@ const handleShare = async () => {
 
   if (!order.value) return
   const shareData = {
-    title: order.value.title || 'Детали заказа',
-    text: order.value.description || 'Посмотрите детали заказа',
+    title: order.value.title || 'Детали задачи',
+    text: order.value.description || 'Посмотрите детали задачи',
     url: shareUrl,
   }
 
@@ -412,7 +412,7 @@ const handleDecline = async () => {
     // Reload order to get updated data
     await loadOrder()
   } catch (err) {
-    console.error('Не удалось отказаться от заказа:', err)
+    console.error('Не удалось отказаться от задачи:', err)
   }
 }
 
@@ -450,7 +450,7 @@ const menuItems = computed<DropdownMenuItem[]>(() => {
 })
 
 useHead({
-  title: order.value?.title || 'Заказ',
+  title: order.value?.title || 'Задача',
   htmlAttrs: {
     lang: 'ru',
     class: 'dark',
@@ -491,25 +491,25 @@ useHead({
 
       <div class="flex min-w-0 flex-1 flex-col items-start text-left">
         <h1 class="line-clamp-2 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
-          {{ order?.title || 'Заказ' }}
+          {{ order?.title || 'Задача' }}
         </h1>
       </div>
 
       <DropdownMenu
         :items="menuItems"
-        button-aria-label="Дополнительные действия для заказа"
+        button-aria-label="Дополнительные действия для задачи"
       />
     </header>
 
     <main class="flex-1 space-y-6 px-4 py-6 pb-28 sm:pb-24">
-      <DataLoadingIndicator v-if="isLoading" message="Загрузка заказа..." />
+      <DataLoadingIndicator v-if="isLoading" message="Загрузка задачи..." />
 
       <div v-else-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
         {{ error }}
       </div>
 
       <div v-else-if="!order" class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-gray-400">
-        Заказ не найден
+        Задача не найдена
       </div>
 
       <template v-else>

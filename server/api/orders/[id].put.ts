@@ -249,8 +249,8 @@ export default defineEventHandler(async (event) => {
 
     if (shouldSendNotification) {
       const assigneeName = order.assignee_telegram_name || 'Исполнитель'
-      const orderTitle = order.title || 'Заказ'
-      const message = `Ваш заказ "<b>${orderTitle}</b>" взят в работу.\n\nИсполнитель: <b>${assigneeName}</b>`
+      const orderTitle = order.title || 'Задача'
+      const message = `Ваша задача "<b>${orderTitle}</b>" взята в работу.\n\nИсполнитель: <b>${assigneeName}</b>`
       
       // Create button with link to order
       const appUrl = process.env.APP_URL || 'https://list-orders.vercel.app'
