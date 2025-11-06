@@ -270,7 +270,7 @@ useHead({
         <h1 class="line-clamp-1 text-lg font-semibold leading-tight tracking-[-0.01em] text-zinc-900 dark:text-white">
           Редактирование профиля
         </h1>
-        <p class="text-sm text-gray-500 dark:text-[#9da6b9]">Обновите личные данные и настройки аккаунта</p>
+        <p class="text-sm text-gray-500 dark:text-[#9da6b9]">Настройки аккаунта</p>
       </div>
 
       <div class="flex w-12 shrink-0 items-center justify-end"></div>
@@ -423,10 +423,10 @@ useHead({
       </section>
     </main>
     <footer
-      class="fixed bottom-0 left-0 z-20 w-full border-t border-black/10 bg-background-light/90 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/90"
+      class="fixed bottom-0 left-0 z-20 w-full border-t border-black/10 bg-background-light/90 p-4 pb-8 backdrop-blur dark:border-white/10 dark:bg-background-dark/90"
     >
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-3">
-        <div class="space-y-2" aria-live="polite">
+        <div v-if="submitSuccess || submitError || saveError" class="space-y-2" aria-live="polite">
           <div
             v-if="submitSuccess"
             class="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300"

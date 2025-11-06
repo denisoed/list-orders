@@ -124,7 +124,7 @@ watch(() => props.isLoading, (isLoading) => {
             </div>
 
             <!-- Footer -->
-            <footer class="border-t border-black/5 px-4 py-4 dark:border-white/10">
+            <footer class="border-t border-black/5 p-4 pb-8 dark:border-white/10">
               <button
                 type="button"
                 class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"

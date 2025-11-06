@@ -1123,7 +1123,7 @@ useHead({
       </div>
     </main>
 
-    <footer class="fixed bottom-0 left-0 z-10 w-full bg-background-dark/80 p-4 backdrop-blur-sm">
+    <footer class="fixed bottom-0 left-0 z-10 w-full bg-background-dark/80 p-4 pb-8 backdrop-blur-sm">
       <div class="space-y-2">
         <p v-if="submitError" class="text-sm text-red-400">{{ submitError }}</p>
         <button

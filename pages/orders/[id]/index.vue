@@ -709,7 +709,7 @@ useHead({
 
     <footer
       v-if="order && !isLoading"
-      class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 px-4 py-4 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
+      class="fixed bottom-0 left-0 right-0 border-t border-black/5 bg-background-light/95 p-4 pb-8 backdrop-blur dark:border-white/10 dark:bg-background-dark/95"
     >
       <button
         v-if="isDoneStatus"
