@@ -23,7 +23,7 @@ export async function sendTelegramMessage(
 
     await bot.telegram.sendMessage(telegramId, message, {
       parse_mode: 'HTML',
-      ...(replyMarkup && { reply_markup: replyMarkup }),
+      ...(replyMarkup && replyMarkup),
     })
   } catch (error) {
     console.error(`[Telegram] Failed to send message to user ${telegramId}:`, error)
