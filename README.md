@@ -1,4 +1,4 @@
-# list-orders
+# list orders
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
@@ -80,7 +80,7 @@ The application requires the following environment variables:
 
 ### Telegram
 
-- `TELEGRAM_BOT_TOKEN` — Telegram Bot Token obtained from [@BotFather](https://t.me/botfather). This token is used on the server side to validate Telegram Mini App initialization data (initData).
+- `TELEGRAM_BOT_TOKEN` — Telegram Bot Token obtained from [@BotFather](https://t.me/botfather). This token is used on the server side to validate Telegram Mini App initialization data (initData)[...]
 
 To set up the environment variable, create a `.env` file in the root of the project:
 
@@ -124,5 +124,4 @@ The client is initialized once and reused for all requests (singleton pattern).
 
 - `/projects/new` — форма создания и редактирования проекта. Под полем названия размещается компонент `ProjectInviteLink`,
   отображающий ссылку приглашения коллег с названием проекта и количеством участников.
-- `/projects/[id]/team` — страница «Управление командой» с поиском и списком коллег, доступная по ссылке приглашения из формы
-  проекта.
+- `/projects/[id]/team` — страница «Управление командой» с поиском и списком коллег, доступная по ссылке приглашени�[...]
