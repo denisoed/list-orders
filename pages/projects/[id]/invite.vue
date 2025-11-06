@@ -105,6 +105,7 @@ const checkAndAddMember = async () => {
           'x-telegram-init-data': initData,
         },
         body: {
+          initData,
           memberTelegramId: userTelegramId,
           role: 'Участник',
         },
