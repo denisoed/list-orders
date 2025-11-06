@@ -149,7 +149,7 @@ useHead({
     <main class="flex-1 px-4 pt-4">
       <DataLoadingIndicator v-if="isLoading" message="Загрузка проектов..." />
 
-      <div v-else-if="hasProjects" class="flex flex-col gap-3">
+      <div v-else-if="hasProjects" class="flex flex-col gap-3 pb-24">
         <NuxtLink
           v-for="project in visibleProjects"
           :key="project.id"
