@@ -34,8 +34,15 @@ const checkAndAddMember = async () => {
   }
 
   const initData = getInitData()
-  if (!initData) {
+  if (!initData || typeof initData !== 'string' || !initData.trim()) {
     error.value = 'Необходима авторизация через Telegram'
+    isLoading.value = false
+    return
+  }
+
+  // Ensure initData is valid (contains hash and auth_date)
+  if (!initData.includes('hash=') || !initData.includes('auth_date=')) {
+    error.value = 'Недействительные данные авторизации'
     isLoading.value = false
     return
   }
@@ -60,41 +67,22 @@ const checkAndAddMember = async () => {
 
     const userTelegramId = response.user.telegram_id
 
-    // Fetch current members to check if user is already a member
-    await fetchMembers()
-
-    // Check if user is already a member
-    const isAlreadyMember = members.value.some(
-      (member) => member.id === userTelegramId.toString()
-    )
-
-    if (isAlreadyMember) {
-      success.value = true
-      isLoading.value = false
-      // Load project to display its title (user already has access)
-      try {
-        await fetchProject(projectId.value)
-      } catch (err) {
-        // Ignore errors when loading project for display
-        console.warn('Failed to load project for display:', err)
-      }
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push(`/projects/${projectId.value}/orders`)
-      }, 2000)
-      return
-    }
-
     // Add user to project
     isAdding.value = true
     try {
+      // Re-get initData to ensure it's still valid
+      const currentInitData = getInitData()
+      if (!currentInitData || typeof currentInitData !== 'string') {
+        throw new Error('Недействительные данные авторизации')
+      }
+
       await $fetch(`/api/projects/${projectId.value}/members`, {
         method: 'POST',
         headers: {
-          'x-telegram-init-data': initData,
+          'x-telegram-init-data': currentInitData,
         },
         body: {
-          initData,
+          initData: currentInitData,
           memberTelegramId: userTelegramId,
           role: 'Участник',
         },
