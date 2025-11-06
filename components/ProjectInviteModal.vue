@@ -19,7 +19,7 @@ const inviteLink = computed(() => {
   if (!props.projectId) return ''
   // Telegram Mini App link format: https://t.me/bot_username?start=parameter
   const botUsername = 'list_orders_bot'
-  return `https://t.me/${botUsername}/app?start=invite_${props.projectId}`
+  return `https://t.me/${botUsername}/app?startapp=invite_${props.projectId}`
 })
 
 const isCopied = ref(false)
