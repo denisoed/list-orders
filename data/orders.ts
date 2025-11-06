@@ -182,11 +182,9 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
 
   const formatAmount = (amount: number | null) => {
     if (amount === null || amount === undefined) {
-      return '0 ₽'
+      return '0'
     }
     return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)

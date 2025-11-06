@@ -245,7 +245,7 @@ const createTimeOptions = (stepMinutes: number): string[] => {
   return options
 }
 
-const timeOptions = createTimeOptions(60) // Only whole hours (00:00, 01:00, 02:00, ...)
+const timeOptions = createTimeOptions(30) // 30-minute intervals (00:00, 00:30, 01:00, 01:30, ...)
 
 const reminderOptions: ReadonlyArray<{ label: string; value: OrderReminderOffset }> = [
   { label: '1 час', value: '1h' },

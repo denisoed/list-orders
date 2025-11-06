@@ -81,9 +81,19 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
 const projectOrders = computed(() => getOrdersByProjectId(projectId.value))
 const ordersAsOrders = computed(() => projectOrders.value.map(convertOrderToOrder))
 
+// Check if review feature is enabled
+const isReviewEnabled = computed(() => {
+  return project.value?.featuresSettings?.requireReview !== false
+})
+
 // All orders come from orders (synchronized with database)
 const allOrders = computed(() => {
-  return ordersAsOrders.value || []
+  const orders = ordersAsOrders.value || []
+  // Filter out review status orders if review feature is disabled
+  if (!isReviewEnabled.value) {
+    return orders.filter((order) => order.status !== 'review')
+  }
+  return orders
 })
 
 // Filter orders based on status and search query
@@ -135,15 +145,30 @@ watch(
   { immediate: true },
 )
 
-const statusOptions = computed(() =>
-  ORDER_STATUS_FILTERS.map((option) => ({
+// Reset active status to 'all' if review is disabled and current status is 'review'
+watch(
+  [isReviewEnabled, activeStatus],
+  ([reviewEnabled, currentStatus]) => {
+    if (!reviewEnabled && currentStatus === 'review') {
+      setActiveStatus('all')
+    }
+  },
+)
+
+const statusOptions = computed(() => {
+  // Filter out review status if review feature is disabled
+  const filters = isReviewEnabled.value
+    ? ORDER_STATUS_FILTERS
+    : ORDER_STATUS_FILTERS.filter((option) => option.value !== 'review')
+  
+  return filters.map((option) => ({
     ...option,
     count:
       option.value === 'all'
         ? allOrders.value.length
         : allOrders.value.filter((order) => order.status === option.value).length,
-  })),
-)
+  }))
+})
 
 const hasOrders = computed(() => allOrders.value.length > 0)
 const hasFilteredOrders = computed(() => filteredOrders.value.length > 0)
