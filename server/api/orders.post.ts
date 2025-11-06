@@ -29,31 +29,45 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
-      return sendError(event, createError({
-        statusCode: 400,
-        message: 'Title is required and cannot be empty'
-      }))
+    const sanitizedProjectId = body.project_id.trim()
+
+    let sanitizedTitle = ''
+    if (body.title !== undefined && body.title !== null) {
+      if (typeof body.title !== 'string') {
+        return sendError(event, createError({
+          statusCode: 400,
+          message: 'Title must be a string'
+        }))
+      }
+      sanitizedTitle = body.title.trim()
     }
 
-    if (!body.client_name || typeof body.client_name !== 'string' || !body.client_name.trim()) {
-      return sendError(event, createError({
-        statusCode: 400,
-        message: 'Client name is required and cannot be empty'
-      }))
+    let sanitizedClientName = ''
+    if (body.client_name !== undefined && body.client_name !== null) {
+      if (typeof body.client_name !== 'string') {
+        return sendError(event, createError({
+          statusCode: 400,
+          message: 'Client name must be a string'
+        }))
+      }
+      sanitizedClientName = body.client_name.trim()
     }
 
-    if (!body.client_phone || typeof body.client_phone !== 'string' || !body.client_phone.trim()) {
-      return sendError(event, createError({
-        statusCode: 400,
-        message: 'Client phone is required and cannot be empty'
-      }))
+    let sanitizedClientPhone = ''
+    if (body.client_phone !== undefined && body.client_phone !== null) {
+      if (typeof body.client_phone !== 'string') {
+        return sendError(event, createError({
+          statusCode: 400,
+          message: 'Client phone must be a string'
+        }))
+      }
+      sanitizedClientPhone = body.client_phone.trim()
     }
 
     const supabase = getSupabaseClient()
 
     // Verify project exists and user has access to it
-    const hasAccess = await checkProjectAccess(supabase, userTelegramId, body.project_id.trim())
+    const hasAccess = await checkProjectAccess(supabase, userTelegramId, sanitizedProjectId)
 
     if (!hasAccess) {
       return sendError(event, createError({
@@ -94,12 +108,12 @@ export default defineEventHandler(async (event) => {
       total_amount?: number | null
       image_urls?: string[]
     } = {
-      project_id: body.project_id.trim(),
+      project_id: sanitizedProjectId,
       user_telegram_id: userTelegramId,
       code: orderCode.trim(),
-      title: body.title.trim(),
-      client_name: body.client_name.trim(),
-      client_phone: body.client_phone.trim(),
+      title: sanitizedTitle,
+      client_name: sanitizedClientName,
+      client_phone: sanitizedClientPhone,
     }
 
     // Add optional fields
@@ -191,7 +205,7 @@ export default defineEventHandler(async (event) => {
     const transformedOrder = {
       id: order.id,
       code: order.code,
-      title: order.title,
+      title: order.title || '',
       summary: order.summary || '',
       description: order.description || '',
       status: order.status || 'new',
@@ -203,8 +217,8 @@ export default defineEventHandler(async (event) => {
       deliveryAddress: order.delivery_address || null,
       reminderOffset: order.reminder_offset || null,
       projectId: order.project_id,
-      clientName: order.client_name,
-      clientPhone: order.client_phone,
+      clientName: order.client_name || '',
+      clientPhone: order.client_phone || '',
       paymentType: order.payment_type || null,
       prepaymentAmount: order.prepayment_amount ? Number(order.prepayment_amount) : null,
       totalAmount: order.total_amount ? Number(order.total_amount) : null,

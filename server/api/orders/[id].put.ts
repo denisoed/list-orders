@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
 
     // Prepare update data
     const updateData: {
-      title?: string
+      title?: string | null
       summary?: string
       description?: string
       status?: string
@@ -45,8 +45,8 @@ export default defineEventHandler(async (event) => {
       due_time?: string | null
       delivery_address?: string | null
       reminder_offset?: string | null
-      client_name?: string
-      client_phone?: string
+      client_name?: string | null
+      client_phone?: string | null
       payment_type?: string | null
       prepayment_amount?: number | null
       total_amount?: number | null
@@ -59,13 +59,16 @@ export default defineEventHandler(async (event) => {
     } = {}
 
     if (body.title !== undefined) {
-      if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
+      if (body.title === null) {
+        updateData.title = ''
+      } else if (typeof body.title === 'string') {
+        updateData.title = body.title.trim()
+      } else {
         return sendError(event, createError({
           statusCode: 400,
-          message: 'Title cannot be empty'
+          message: 'Title must be a string'
         }))
       }
-      updateData.title = body.title.trim()
     }
 
     if (body.summary !== undefined) {
@@ -108,23 +111,29 @@ export default defineEventHandler(async (event) => {
     }
 
     if (body.client_name !== undefined) {
-      if (!body.client_name || typeof body.client_name !== 'string' || !body.client_name.trim()) {
+      if (body.client_name === null) {
+        updateData.client_name = ''
+      } else if (typeof body.client_name === 'string') {
+        updateData.client_name = body.client_name.trim()
+      } else {
         return sendError(event, createError({
           statusCode: 400,
-          message: 'Client name cannot be empty'
+          message: 'Client name must be a string'
         }))
       }
-      updateData.client_name = body.client_name.trim()
     }
 
     if (body.client_phone !== undefined) {
-      if (!body.client_phone || typeof body.client_phone !== 'string' || !body.client_phone.trim()) {
+      if (body.client_phone === null) {
+        updateData.client_phone = ''
+      } else if (typeof body.client_phone === 'string') {
+        updateData.client_phone = body.client_phone.trim()
+      } else {
         return sendError(event, createError({
           statusCode: 400,
-          message: 'Client phone cannot be empty'
+          message: 'Client phone must be a string'
         }))
       }
-      updateData.client_phone = body.client_phone.trim()
     }
 
     if (body.payment_type !== undefined) {
@@ -272,7 +281,7 @@ export default defineEventHandler(async (event) => {
     const transformedOrder = {
       id: order.id,
       code: order.code,
-      title: order.title,
+      title: order.title || '',
       summary: order.summary || '',
       description: order.description || '',
       status: order.status || 'new',
@@ -284,8 +293,8 @@ export default defineEventHandler(async (event) => {
       deliveryAddress: order.delivery_address || null,
       reminderOffset: order.reminder_offset || null,
       projectId: order.project_id,
-      clientName: order.client_name,
-      clientPhone: order.client_phone,
+      clientName: order.client_name || '',
+      clientPhone: order.client_phone || '',
       paymentType: order.payment_type || null,
       prepaymentAmount: order.prepayment_amount ? Number(order.prepayment_amount) : null,
       totalAmount: order.total_amount ? Number(order.total_amount) : null,

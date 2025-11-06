@@ -153,50 +153,30 @@ const selectedAssigneeTelegramId = computed(() => {
   return null
 })
 
-const titleError = computed(() => {
-  if (title.value.trim().length > 0) {
-    return ''
-  }
-  return 'Введите название задачи'
-})
+const titleError = computed(() => '')
 
-const clientNameError = computed(() => {
-  if (!showClientName.value) {
-    return ''
-  }
-  if (clientName.value.trim().length > 0) {
-    return ''
-  }
-  return 'Введите имя клиента'
-})
+const clientNameError = computed(() => '')
 
 const clientPhoneError = computed(() => {
   if (!showClientPhone.value) {
     return ''
   }
+
   const digits = clientPhone.value.replace(/\D/g, '')
+  if (digits.length === 0) {
+    return ''
+  }
+
   if (digits.length >= 10) {
     return ''
   }
+
   return 'Введите номер телефона'
 })
 
 const isDeliverySelected = computed(() => deliveryOption.value === 'delivery')
 
-const deliveryAddressError = computed(() => {
-  if (!showDelivery.value) {
-    return ''
-  }
-  if (!isDeliverySelected.value) {
-    return ''
-  }
-
-  if (deliveryAddress.value.trim().length > 0) {
-    return ''
-  }
-
-  return 'Введите адрес доставки'
-})
+const deliveryAddressError = computed(() => '')
 
 const showTitleError = computed(() => (titleTouched.value || submitAttempted.value) && Boolean(titleError.value))
 const showClientNameError = computed(
@@ -222,14 +202,7 @@ const dueDateLabel = computed(() => {
   return dateLabel
 })
 
-const isFormValid = computed(() => {
-  return (
-    titleError.value.length === 0 &&
-    (!showClientName.value || clientNameError.value.length === 0) &&
-    (!showClientPhone.value || clientPhoneError.value.length === 0) &&
-    (!showDelivery.value || deliveryAddressError.value.length === 0)
-  )
-})
+const isFormValid = computed(() => clientPhoneError.value.length === 0)
 
 const createTimeOptions = (stepMinutes: number): string[] => {
   const options: string[] = []
