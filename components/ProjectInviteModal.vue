@@ -23,6 +23,9 @@ const inviteLink = computed(() => {
 })
 
 const isCopied = ref(false)
+const isShareSupported = computed(
+  () => typeof navigator !== 'undefined' && typeof navigator.share === 'function',
+)
 
 const copyToClipboard = async () => {
   if (!inviteLink.value) return
@@ -36,6 +39,27 @@ const copyToClipboard = async () => {
   } catch (error) {
     console.error('Failed to copy link:', error)
   }
+}
+
+const shareInviteLink = async () => {
+  if (!inviteLink.value) return
+
+  if (isShareSupported.value) {
+    try {
+      await navigator.share({
+        title: 'Пригласить в проект',
+        text: props.projectTitle
+          ? `Присоединяйтесь к проекту «${props.projectTitle}»`
+          : 'Присоединяйтесь к проекту',
+        url: inviteLink.value,
+      })
+    } catch (error) {
+      console.error('Failed to share link:', error)
+    }
+    return
+  }
+
+  await copyToClipboard()
 }
 
 const handleBackdropClick = (event: MouseEvent) => {
@@ -139,6 +163,18 @@ watch(() => props.isOpen, () => {
                 </div>
               </div>
             </div>
+
+            <footer class="border-t border-black/5 p-4 pb-8 dark:border-white/10">
+              <button
+                type="button"
+                class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-70"
+                :disabled="!inviteLink"
+                @click="shareInviteLink"
+              >
+                <span class="material-symbols-outlined text-xl">ios_share</span>
+                <span>Пригласить</span>
+              </button>
+            </footer>
           </div>
         </Transition>
       </div>
