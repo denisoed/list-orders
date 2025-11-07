@@ -252,7 +252,7 @@ watch(
 
 <template>
   <div class="relative flex min-h-screen w-full flex-col bg-background-dark text-white">
-    <header class="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background-dark/80 p-4 pb-3 backdrop-blur-sm">
+    <header class="flex items-center justify-between border-b border-white/10 bg-background-dark p-4 pb-3">
       <button
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
@@ -265,7 +265,7 @@ watch(
       <div class="flex w-12 items-center justify-end"></div>
     </header>
 
-    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
+    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-12">
       <div class="flex flex-col space-y-6">
         <div
           v-if="projectNotFound"
@@ -293,7 +293,7 @@ watch(
             v-model="description"
             class="form-input min-h-36 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Добавьте детали о проекте, цели и задачи"
-            enterkeyhint="done"
+            enterkeyhint="enter"
           ></textarea>
         </label>
 
@@ -364,7 +364,7 @@ watch(
       </div>
     </main>
 
-    <footer class="fixed bottom-0 left-0 z-10 w-full bg-background-dark/80 p-4 pb-8 backdrop-blur-sm">
+    <footer class="mt-auto w-full border-t border-white/10 bg-background-dark p-4 pb-8">
       <div class="space-y-2">
         <p v-if="submitError" class="text-sm text-red-400">{{ submitError }}</p>
         <button

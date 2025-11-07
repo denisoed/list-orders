@@ -901,7 +901,11 @@ useHead({
 
         <div v-if="showDescription" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Описание</p>
-          <RichTextEditor v-model="description" placeholder="Добавьте детали, чек-лист и важные требования" />
+          <RichTextEditor
+            v-model="description"
+            placeholder="Добавьте детали, чек-лист и важные требования"
+            :show-list-button="false"
+          />
         </div>
 
         <div v-if="showAttachments" class="flex flex-col space-y-4">
