@@ -1,6 +1,5 @@
 import { Telegraf, Markup } from 'telegraf'
 import { eventHandler, readBody } from 'h3'
-import { TELEGRAM_WEB_APP_URL } from '~/server/constants/telegram'
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string)
 
@@ -48,7 +47,7 @@ bot.start((ctx) => {
     ctx.replyWithHTML(
       createWelcomeMessage(ctx),
       Markup.inlineKeyboard([
-        [Markup.button.webApp('Открыть', TELEGRAM_WEB_APP_URL)],
+        [Markup.button.webApp('Открыть', 'https://list-orders.vercel.app')],
       ]),
     )
   })
