@@ -73,6 +73,7 @@ export default defineEventHandler(async (event) => {
       review_comment?: string | null
       review_images?: string[]
       review_answer?: string | null
+      archived?: boolean
     } = {}
 
     if (body.title !== undefined) {
@@ -98,6 +99,17 @@ export default defineEventHandler(async (event) => {
 
     if (body.status !== undefined) {
       updateData.status = body.status || 'new'
+    }
+
+    if (body.archived !== undefined) {
+      if (typeof body.archived === 'boolean') {
+        updateData.archived = body.archived
+      } else {
+        return sendError(event, createError({
+          statusCode: 400,
+          message: 'Archived must be a boolean'
+        }))
+      }
     }
 
     if (body.assignee_telegram_id !== undefined) {
@@ -278,6 +290,15 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    const isOrderOwner = existingOrder.user_telegram_id === userTelegramId
+
+    if (updateData.archived !== undefined && !isOrderOwner) {
+      return sendError(event, createError({
+        statusCode: 403,
+        message: 'Only the owner can archive this order'
+      }))
+    }
+
     // Check if status is being changed to 'in_progress'
     const isStatusChangedToInProgress = 
       updateData.status === 'in_progress' && 
@@ -341,6 +362,7 @@ export default defineEventHandler(async (event) => {
       summary: order.summary || '',
       description: order.description || '',
       status: order.status || 'new',
+      archived: order.archived === true,
       assigneeTelegramId: order.assignee_telegram_id || null,
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,
