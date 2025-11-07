@@ -177,24 +177,42 @@ export default defineEventHandler(async (event) => {
 
     const userData = memberWithUser.member as any
 
-    // Send Telegram notification to the added member
+    // Send Telegram notification to the project owner about the new member
     try {
       const projectUrl = `${WEB_URL}/projects/${projectId}/orders`
       const memberRole = memberWithUser.role || 'Участник'
+      const escapeHtml = (value: string | null | undefined) =>
+        String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+
+      const memberFullName = [userData.first_name, userData.last_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim()
+
+      const memberNameForMessage =
+        memberFullName || (userData.username ? `@${userData.username}` : '') || `ID: ${userData.telegram_id}`
+
+      const safeProjectTitle = escapeHtml(project.title || 'Без названия')
+      const safeMemberName = escapeHtml(memberNameForMessage)
+
       const message = [
-        '👥 <b>Вас добавили в проект</b>',
+        '👥 <b>Новый участник в проекте</b>',
         '',
-        `Проект: <b>${project.title}</b>`,
-        `Роль: <b>${memberRole}</b>`,
-        '',
-        '<i>Откройте проект, чтобы приступить к задачам.</i>'
+        `Проект: <b>${safeProjectTitle}</b>`,
+        `Участник: <b>${safeMemberName}</b>`,
+        `Роль: <b>${escapeHtml(memberRole)}</b>`
       ].join('\n')
 
       const replyMarkup = Markup.inlineKeyboard([
         [Markup.button.webApp('Перейти в проект', projectUrl)],
       ])
-      
-      await sendTelegramMessage(body.memberTelegramId, message, replyMarkup)
+
+      await sendTelegramMessage(project.user_telegram_id, message, replyMarkup)
     } catch (error) {
       console.error('[Project Members API] Failed to send notification:', error)
       // Don't fail the request if notification fails
