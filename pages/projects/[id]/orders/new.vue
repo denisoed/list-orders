@@ -860,7 +860,7 @@ useHead({
 
 <template>
   <div class="relative flex min-h-screen w-full flex-col bg-background-dark text-white">
-    <header class="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-background-dark/80 p-4 pb-3 backdrop-blur-sm">
+    <header class="flex items-center justify-between border-b border-white/10 bg-background-dark/80 p-4 pb-3">
       <button
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
@@ -883,7 +883,7 @@ useHead({
       </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32">
+    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-12">
       <div v-if="projectId" class="flex flex-col space-y-6">
         <label v-if="showTitle" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Название задачи</p>
@@ -1138,7 +1138,7 @@ useHead({
       </div>
     </main>
 
-    <footer class="fixed bottom-0 left-0 z-10 w-full bg-background-dark/80 p-4 pb-8 backdrop-blur-sm">
+    <footer class="w-full bg-background-dark/80 p-4 pb-8">
       <div class="space-y-2">
         <p v-if="submitError" class="text-sm text-red-400">{{ submitError }}</p>
         <button
