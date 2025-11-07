@@ -2,6 +2,7 @@ import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { sendTelegramMessage } from '~/server/api/telegram'
 import { Markup } from 'telegraf'
+import { TELEGRAM_WEB_APP_URL } from '~/server/constants/telegram'
 
 /**
  * POST /api/projects/[id]/members
@@ -178,10 +179,17 @@ export default defineEventHandler(async (event) => {
 
     // Send Telegram notification to the added member
     try {
-      const appUrl = process.env.APP_URL || 'https://list-orders.vercel.app'
-      const projectUrl = `${appUrl}/projects/${projectId}`
-      const message = `Вас добавили в проект <b>${project.title}</b>`
-      
+      const projectUrl = `${TELEGRAM_WEB_APP_URL}/projects/${projectId}/orders`
+      const memberRole = memberWithUser.role || 'Участник'
+      const message = [
+        '👥 <b>Вас добавили в проект</b>',
+        '',
+        `Проект: <b>${project.title}</b>`,
+        `Роль: <b>${memberRole}</b>`,
+        '',
+        '<i>Откройте проект, чтобы приступить к задачам.</i>'
+      ].join('\n')
+
       const replyMarkup = Markup.inlineKeyboard([
         [Markup.button.webApp('Перейти в проект', projectUrl)],
       ])

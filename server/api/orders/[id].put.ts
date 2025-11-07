@@ -3,6 +3,7 @@ import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 import { sendTelegramMessage } from '~/server/api/telegram'
 import { Markup } from 'telegraf'
+import { TELEGRAM_WEB_APP_URL } from '~/server/constants/telegram'
 
 const applyRequiredFieldFallback = (
   value: string | null | undefined,
@@ -236,11 +237,29 @@ export default defineEventHandler(async (event) => {
     }
 
     // First, fetch the order to check project access and get current status
-    const { data: existingOrder } = await supabase
+    const { data: existingOrderData } = await supabase
       .from('orders')
-      .select('project_id, status, user_telegram_id, assignee_telegram_id')
+      .select(`
+        project_id,
+        status,
+        user_telegram_id,
+        assignee_telegram_id,
+        project:projects(title)
+      `)
       .eq('id', orderId)
       .single()
+
+    type ExistingOrderRecord = {
+      project_id: string
+      status: string
+      user_telegram_id: number | null
+      assignee_telegram_id: number | null
+      project?: {
+        title?: string | null
+      } | null
+    }
+
+    const existingOrder = existingOrderData as ExistingOrderRecord | null
 
     if (!existingOrder) {
       return sendError(event, createError({
@@ -290,11 +309,17 @@ export default defineEventHandler(async (event) => {
     if (shouldSendNotification) {
       const assigneeName = order.assignee_telegram_name || 'Исполнитель'
       const orderTitle = order.title || 'Задача'
-      const message = `Ваша задача "<b>${orderTitle}</b>" взята в работу.\n\nИсполнитель: <b>${assigneeName}</b>`
+      const projectTitle = existingOrder.project?.title || 'Без названия'
+      const message = [
+        '🛠️ <b>Задача взята в работу</b>',
+        '',
+        `Задача: <b>${orderTitle}</b>`,
+        `Проект: <b>${projectTitle}</b>`,
+        `Исполнитель: <b>${assigneeName}</b>`
+      ].join('\n')
       
       // Create button with link to order
-      const appUrl = process.env.APP_URL || 'https://list-orders.vercel.app'
-      const orderUrl = `${appUrl}/orders/${orderId}`
+      const orderUrl = `${TELEGRAM_WEB_APP_URL}/orders/${orderId}`
       
       const replyMarkup = Markup.inlineKeyboard([
         [Markup.button.webApp('Перейти к задаче', orderUrl)],
