@@ -507,6 +507,7 @@ const handleArchiveConfirm = async () => {
   }
 
   isArchiving.value = true
+  const projectId = orderData.value?.projectId
 
   try {
     await updateOrder(orderId.value, {
@@ -514,7 +515,11 @@ const handleArchiveConfirm = async () => {
     })
 
     isArchiveModalOpen.value = false
-    await loadOrder()
+    if (projectId) {
+      await router.push(`/projects/${projectId}/orders`)
+    } else {
+      await loadOrder()
+    }
   } catch (err) {
     console.error('Не удалось архивировать задачу:', err)
     isArchiveModalOpen.value = false
