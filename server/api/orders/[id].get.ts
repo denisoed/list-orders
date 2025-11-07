@@ -83,6 +83,7 @@ export default defineEventHandler(async (event) => {
       summary: order.summary || '',
       description: order.description || '',
       status: order.status || 'new',
+      archived: order.archived === true,
       assigneeTelegramId: order.assignee_telegram_id || null,
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,

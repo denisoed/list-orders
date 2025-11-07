@@ -31,7 +31,9 @@ const isTakingInWork = ref(false)
 const isSubmittingForReview = ref(false)
 const isMarkingAsDone = ref(false)
 const isDeclineModalOpen = ref(false)
+const isArchiveModalOpen = ref(false)
 const isDeclining = ref(false)
+const isArchiving = ref(false)
 
 // Get order fields settings from project
 const orderFieldsSettings = computed(() => {
@@ -147,6 +149,11 @@ const isOrderCreator = computed(() => {
   if (!orderData.value || !userStore.user) return false
   return orderData.value.creatorTelegramId === userStore.user.telegram_id
 })
+
+const isOrderArchived = computed(() => orderData.value?.archived === true)
+const canArchiveOrder = computed(
+  () => isOrderCreator.value && !isOrderArchived.value,
+)
 
 // Check if order is in progress
 const isInProgressStatus = computed(() => {
@@ -486,6 +493,36 @@ const handleEdit = () => {
   })
 }
 
+const handleArchive = () => {
+  if (!orderId.value || !canArchiveOrder.value || isArchiving.value) {
+    return
+  }
+
+  isArchiveModalOpen.value = true
+}
+
+const handleArchiveConfirm = async () => {
+  if (!orderId.value || !canArchiveOrder.value || isArchiving.value) {
+    return
+  }
+
+  isArchiving.value = true
+
+  try {
+    await updateOrder(orderId.value, {
+      archived: true,
+    })
+
+    isArchiveModalOpen.value = false
+    await loadOrder()
+  } catch (err) {
+    console.error('Не удалось архивировать задачу:', err)
+    isArchiveModalOpen.value = false
+  } finally {
+    isArchiving.value = false
+  }
+}
+
 const handleDecline = () => {
   if (!orderId.value || !isOrderAssignee.value || !isInProgressStatus.value || isDeclining.value) {
     return
@@ -539,6 +576,16 @@ const menuItems = computed<DropdownMenuItem[]>(() => {
       icon: 'edit',
       action: handleEdit,
     })
+
+    if (canArchiveOrder.value) {
+      items.push({
+        id: 'archive',
+        label: 'Архивировать',
+        icon: 'archive',
+        variant: 'danger',
+        action: handleArchive,
+      })
+    }
   }
 
   // Show "Decline" button only for assignee and when order is in progress
@@ -868,6 +915,18 @@ useHead({
         <span>{{ isTakingInWork ? 'Обрабатываем...' : 'Взять в работу' }}</span>
       </button>
     </footer>
+
+    <ConfirmationModal
+      :is-open="isArchiveModalOpen"
+      :is-loading="isArchiving"
+      title="Архивировать задачу"
+      message="Вы уверены, что хотите архивировать эту задачу? Она переместится в архив и исчезнет из списка активных задач."
+      confirm-text="Архивировать"
+      cancel-text="Отмена"
+      variant="danger"
+      @close="isArchiveModalOpen = false"
+      @confirm="handleArchiveConfirm"
+    />
 
     <ConfirmationModal
       :is-open="isDeclineModalOpen"

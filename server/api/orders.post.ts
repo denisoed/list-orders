@@ -103,6 +103,7 @@ export default defineEventHandler(async (event) => {
       summary?: string
       description?: string
       status?: string
+      archived?: boolean
       assignee_telegram_id?: number | null
       assignee_telegram_name?: string | null
       assignee_telegram_avatar_url?: string | null
@@ -123,6 +124,7 @@ export default defineEventHandler(async (event) => {
       title: ensureRequiredField(sanitizedTitle, 'Без названия'),
       client_name: ensureRequiredField(sanitizedClientName, 'Без имени'),
       client_phone: ensureRequiredField(sanitizedClientPhone, 'Не указан'),
+      archived: false,
     }
 
     // Add optional fields
@@ -136,6 +138,10 @@ export default defineEventHandler(async (event) => {
 
     if (body.status !== undefined) {
       orderData.status = body.status || 'new'
+    }
+
+    if (body.archived !== undefined) {
+      orderData.archived = body.archived === true
     }
 
     if (body.assignee_telegram_id !== undefined) {
@@ -218,6 +224,7 @@ export default defineEventHandler(async (event) => {
       summary: order.summary || '',
       description: order.description || '',
       status: order.status || 'new',
+      archived: order.archived === true,
       assigneeTelegramId: order.assignee_telegram_id || null,
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,

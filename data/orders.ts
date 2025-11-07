@@ -13,6 +13,7 @@ export interface Order {
   summary: string
   description: string
   status: string
+  archived: boolean
   assigneeTelegramId: number | null
   assigneeTelegramAvatarUrl: string | null
   assigneeTelegramName: string | null

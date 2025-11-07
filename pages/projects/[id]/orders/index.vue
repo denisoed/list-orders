@@ -78,7 +78,9 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
 }
 
 // Get orders for current project and convert to orders
-const projectOrders = computed(() => getOrdersByProjectId(projectId.value))
+const projectOrders = computed(() =>
+  getOrdersByProjectId(projectId.value).filter((order) => !order.archived),
+)
 const ordersAsOrders = computed(() => projectOrders.value.map(convertOrderToOrder))
 
 // Check if review feature is enabled

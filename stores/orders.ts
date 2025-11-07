@@ -8,6 +8,7 @@ export interface CreateOrderInput {
   summary?: string
   description?: string
   status?: string
+  archived?: boolean
   assignee_telegram_id?: number | null
   assignee_telegram_name?: string | null
   assignee_telegram_avatar_url?: string | null
@@ -29,6 +30,7 @@ export interface UpdateOrderInput {
   summary?: string
   description?: string
   status?: string
+  archived?: boolean
   assignee_telegram_id?: number | null
   assignee_telegram_name?: string | null
   assignee_telegram_avatar_url?: string | null
@@ -186,6 +188,7 @@ export const useOrdersStore = defineStore('orders', () => {
           summary: input.summary?.trim() || '',
           description: input.description?.trim() || '',
           status: input.status || 'new',
+          archived: input.archived ?? false,
           assignee_telegram_id: input.assignee_telegram_id ?? null,
           assignee_telegram_name: input.assignee_telegram_name ?? null,
           assignee_telegram_avatar_url: input.assignee_telegram_avatar_url ?? null,
@@ -261,6 +264,9 @@ export const useOrdersStore = defineStore('orders', () => {
       }
       if (input.status !== undefined) {
         body.status = input.status
+      }
+      if (input.archived !== undefined) {
+        body.archived = input.archived
       }
       if (input.assignee_telegram_id !== undefined) {
         body.assignee_telegram_id = input.assignee_telegram_id
