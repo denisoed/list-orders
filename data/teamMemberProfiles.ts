@@ -287,6 +287,17 @@ export const TEAM_MEMBER_PROFILES: TeamMemberProfile[] = [
   },
 ]
 
+const normalizeMemberName = (value: string) => value.trim().toLowerCase()
+
+export const findTeamMemberProfileIdByName = (name: string): string | undefined => {
+  const normalizedName = normalizeMemberName(name)
+  const profile = TEAM_MEMBER_PROFILES.find(
+    (item) => normalizeMemberName(item.name) === normalizedName,
+  )
+
+  return profile?.id
+}
+
 export const cloneTeamMemberProfile = (profile: TeamMemberProfile): TeamMemberProfile => ({
   ...profile,
   contacts: profile.contacts.map((contact) => ({ ...contact })),

@@ -7,6 +7,8 @@ import ProjectInviteModal from '~/components/ProjectInviteModal.vue'
 import { useProjectTeam } from '~/composables/useProjectTeam'
 import { useProjectsStore } from '~/stores/projects'
 import { useProjects } from '~/composables/useProjects'
+import { findTeamMemberProfileIdByName } from '~/data/teamMemberProfiles'
+import type { ProjectTeamMember } from '~/data/team'
 
 const route = useRoute()
 const router = useRouter()
@@ -72,12 +74,14 @@ const handleSearchUpdate = (value: string) => {
   setSearchQuery(value)
 }
 
-const handleOpenProfile = (memberId: string) => {
+const handleOpenProfile = (member: ProjectTeamMember) => {
+  const profileId = findTeamMemberProfileIdByName(member.name) ?? member.id
   router.push({
-    path: `/profile/${memberId}`,
+    path: `/profile/${profileId}`,
     query: {
       from: route.fullPath,
       projectId: projectId.value,
+      memberId: member.id,
     },
   })
 }
@@ -167,7 +171,7 @@ useHead({
               :avatar-url="member.avatarUrl"
               :action-aria-label="`Открыть действия для ${member.name}`"
               :profile-aria-label="`Открыть профиль ${member.name}`"
-              @open-profile="handleOpenProfile(member.id)"
+              @open-profile="handleOpenProfile(member)"
               @delete="handleDeleteMember(member.id)"
             />
           </div>
