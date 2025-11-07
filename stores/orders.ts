@@ -1,3 +1,4 @@
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Order } from '~/data/orders'
 import { useTelegram } from '~/composables/useTelegram'
@@ -54,7 +55,9 @@ export interface UpdateOrderInput {
 export const useOrdersStore = defineStore('orders', () => {
   // State
   const orders = ref<Order[]>([])
+  const archivedOrders = ref<Order[]>([])
   const isLoading = ref(false)
+  const isLoadingArchived = ref(false)
   const isCreating = ref(false)
   const isUpdating = ref(false)
   const isDeleting = ref(false)
@@ -321,10 +324,22 @@ export const useOrdersStore = defineStore('orders', () => {
 
       // Update order in the list
       const orderIndex = orders.value.findIndex((order) => order.id === orderId)
+      const archivedOrderIndex = archivedOrders.value.findIndex((order) => order.id === orderId)
+
       if (orderIndex !== -1) {
         orders.value.splice(orderIndex, 1, updatedOrder)
       } else {
         orders.value.push(updatedOrder)
+      }
+
+      if (updatedOrder.archived) {
+        if (archivedOrderIndex !== -1) {
+          archivedOrders.value.splice(archivedOrderIndex, 1, updatedOrder)
+        } else {
+          archivedOrders.value.push(updatedOrder)
+        }
+      } else if (archivedOrderIndex !== -1) {
+        archivedOrders.value.splice(archivedOrderIndex, 1)
       }
 
       console.info('[OrdersStore] Order updated successfully', {
@@ -391,6 +406,47 @@ export const useOrdersStore = defineStore('orders', () => {
   }
 
   /**
+   * Fetch archived orders from the server
+   */
+  async function fetchArchivedOrders(): Promise<Order[]> {
+    isLoadingArchived.value = true
+    error.value = null
+
+    try {
+      const response = await $fetch<Order[]>('/api/orders/archived', getFetchOptions())
+      archivedOrders.value = response
+
+      console.info('[OrdersStore] Archived orders fetched successfully', {
+        count: response.length,
+      })
+
+      return response
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Не удалось загрузить заархивированные задачи'
+      error.value = errorMessage
+      console.error('[OrdersStore] Error fetching archived orders:', err)
+      throw err
+    } finally {
+      isLoadingArchived.value = false
+    }
+  }
+
+  /**
+   * Unarchive an order
+   */
+  async function unarchiveOrder(orderId: string): Promise<Order> {
+    const order = archivedOrders.value.find((item) => item.id === orderId)
+    if (!order) {
+      throw new Error('Order not found')
+    }
+
+    return await updateOrder(orderId, {
+      archived: false,
+    })
+  }
+
+  /**
    * Set orders directly (useful for testing or manual updates)
    */
   function setOrdersList(newOrders: Order[]): void {
@@ -414,6 +470,8 @@ export const useOrdersStore = defineStore('orders', () => {
   // Getters as computed refs
   const ordersComputed = computed(() => orders.value)
   const isLoadingComputed = computed(() => isLoading.value)
+  const archivedOrdersComputed = computed(() => archivedOrders.value)
+  const isLoadingArchivedComputed = computed(() => isLoadingArchived.value)
   const isCreatingComputed = computed(() => isCreating.value)
   const isUpdatingComputed = computed(() => isUpdating.value)
   const isDeletingComputed = computed(() => isDeleting.value)
@@ -422,7 +480,9 @@ export const useOrdersStore = defineStore('orders', () => {
   return {
     // State
     orders: orders,
+    archivedOrders: archivedOrdersComputed,
     isLoading: isLoadingComputed,
+    isLoadingArchived: isLoadingArchivedComputed,
     isCreating: isCreatingComputed,
     isUpdating: isUpdatingComputed,
     isDeleting: isDeletingComputed,
@@ -430,9 +490,11 @@ export const useOrdersStore = defineStore('orders', () => {
     // Actions
     fetchOrders,
     fetchOrder,
+    fetchArchivedOrders,
     createOrder,
     updateOrder,
     deleteOrder,
+    unarchiveOrder,
     getOrderById,
     getOrdersByProjectId,
     setOrders: setOrdersList,
