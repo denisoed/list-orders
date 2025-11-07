@@ -26,11 +26,13 @@ const orderAriaLabel = computed(() => {
 
 const dueLabel = computed(() => {
   if (!props.order.dueDate) {
-    return 'Срок не указан'
+    return ''
   }
 
   return `Срок: ${formatDateAndTime(props.order.dueDate, props.order.dueTime)}`
 })
+
+const hasDueDate = computed(() => Boolean(props.order.dueDate))
 
 const dueIcon = computed(() => (props.order.status === 'pending' ? 'schedule' : 'calendar_today'))
 
@@ -116,7 +118,7 @@ function formatDateAndTime(date: string, time?: string | null): string {
         />
         <span>{{ order.assignee.name }}</span>
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="hasDueDate" class="flex items-center gap-2">
         <span class="material-symbols-outlined text-base" :class="dueIconClass">
           {{ dueIcon }}
         </span>
