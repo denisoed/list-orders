@@ -33,15 +33,19 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
   const OrderStatus: OrderStatus = mapDbStatusToOrderStatus(order.status)
   
   // Format due date from ISO string to YYYY-MM-DD format
-  let dueDate = new Date().toISOString().slice(0, 10)
-  if (order.dueDate) {
+  const dueDate = (() => {
+    if (!order.dueDate) {
+      return ''
+    }
+
     try {
       const date = new Date(order.dueDate)
-      dueDate = date.toISOString().slice(0, 10)
+      return date.toISOString().slice(0, 10)
     } catch (error) {
       console.error('Error parsing due date:', error)
+      return ''
     }
-  }
+  })()
   
   // Use dueTime from database if available, otherwise extract from dueDate
   let dueTime: string | undefined
