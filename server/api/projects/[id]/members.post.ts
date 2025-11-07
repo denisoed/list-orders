@@ -2,7 +2,7 @@ import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { sendTelegramMessage } from '~/server/api/telegram'
 import { Markup } from 'telegraf'
-import { TELEGRAM_WEB_APP_URL } from '~/server/constants/telegram'
+import { WEB_URL } from '~/server/constants/telegram'
 
 /**
  * POST /api/projects/[id]/members
@@ -179,7 +179,7 @@ export default defineEventHandler(async (event) => {
 
     // Send Telegram notification to the added member
     try {
-      const projectUrl = `${TELEGRAM_WEB_APP_URL}/projects/${projectId}/orders`
+      const projectUrl = `${WEB_URL}/projects/${projectId}/orders`
       const memberRole = memberWithUser.role || 'Участник'
       const message = [
         '👥 <b>Вас добавили в проект</b>',

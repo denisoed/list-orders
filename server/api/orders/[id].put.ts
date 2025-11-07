@@ -3,7 +3,7 @@ import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 import { sendTelegramMessage } from '~/server/api/telegram'
 import { Markup } from 'telegraf'
-import { TELEGRAM_WEB_APP_URL } from '~/server/constants/telegram'
+import { WEB_URL } from '~/server/constants/telegram'
 
 const applyRequiredFieldFallback = (
   value: string | null | undefined,
@@ -319,7 +319,7 @@ export default defineEventHandler(async (event) => {
       ].join('\n')
       
       // Create button with link to order
-      const orderUrl = `${TELEGRAM_WEB_APP_URL}/orders/${orderId}`
+      const orderUrl = `${WEB_URL}/orders/${orderId}`
       
       const replyMarkup = Markup.inlineKeyboard([
         [Markup.button.webApp('Перейти к задаче', orderUrl)],
