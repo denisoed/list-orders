@@ -420,6 +420,21 @@ useHead({
             chevron_right
           </span>
         </NuxtLink>
+        <NuxtLink
+          to="/profile/archived-orders"
+          class="group flex items-center gap-4 rounded-2xl border border-black/5 bg-white p-4 shadow-sm transition-shadow hover:shadow-lg dark:border-white/10 dark:bg-[#1C2431]"
+        >
+          <div class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/5 text-primary dark:bg-white/10">
+            <span class="material-symbols-outlined text-2xl">checklist</span>
+          </div>
+          <div class="flex-1">
+            <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">Заархивированные задачи</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-[#9da6b9]">Просмотр и восстановление заархивированных задач</p>
+          </div>
+          <span class="material-symbols-outlined shrink-0 text-gray-400 transition group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400">
+            chevron_right
+          </span>
+        </NuxtLink>
       </section>
     </main>
     <footer

@@ -1,3 +1,4 @@
+import { computed } from 'vue'
 import type { Order } from '~/data/orders'
 import {
   useOrdersStore,
@@ -13,7 +14,9 @@ export const useOrders = () => {
   const store = useOrdersStore()
 
   const orders = computed(() => store.orders)
+  const archivedOrders = computed(() => store.archivedOrders)
   const isLoading = computed(() => store.isLoading)
+  const isLoadingArchived = computed(() => store.isLoadingArchived)
   const isCreating = computed(() => store.isCreating)
   const isUpdating = computed(() => store.isUpdating)
   const isDeleting = computed(() => store.isDeleting)
@@ -25,6 +28,13 @@ export const useOrders = () => {
    */
   const fetchOrders = async (projectId?: string): Promise<Order[]> => {
     return await store.fetchOrders(projectId)
+  }
+
+  /**
+   * Fetch archived orders from the server
+   */
+  const fetchArchivedOrders = async (): Promise<Order[]> => {
+    return await store.fetchArchivedOrders()
   }
 
   /**
@@ -52,6 +62,13 @@ export const useOrders = () => {
   }
 
   /**
+   * Unarchive an order
+   */
+  const unarchiveOrder = async (orderId: string): Promise<Order> => {
+    return await store.unarchiveOrder(orderId)
+  }
+
+  /**
    * Delete an order from the server
    */
   const deleteOrder = async (orderId: string): Promise<void> => {
@@ -61,17 +78,21 @@ export const useOrders = () => {
   return {
     // State
     orders,
+    archivedOrders,
     isLoading,
+    isLoadingArchived,
     isCreating,
     isUpdating,
     isDeleting,
     error,
     // Actions
     fetchOrders,
+    fetchArchivedOrders,
     fetchOrder,
     createOrder,
     updateOrder,
     deleteOrder,
+    unarchiveOrder,
     // Additional helpers
     getOrderById: store.getOrderById,
     getOrdersByProjectId: store.getOrdersByProjectId,
