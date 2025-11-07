@@ -11,3 +11,9 @@ html.dark {
   --telegram-header-color: #101622;
   --telegram-background-color: #101622;
 }
+
+body {
+  /* Respect the notch area on devices running Telegram Mini Apps */
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
+}
