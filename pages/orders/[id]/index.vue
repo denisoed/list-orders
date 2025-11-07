@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { convertOrderToOrderDetail } from '~/data/orders'
 import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
+import { renderMarkdown } from '~/utils/markdown'
 import { useUserStore } from '~/stores/user'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
@@ -157,6 +158,14 @@ const isInProgressStatus = computed(() => {
 const isDoneStatus = computed(() => {
   if (!orderData.value) return false
   return orderData.value.status === 'done'
+})
+
+const descriptionHtml = computed(() => {
+  if (!order.value?.description) {
+    return ''
+  }
+
+  return renderMarkdown(order.value.description)
 })
 
 const isPhoneCopied = ref(false)
@@ -655,7 +664,8 @@ useHead({
             <span class="material-symbols-outlined text-gray-400 transition group-open:rotate-180">expand_more</span>
           </summary>
           <div class="mt-3 text-sm leading-6 text-gray-600 dark:text-[#9da6b9]">
-            <p>{{ order.description }}</p>
+            <div v-if="descriptionHtml" v-html="descriptionHtml" />
+            <p v-else>{{ order.description }}</p>
           </div>
         </details>
       </section>
