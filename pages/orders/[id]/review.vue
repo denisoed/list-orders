@@ -548,7 +548,7 @@ useHead({
               v-model="comment"
               class="min-h-32 w-full rounded-2xl border border-black/10 bg-white p-4 text-base text-black placeholder:text-gray-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:placeholder:text-[#9da6b9] dark:focus:ring-primary/40"
               placeholder="Опишите выполненную работу, чтобы ускорить проверку задачи"
-              enterkeyhint="done"
+              enterkeyhint="enter"
             ></textarea>
           </label>
         </div>

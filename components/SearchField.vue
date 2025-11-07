@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   placeholder: 'Поиск',
   ariaLabel: 'Поле поиска',
-  enterKeyHint: 'search',
+  enterKeyHint: 'done',
 })
 
 const emit = defineEmits<{

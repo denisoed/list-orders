@@ -18,6 +18,7 @@
         <span class="hidden sm:inline">Курсив</span>
       </button>
       <button
+        v-if="props.showListButton"
         type="button"
         class="flex items-center gap-1 rounded-full bg-[#1c1f27] px-3 py-2 text-sm font-medium text-[#9da6b9] transition hover:bg-[#222836] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         @click="applyBulletedList"
@@ -32,7 +33,7 @@
       :value="modelValue"
       class="form-input min-h-36 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
       :placeholder="placeholder"
-      enterkeyhint="done"
+      enterkeyhint="enter"
       @input="handleInput"
     ></textarea>
 
@@ -53,9 +54,12 @@ import { renderMarkdown } from '~/utils/markdown'
 interface Props {
   modelValue: string
   placeholder?: string
+  showListButton?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showListButton: true,
+})
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()

@@ -380,6 +380,7 @@ useHead({
                 required
                 autocomplete="given-name"
                 class="h-11 rounded-xl border border-black/10 bg-white px-4 text-base text-zinc-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-transparent dark:text-white"
+                enterkeyhint="done"
                 @blur="handleBlur('firstName')"
               />
               <span
@@ -399,6 +400,7 @@ useHead({
                 name="lastName"
                 autocomplete="family-name"
                 class="h-11 rounded-xl border border-black/10 bg-white px-4 text-base text-zinc-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-transparent dark:text-white"
+                enterkeyhint="done"
                 @blur="handleBlur('lastName')"
               />
             </label>
