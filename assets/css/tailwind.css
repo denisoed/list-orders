@@ -16,4 +16,5 @@ body {
   /* Respect the notch area on devices running Telegram Mini Apps */
   padding-top: constant(safe-area-inset-top);
   padding-top: env(safe-area-inset-top);
+  padding-top: var(--tg-safe-area-inset-top);
 }
