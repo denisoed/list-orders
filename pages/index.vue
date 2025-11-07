@@ -83,13 +83,15 @@ const declOfNum = (count: number, forms: [string, string, string]) => {
 }
 
 const getOrderCount = (project: Project) => {
-  // Count orders for this project from the database
+  // Count only non-archived orders for this project from the database
   const currentOrders = ordersList.value
-  const projectOrders = currentOrders.filter((order: Order) => order.projectId === project.id)
+  const projectOrders = currentOrders.filter(
+    (order: Order) => order.projectId === project.id && !order.archived,
+  )
   const orderCount = projectOrders.length
-  
-  // Use project.total if available and greater than actual count
-  if (typeof project.total === 'number' && project.total >= orderCount) {
+
+  // Fallback to project.total only when orders haven't been loaded yet
+  if (orderCount === 0 && currentOrders.length === 0 && typeof project.total === 'number') {
     return project.total
   }
 
