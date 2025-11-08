@@ -114,15 +114,38 @@ function formatHistoryTimestamp(dateString: string): string {
 export const convertOrderToOrderDetail = (order: Order, projectName?: string): OrderDetail => {
   // Format due date in format "d month yyyy в hh:mm"
   let dueDateLabel = ''
+  const parseDueDate = (value: string) => {
+    // Handle dates stored as YYYY-MM-DD (without timezone)
+    const dateOnlyMatch = value.match(/^\d{4}-\d{2}-\d{2}$/)
+    if (dateOnlyMatch) {
+      const [yearStr, monthStr, dayStr] = value.split('-')
+      const year = Number.parseInt(yearStr, 10)
+      const month = Number.parseInt(monthStr, 10)
+      const day = Number.parseInt(dayStr, 10)
+
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        return new Date(year, month - 1, day)
+      }
+    }
+
+    const parsedDate = new Date(value)
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+  }
+
   if (order.dueDate) {
     try {
-      const date = new Date(order.dueDate)
+      const parsedDate = parseDueDate(order.dueDate)
+      if (!parsedDate) {
+        throw new Error(`Unable to parse due date: ${order.dueDate}`)
+      }
+
+      const date = new Date(parsedDate)
       const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       })
-      
+
       // If dueTime is provided, use it; otherwise use time from dueDate
       if (order.dueTime) {
         const timeParts = order.dueTime.split(':')
@@ -130,6 +153,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
           const hours = parseInt(timeParts[0], 10)
           const minutes = parseInt(timeParts[1], 10)
           if (!isNaN(hours) && !isNaN(minutes)) {
+            date.setHours(hours, minutes, 0, 0)
             dueDateLabel = `${dateFormatter.format(date)} в ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
           } else {
             dueDateLabel = dateFormatter.format(date)
