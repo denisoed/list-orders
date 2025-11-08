@@ -363,9 +363,9 @@ const handleTakeInWork = async () => {
 // Check if project requires review
 const requiresReview = computed(() => {
   if (!project.value?.featuresSettings) {
-    return true // Default to requiring review
+    return false // Default to review disabled
   }
-  return project.value.featuresSettings.requireReview !== false
+  return project.value.featuresSettings.requireReview === true
 })
 
 const handleMarkCompleted = async () => {

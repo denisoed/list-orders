@@ -12,6 +12,7 @@ import { useProjectTeam } from '~/composables/useProjectTeam'
 import Checkbox from '~/components/Checkbox.vue'
 import Radio from '~/components/Radio.vue'
 import RichTextEditor from '~/components/RichTextEditor.vue'
+import TextInputWithClear from '~/components/TextInputWithClear.vue'
 
 interface AssigneeOption {
   id: string
@@ -83,7 +84,8 @@ const title = ref('')
 const description = ref('')
 const clientName = ref('')
 const clientPhone = ref('')
-const deliveryAddress = ref('')
+const deliveryAddressDefault = 'Уточняется'
+const deliveryAddress = ref(deliveryAddressDefault)
 const deliveryOption = ref<'pickup' | 'delivery' | ''>('pickup')
 const dueDate = ref('')
 const dueTime = ref('')
@@ -331,7 +333,7 @@ const loadDraftToForm = async () => {
   description.value = draft.description || ''
   clientName.value = draft.clientName || ''
   clientPhone.value = draft.clientPhone || ''
-  deliveryAddress.value = draft.deliveryAddress || ''
+  deliveryAddress.value = draft.deliveryAddress || deliveryAddressDefault
   deliveryOption.value = draft.deliveryOption || 'pickup'
   dueDate.value = draft.dueDate || ''
   dueTime.value = draft.dueTime || ''
@@ -384,7 +386,7 @@ const handleClearDraft = () => {
   description.value = ''
   clientName.value = ''
   clientPhone.value = ''
-  deliveryAddress.value = ''
+  deliveryAddress.value = deliveryAddressDefault
   deliveryOption.value = 'pickup'
   dueDate.value = ''
   dueTime.value = ''
@@ -454,6 +456,7 @@ onMounted(async () => {
         deliveryAddress.value = orderData.deliveryAddress
       } else {
         deliveryOption.value = 'pickup'
+        deliveryAddress.value = deliveryAddressDefault
       }
       
       // Load reminder offset
@@ -887,10 +890,8 @@ useHead({
       <div v-if="projectId" class="flex flex-col space-y-6">
         <label v-if="showTitle" class="flex flex-col">
           <p class="pb-2 text-base font-medium leading-normal">Название задачи</p>
-          <input
+          <TextInputWithClear
             v-model="title"
-            class="form-input h-14 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
-            type="text"
             placeholder="Введите короткое название задачи"
             :aria-invalid="showTitleError"
             enterkeyhint="done"
