@@ -31,9 +31,9 @@ const isLoading = computed(() => isLoadingProject.value || isLoadingOrders.value
 const convertOrderToOrder = (order: Order): ProjectOrder => {
   // Map order status to order status
   const OrderStatus: OrderStatus = mapDbStatusToOrderStatus(order.status)
-  
-  // Format due date from ISO string to YYYY-MM-DD format
-  let dueDate = new Date().toISOString().slice(0, 10)
+
+  // Format due date from ISO string to YYYY-MM-DD format when provided
+  let dueDate: string | undefined
   if (order.dueDate) {
     try {
       const date = new Date(order.dueDate)
@@ -42,7 +42,7 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
       console.error('Error parsing due date:', error)
     }
   }
-  
+
   // Use dueTime from database if available, otherwise extract from dueDate
   let dueTime: string | undefined
   if (order.dueTime) {
@@ -60,8 +60,8 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
       // Ignore time parsing errors
     }
   }
-  
-  return {
+
+  const projectOrder: ProjectOrder = {
     id: order.id,
     title: order.title,
     assignee: {
@@ -69,12 +69,17 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
       avatarUrl: order.assigneeTelegramAvatarUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
     },
     status: OrderStatus,
-    dueDate,
     dueTime,
     description: order.description || undefined,
     clientName: order.clientName,
     clientPhone: order.clientPhone,
   }
+
+  if (dueDate) {
+    projectOrder.dueDate = dueDate
+  }
+
+  return projectOrder
 }
 
 // Get orders for current project and convert to orders
@@ -278,7 +283,10 @@ const filteredOrdersByMonth = computed(() => {
 
   return filteredOrders.value.filter((order) => {
     const date = parseOrderDate(order.dueDate)
-    return date && formatMonthId(date) === selectedMonthId.value
+    if (!date) {
+      return true
+    }
+    return formatMonthId(date) === selectedMonthId.value
   })
 })
 
@@ -324,7 +332,13 @@ const groupedOrders = computed(() => {
     })
 })
 
-const hasOrdersInSelectedMonth = computed(() => groupedOrders.value.length > 0)
+const undatedOrders = computed(() =>
+  filteredOrdersByMonth.value.filter((order) => !parseOrderDate(order.dueDate)),
+)
+
+const hasOrdersInSelectedMonth = computed(
+  () => groupedOrders.value.length > 0 || undatedOrders.value.length > 0,
+)
 
 const subtitle = computed(() => {
   if (!project.value) {
@@ -455,6 +469,14 @@ useHead({
                     </li>
                   </ul>
                 </div>
+              </div>
+              <div v-if="undatedOrders.length > 0" class="flex flex-col gap-3">
+                <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Без даты</p>
+                <ul class="flex flex-col gap-3" role="list">
+                  <li v-for="order in undatedOrders" :key="order.id" role="listitem">
+                    <OrderCard :order="order" />
+                  </li>
+                </ul>
               </div>
             </template>
             <OrderEmptyState

@@ -19,7 +19,7 @@ export interface ProjectOrder {
   title: string
   assignee: OrderAssignee
   status: OrderStatus
-  dueDate: string
+  dueDate?: string
   dueTime?: string
   description?: string
   attachments?: OrderAttachment[]
