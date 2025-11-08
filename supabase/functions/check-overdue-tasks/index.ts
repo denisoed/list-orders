@@ -44,17 +44,20 @@ function parseDueDate(record: OrderRecord): Date | null {
     return null
   }
 
-  if (record.due_time) {
-    const [hoursStr, minutesStr] = record.due_time.split(":")
-    const hours = Number(hoursStr)
-    const minutes = Number(minutesStr)
-
-    if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
-      dueDate.setHours(hours, minutes, 0, 0)
-      return dueDate
-    }
+  const dueTime = (record.due_time ?? "").trim()
+  if (!dueTime) {
+    return null
   }
 
+  const [hoursStr, minutesStr] = dueTime.split(":")
+  const hours = Number(hoursStr)
+  const minutes = Number(minutesStr)
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null
+  }
+
+  dueDate.setHours(hours, minutes, 0, 0)
   return dueDate
 }
 
@@ -171,8 +174,7 @@ serve(async (req) => {
         continue
       }
 
-      const includeTime = Boolean(order.due_time) || !(dueDate.getHours() === 0 && dueDate.getMinutes() === 0)
-      const dueLabel = formatDueDateLabel(dueDate, includeTime)
+      const dueLabel = formatDueDateLabel(dueDate, true)
       const orderTitle = (order.title ?? "").trim() || "Задача"
       const assigneeName = (order.assignee_telegram_name ?? "").trim()
 
@@ -207,8 +209,8 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        checked: orders?.length ?? 0,
-        overdue: overdueOrders.length,
+        orders,
+        overdueOrders,
         notificationsSent,
       }),
       {
