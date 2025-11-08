@@ -1,6 +1,3 @@
-[functions]
+project_id = "yimtelrnxlzvhlpoqmbb"
 
-[cron]
-jobs = [
-  { name = "check-overdue-tasks", schedule = "*/30 * * * *", function = "check-overdue-tasks" }
-]
+[functions]
