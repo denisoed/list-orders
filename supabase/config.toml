@@ -1,6 +1,6 @@
 [functions]
 
-[[cron.jobs]]
+[cron]
 name = "check-overdue-tasks"
 schedule = "*/30 * * * *"
 edge_function = "check-overdue-tasks"
