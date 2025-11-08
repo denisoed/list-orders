@@ -38,12 +38,14 @@
     ></textarea>
 
     <div
-      v-if="modelValue?.trim().length"
+      v-if="showPreview && modelValue?.trim().length"
       class="rounded-xl border border-[#3b4354] bg-[#1c1f27] p-4 text-base leading-relaxed text-[#e2e6f0]"
     >
       <div v-html="previewHtml" />
     </div>
-    <p v-else class="text-sm text-[#9da6b9]">Добавьте текст, чтобы увидеть предпросмотр форматирования.</p>
+    <p v-else-if="showPreview" class="text-sm text-[#9da6b9]">
+      Добавьте текст, чтобы увидеть предпросмотр форматирования.
+    </p>
   </div>
 </template>
 
@@ -55,10 +57,12 @@ interface Props {
   modelValue: string
   placeholder?: string
   showListButton?: boolean
+  showPreview?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showListButton: true,
+  showPreview: true,
 })
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void

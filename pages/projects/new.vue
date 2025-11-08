@@ -252,7 +252,14 @@ watch(
 
 <template>
   <div class="relative flex min-h-screen w-full flex-col bg-background-dark text-white">
-    <header class="flex items-center justify-between border-b border-white/10 bg-background-dark p-4 pb-3">
+    <header
+      :class="[
+        'flex items-center justify-between border-b border-white/10 p-4 pb-3',
+        isEditing
+          ? 'sticky top-0 z-10 bg-background-dark/90 backdrop-blur-sm'
+          : 'bg-background-dark',
+      ]"
+    >
       <button
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"

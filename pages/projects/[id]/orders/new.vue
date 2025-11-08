@@ -905,6 +905,7 @@ useHead({
             v-model="description"
             placeholder="Добавьте детали, чек-лист и важные требования"
             :show-list-button="false"
+            :show-preview="false"
           />
         </div>
 
