@@ -17,7 +17,7 @@ const { createProject, updateProject, archiveProject, isCreating, isUpdating } =
 const title = ref('')
 const description = ref('')
 const color = ref('#3B82F6')
-const featuresSettings = ref<ProjectFeaturesSettings>({ requireReview: true })
+const featuresSettings = ref<ProjectFeaturesSettings>({ requireReview: false })
 const titleTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
@@ -243,7 +243,7 @@ watch(
   () => editableProject.value?.featuresSettings,
   (projectFeaturesSettings) => {
     if (isEditing.value) {
-      featuresSettings.value = projectFeaturesSettings || { requireReview: true }
+      featuresSettings.value = projectFeaturesSettings || { requireReview: false }
     }
   },
   { immediate: true },

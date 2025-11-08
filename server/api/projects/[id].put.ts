@@ -98,8 +98,8 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // Parse features_settings from JSONB, default to { requireReview: true }
-    let featuresSettings: { requireReview?: boolean } = { requireReview: true }
+    // Parse features_settings from JSONB, default to { requireReview: false }
+    let featuresSettings: { requireReview?: boolean } = { requireReview: false }
     if (project.features_settings) {
       try {
         featuresSettings = typeof project.features_settings === 'string'
@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
           : project.features_settings
       } catch (error) {
         console.error('[Projects API] Error parsing features_settings:', error)
-        featuresSettings = { requireReview: true }
+        featuresSettings = { requireReview: false }
       }
     }
 

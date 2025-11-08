@@ -37,7 +37,7 @@ const defaultOrderFields = {
 }
 
 const featuresSettings = ref<ProjectFeaturesSettings>({
-  requireReview: true,
+  requireReview: false,
   orderFields: { ...defaultOrderFields },
 })
 
@@ -83,7 +83,7 @@ watch(
   (projectFeaturesSettings) => {
     if (projectFeaturesSettings) {
       featuresSettings.value = {
-        requireReview: projectFeaturesSettings.requireReview ?? true,
+        requireReview: projectFeaturesSettings.requireReview ?? false,
         orderFields: {
           ...defaultOrderFields,
           ...projectFeaturesSettings.orderFields,
@@ -91,7 +91,7 @@ watch(
       }
     } else {
       featuresSettings.value = {
-        requireReview: true,
+        requireReview: false,
         orderFields: { ...defaultOrderFields },
       }
     }

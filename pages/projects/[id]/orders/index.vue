@@ -85,7 +85,7 @@ const ordersAsOrders = computed(() => projectOrders.value.map(convertOrderToOrde
 
 // Check if review feature is enabled
 const isReviewEnabled = computed(() => {
-  return project.value?.featuresSettings?.requireReview !== false
+  return project.value?.featuresSettings?.requireReview === true
 })
 
 // All orders come from orders (synchronized with database)
