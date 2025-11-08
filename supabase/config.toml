@@ -1,6 +1,3 @@
-[functions]
+project_id = "yimtelrnxlzvhlpoqmbb"
 
-[cron]
-name = "check-overdue-tasks"
-schedule = "*/30 * * * *"
-edge_function = "check-overdue-tasks"
+[functions]
