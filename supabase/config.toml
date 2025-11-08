@@ -1,6 +1,6 @@
 [functions]
 
 [cron]
-name = "check-overdue-tasks"
-schedule = "*/30 * * * *"
-edge_function = "check-overdue-tasks"
+jobs = [
+  { name = "check-overdue-tasks", schedule = "*/30 * * * *", function = "check-overdue-tasks" }
+]
