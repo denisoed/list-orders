@@ -38,6 +38,9 @@ export default defineEventHandler(async (event) => {
       color: body.color || null,
       completed: 0,
       total: 0,
+      features_settings: {
+        requireReview: false,
+      },
     }
 
     // Insert project
