@@ -13,6 +13,7 @@ interface OrderRecord {
   archived: boolean | null
   assignee_telegram_id: number | null
   assignee_telegram_name: string | null
+  user_telegram_id: number | null
 }
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
@@ -129,7 +130,7 @@ serve(async (req) => {
     const { data: orders, error } = await supabase
       .from<OrderRecord>("orders")
       .select(
-        "id, title, code, due_date, due_time, status, archived, assignee_telegram_id, assignee_telegram_name"
+        "id, title, code, due_date, due_time, status, archived, assignee_telegram_id, assignee_telegram_name, user_telegram_id"
       )
       .not("due_date", "is", null)
       .not("assignee_telegram_id", "is", null)
@@ -169,8 +170,19 @@ serve(async (req) => {
     let notificationsSent = 0
 
     for (const { order, dueDate } of overdueOrders) {
-      const telegramId = Number(order.assignee_telegram_id)
-      if (!telegramId || Number.isNaN(telegramId)) {
+      const recipients = new Set<number>()
+
+      const assigneeTelegramId = Number(order.assignee_telegram_id)
+      if (!Number.isNaN(assigneeTelegramId) && assigneeTelegramId > 0) {
+        recipients.add(assigneeTelegramId)
+      }
+
+      const creatorTelegramId = Number(order.user_telegram_id)
+      if (!Number.isNaN(creatorTelegramId) && creatorTelegramId > 0) {
+        recipients.add(creatorTelegramId)
+      }
+
+      if (recipients.size === 0) {
         continue
       }
 
@@ -196,14 +208,18 @@ serve(async (req) => {
         inline_keyboard: [[{ text: "Перейти к задаче", web_app: { url: orderUrl } }]],
       }
 
-      try {
-        await sendTelegramMessage(telegramId, messageLines.join("\n"), replyMarkup)
-        notificationsSent += 1
-      } catch (err) {
-        console.error(
-          `[Cron] Failed to notify assignee ${telegramId} for order ${order.id}:`,
-          err
-        )
+      const message = messageLines.join("\n")
+
+      for (const telegramId of recipients) {
+        try {
+          await sendTelegramMessage(telegramId, message, replyMarkup)
+          notificationsSent += 1
+        } catch (err) {
+          console.error(
+            `[Cron] Failed to notify telegram user ${telegramId} for order ${order.id}:`,
+            err
+          )
+        }
       }
     }
 
