@@ -476,6 +476,14 @@ const handleShare = async () => {
   }
 }
 
+const handleBack = () => {
+  if (router.options.history.state.back) {
+    router.back()
+  } else {
+    router.push(`/projects/${orderData.value?.projectId}/orders`)
+  }
+}
+
 const handleEdit = () => {
   const targetOrderId = orderId.value
 
@@ -641,7 +649,7 @@ useHead({
         type="button"
         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
         aria-label="Вернуться назад"
-        @click="$router.back()"
+        @click="handleBack"
       >
         <span class="material-symbols-outlined text-3xl">arrow_back</span>
       </button>
