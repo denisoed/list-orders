@@ -84,6 +84,7 @@ export default defineEventHandler(async (event) => {
       reviewAnswer: order.review_answer || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
+      history: [],
     }))
   } catch (error) {
     console.error('[ArchivedOrders API] Unexpected error:', error)

@@ -35,6 +35,7 @@ export interface Order {
   reviewAnswer: string | null
   createdAt: string
   updatedAt: string
+  history?: OrderHistoryRecord[]
 }
 
 export interface OrderStatusChip {
@@ -63,6 +64,15 @@ export interface OrderHistoryItem {
   description: string
   timestamp: string
   author?: string
+}
+
+export interface OrderHistoryRecord {
+  id: string
+  eventType: string
+  description: string
+  icon?: string | null
+  createdAt: string
+  createdByName?: string | null
 }
 
 export interface OrderClient {
@@ -106,6 +116,27 @@ function formatHistoryTimestamp(dateString: string): string {
   } catch (error) {
     return dateString
   }
+}
+
+const HISTORY_EVENT_ICON_MAP: Record<string, string> = {
+  created: 'add',
+  'assignee.assigned': 'person_add',
+  'assignee.unassigned': 'person_off',
+  'status.pending': 'pending_actions',
+  'status.in_progress': 'play_arrow',
+  'status.review': 'rate_review',
+  'status.done': 'check_circle',
+  archived: 'inventory_2',
+  unarchived: 'unarchive',
+}
+
+const resolveHistoryIcon = (record: OrderHistoryRecord): string => {
+  const icon = record.icon?.trim()
+  if (icon && icon.length > 0) {
+    return icon
+  }
+
+  return HISTORY_EVENT_ICON_MAP[record.eventType] || 'history'
 }
 
 /**
@@ -224,6 +255,36 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
       }
     : null
 
+  const historyRecords = Array.isArray(order.history) ? [...order.history] : []
+  const sortedHistory = historyRecords.sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime()
+    const timeB = new Date(b.createdAt).getTime()
+
+    if (Number.isNaN(timeA) || Number.isNaN(timeB)) {
+      return 0
+    }
+
+    return timeA - timeB
+  })
+
+  const history: OrderHistoryItem[] = sortedHistory.length
+    ? sortedHistory.map((record) => ({
+        id: record.id,
+        icon: resolveHistoryIcon(record),
+        description: record.description,
+        timestamp: formatHistoryTimestamp(record.createdAt),
+        author: record.createdByName?.trim() || undefined,
+      }))
+    : [
+        {
+          id: 'history-created',
+          icon: 'add',
+          description: 'Задача создана',
+          timestamp: formatHistoryTimestamp(order.createdAt),
+          author: order.creatorTelegramName || undefined,
+        },
+      ]
+
   return {
     id: order.id,
     code: order.code,
@@ -248,15 +309,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
       icon: 'image',
       previewUrl: url,
     })) || [], // Convert imageUrls to attachments format
-    history: [
-      {
-        id: 'history-created',
-        icon: 'add',
-        description: 'Задача создана',
-        timestamp: formatHistoryTimestamp(order.createdAt),
-        author: order.creatorTelegramName || undefined,
-      },
-    ],
+    history,
     deliveryAddress: order.deliveryAddress,
   }
 }

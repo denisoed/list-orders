@@ -4,6 +4,55 @@ import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
 import { sendTelegramMessage } from '~/server/api/telegram'
 import { Markup } from 'telegraf'
 import { WEB_URL } from '~/server/constants/telegram'
+import { getUserDisplayName } from '~/server/utils/users'
+import { addOrderHistoryEntries } from '~/server/utils/orderHistory'
+import type { OrderHistoryEntryInput } from '~/server/utils/orderHistory'
+import { getOrderStatusLabel, mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
+
+const STATUS_HISTORY_ICONS: Record<string, string> = {
+  pending: 'pending_actions',
+  in_progress: 'play_arrow',
+  review: 'rate_review',
+  done: 'check_circle',
+}
+
+const normalizeStatus = (status: string | null | undefined) =>
+  mapDbStatusToOrderStatus(status ?? 'new')
+
+const getStatusHistoryDescription = (
+  previousStatus: string | null | undefined,
+  nextStatus: string | null | undefined,
+  reviewAnswer: string | null,
+): string => {
+  const normalizedPrevious = normalizeStatus(previousStatus)
+  const normalizedNext = normalizeStatus(nextStatus)
+  const reason = reviewAnswer?.trim()
+
+  if (normalizedNext === 'in_progress') {
+    if (normalizedPrevious === 'review') {
+      return reason && reason.length > 0
+        ? `Задача возвращена на доработку: ${reason}`
+        : 'Задача возвращена на доработку'
+    }
+    return 'Задача взята в работу'
+  }
+
+  if (normalizedNext === 'review') {
+    return 'Задача отправлена на проверку'
+  }
+
+  if (normalizedNext === 'done') {
+    return 'Задача завершена'
+  }
+
+  if (normalizedNext === 'pending') {
+    return 'Задача возвращена в новые'
+  }
+
+  const fromLabel = getOrderStatusLabel(normalizedPrevious)
+  const toLabel = getOrderStatusLabel(normalizedNext)
+  return `Статус изменён: «${fromLabel}» → «${toLabel}»`
+}
 
 const applyRequiredFieldFallback = (
   value: string | null | undefined,
@@ -254,8 +303,11 @@ export default defineEventHandler(async (event) => {
       .select(`
         project_id,
         status,
+        archived,
         user_telegram_id,
         assignee_telegram_id,
+        assignee_telegram_name,
+        review_answer,
         project:projects(title)
       `)
       .eq('id', orderId)
@@ -264,8 +316,11 @@ export default defineEventHandler(async (event) => {
     type ExistingOrderRecord = {
       project_id: string
       status: string
+      archived: boolean | null
       user_telegram_id: number | null
       assignee_telegram_id: number | null
+      assignee_telegram_name: string | null
+      review_answer: string | null
       project?: {
         title?: string | null
       } | null
@@ -320,10 +375,69 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    const historyEntries: OrderHistoryEntryInput[] = []
+
+    if (existingOrder.assignee_telegram_id !== order.assignee_telegram_id) {
+      const isAssigned = Boolean(order.assignee_telegram_id)
+      const assigneeName = order.assignee_telegram_name?.trim() || 'Неизвестный исполнитель'
+      historyEntries.push({
+        orderId,
+        eventType: isAssigned ? 'assignee.assigned' : 'assignee.unassigned',
+        description: isAssigned
+          ? `Назначен исполнитель: ${assigneeName}`
+          : 'Исполнитель снят',
+        icon: isAssigned ? 'person_add' : 'person_off',
+        createdBy: userTelegramId,
+      })
+    }
+
+    if (existingOrder.status !== order.status) {
+      const statusDescription = getStatusHistoryDescription(
+        existingOrder.status,
+        order.status,
+        order.review_answer || null,
+      )
+      const normalizedNext = normalizeStatus(order.status)
+      const statusIcon = STATUS_HISTORY_ICONS[normalizedNext] ?? 'sync'
+      historyEntries.push({
+        orderId,
+        eventType: `status.${normalizedNext}`,
+        description: statusDescription,
+        icon: statusIcon,
+        createdBy: userTelegramId,
+        metadata: {
+          from: existingOrder.status,
+          to: order.status,
+        },
+      })
+    }
+
+    const wasArchived = existingOrder.archived === true
+    const isArchivedNow = order.archived === true
+    if (wasArchived !== isArchivedNow) {
+      historyEntries.push({
+        orderId,
+        eventType: isArchivedNow ? 'archived' : 'unarchived',
+        description: isArchivedNow
+          ? 'Задача отправлена в архив'
+          : 'Задача восстановлена из архива',
+        icon: isArchivedNow ? 'inventory_2' : 'unarchive',
+        createdBy: userTelegramId,
+      })
+    }
+
+    if (historyEntries.length > 0) {
+      const actorDisplayName = await getUserDisplayName(supabase, userTelegramId)
+      historyEntries.forEach((entry) => {
+        entry.createdByName = actorDisplayName
+      })
+      await addOrderHistoryEntries(supabase, historyEntries)
+    }
+
     // Send notification if order was taken in work
     // Only send if: status changed to in_progress AND (no assignee OR was pending)
-    const shouldSendNotification = 
-      isStatusChangedToInProgress && 
+    const shouldSendNotification =
+      isStatusChangedToInProgress &&
       existingOrder.user_telegram_id &&
       (!existingOrder.assignee_telegram_id || existingOrder.status === 'pending')
 
@@ -366,6 +480,8 @@ export default defineEventHandler(async (event) => {
       assigneeTelegramId: order.assignee_telegram_id || null,
       assigneeTelegramAvatarUrl: order.assignee_telegram_avatar_url || null,
       assigneeTelegramName: order.assignee_telegram_name || null,
+      creatorTelegramId: order.user_telegram_id || null,
+      creatorTelegramName: null,
       dueDate: order.due_date || null,
       dueTime: order.due_time || null,
       deliveryAddress: order.delivery_address || null,

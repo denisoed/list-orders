@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
+import { getUserDisplayName } from '~/server/utils/users'
+import { addOrderHistoryEntries } from '~/server/utils/orderHistory'
 
 const ensureRequiredField = (value: string | null | undefined, fallback: string): string => {
   if (typeof value !== 'string') {
@@ -216,6 +218,19 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
+    const creatorDisplayName = await getUserDisplayName(supabase, userTelegramId)
+
+    await addOrderHistoryEntries(supabase, [
+      {
+        orderId: order.id,
+        eventType: 'created',
+        description: 'Задача создана',
+        icon: 'add',
+        createdBy: userTelegramId,
+        createdByName: creatorDisplayName,
+      },
+    ])
+
     // Transform database fields to match frontend Order interface
     const transformedOrder = {
       id: order.id,
@@ -241,8 +256,12 @@ export default defineEventHandler(async (event) => {
       imageUrls: order.image_urls || [],
       reviewComment: order.review_comment || null,
       reviewImages: order.review_images || [],
+      reviewAnswer: order.review_answer || null,
+      creatorTelegramId: order.user_telegram_id || null,
+      creatorTelegramName: creatorDisplayName,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
+      history: [],
     }
 
     return transformedOrder

@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '~/server/utils/supabase'
 import { getUserTelegramIdFromRequest } from '~/server/utils/getUserFromRequest'
 import { checkProjectAccess } from '~/server/utils/checkProjectAccess'
+import { fetchOrderHistory } from '~/server/utils/orderHistory'
+import { getUserDisplayName } from '~/server/utils/users'
 
 /**
  * GET /api/orders/[id]
@@ -61,19 +63,12 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // Get creator name from users table
-    let creatorName: string | null = null
-    if (order.user_telegram_id) {
-      const { data: creator, error: creatorError } = await supabase
-        .from('users')
-        .select('first_name, last_name, username')
-        .eq('telegram_id', order.user_telegram_id)
-        .single()
-
-      if (!creatorError && creator) {
-        creatorName = [creator.first_name, creator.last_name].filter(Boolean).join(' ') || creator.username || 'Неизвестный'
-      }
-    }
+    const [creatorName, historyRecords] = await Promise.all([
+      order.user_telegram_id
+        ? getUserDisplayName(supabase, order.user_telegram_id)
+        : Promise.resolve<string | null>(null),
+      fetchOrderHistory(supabase, orderId),
+    ])
 
     // Transform database fields to match frontend Order interface
     const transformedOrder = {
@@ -105,6 +100,14 @@ export default defineEventHandler(async (event) => {
       reviewAnswer: order.review_answer || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
+      history: historyRecords.map((record) => ({
+        id: record.id,
+        eventType: record.event_type,
+        description: record.description,
+        icon: record.icon,
+        createdAt: record.created_at,
+        createdByName: record.created_by_name,
+      })),
     }
 
     return transformedOrder
