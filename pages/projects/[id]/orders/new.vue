@@ -37,6 +37,32 @@ const { members, fetchMembers, isLoading: isLoadingMembers } = useProjectTeam(pr
 
 const project = computed(() => getProjectById(projectId.value))
 
+const bannerStorageKey = computed(() => `order-settings-banner:${projectId.value}`)
+const isBannerVisible = ref(false)
+
+const updateBannerVisibility = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  const storedValue = window.localStorage.getItem(bannerStorageKey.value)
+  isBannerVisible.value = storedValue !== 'dismissed'
+}
+
+const dismissBanner = () => {
+  if (import.meta.client) {
+    window.localStorage.setItem(bannerStorageKey.value, 'dismissed')
+  }
+  isBannerVisible.value = false
+}
+
+const handleGoToProjectSettings = () => {
+  dismissBanner()
+  if (projectId.value) {
+    router.push(`/projects/${projectId.value}/settings`)
+  }
+}
+
 // Get order fields settings from project
 const orderFieldsSettings = computed(() => {
   const defaultFields = {
@@ -407,7 +433,17 @@ const handleClearDraft = () => {
 }
 
 // Load order data for edit mode or draft for new orders
+watch(
+  () => projectId.value,
+  () => {
+    updateBannerVisibility()
+  },
+  { immediate: true },
+)
+
 onMounted(async () => {
+  updateBannerVisibility()
+
   // Fetch project team members first
   await fetchMembers()
   
@@ -1141,6 +1177,34 @@ useHead({
         >
           Вернуться к задачам
         </button>
+      </div>
+
+      <div
+        v-if="isBannerVisible && projectId"
+        class="relative mt-8 rounded-2xl border border-white/5 bg-[#1f2633] p-5 text-white"
+      >
+        <button
+          type="button"
+          class="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="Скрыть подсказку"
+          @click="dismissBanner"
+        >
+          <span class="material-symbols-outlined text-xl">close</span>
+        </button>
+        <div class="pr-10">
+          <p class="text-base font-semibold leading-tight">Добавьте дополнительные поля для задач</p>
+          <p class="mt-2 text-sm leading-normal text-[#9da6b9]">
+            На странице настроек проекта можно включить дополнительные поля и сделать форму задачи удобнее для команды.
+          </p>
+          <button
+            type="button"
+            class="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            @click="handleGoToProjectSettings"
+          >
+            Перейти в настройки
+            <span class="material-symbols-outlined text-base">arrow_forward</span>
+          </button>
+        </div>
       </div>
     </main>
 
