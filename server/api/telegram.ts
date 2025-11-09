@@ -31,27 +31,29 @@ export async function sendTelegramMessage(
   }
 }
 
-function createWelcomeMessage(ctx: any) {
-    const firstName = ctx.from?.first_name || ''
-    const lastName = ctx.from?.last_name || ''
-    const fullName = `${firstName} ${lastName}`.trim() || 'Пользователь'
-
-    return (
-      `Привет <b>${fullName}</b>!\n\n` +
-      'Добро пожаловать в систему управления задачими!\n\n' +
-      'Мы сделали всё, чтобы ты мог быстро создавать проекты, управлять задачами и легко работать в команде.\n\n' +
-      'Начинай прямо сейчас! Жми кнопку ниже 👇'
-    )
-  }
+function createWelcomeMessage() {
+  return (
+    'Заказы теряются в WhatsApp чатах? 📱\n\n' +
+    'Забываете про срочные заказы?\n' +
+    'Сотрудники спрашивают "а что делать сегодня?"\n' +
+    'Приходится скролить переписку в поисках адресов?\n\n' +
+    'Все заказы — в одном месте:\n' +
+    '✅ Фото и описание\n' +
+    '✅ Контакты и адреса  \n' +
+    '✅ Статусы работы\n' +
+    '✅ Уведомления в Telegram\n\n' +
+    'Создайте первый заказ за 30 секунд 👇'
+  )
+}
 
 bot.start((ctx) => {
-    ctx.replyWithHTML(
-      createWelcomeMessage(ctx),
-      Markup.inlineKeyboard([
-        [Markup.button.webApp('Открыть', WEB_URL)],
-      ]),
-    )
-  })
+  ctx.replyWithHTML(
+    createWelcomeMessage(),
+    Markup.inlineKeyboard([
+      [Markup.button.webApp('Открыть', WEB_URL)],
+    ]),
+  )
+})
 
 export default eventHandler(async (event) => {
   const update = await readBody(event)
