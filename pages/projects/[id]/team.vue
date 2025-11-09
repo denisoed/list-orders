@@ -7,7 +7,6 @@ import ProjectInviteModal from '~/components/ProjectInviteModal.vue'
 import { useProjectTeam } from '~/composables/useProjectTeam'
 import { useProjectsStore } from '~/stores/projects'
 import { useProjects } from '~/composables/useProjects'
-import { findTeamMemberProfileIdByName } from '~/data/teamMemberProfiles'
 import type { ProjectTeamMember } from '~/data/team'
 
 const route = useRoute()
@@ -75,7 +74,7 @@ const handleSearchUpdate = (value: string) => {
 }
 
 const handleOpenProfile = (member: ProjectTeamMember) => {
-  const profileId = findTeamMemberProfileIdByName(member.name) ?? member.id
+  const profileId = member.id
   router.push({
     path: `/profile/${profileId}`,
     query: {

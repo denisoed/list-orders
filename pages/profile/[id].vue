@@ -12,7 +12,17 @@ const memberId = computed(() => {
   return Array.isArray(raw) ? raw[0] ?? '' : raw ?? ''
 })
 
-const { profile, currentStatus, setStatus } = useTeamMemberProfile(memberId)
+const projectId = computed(() => {
+  const raw = route.query.projectId
+  if (Array.isArray(raw)) {
+    return raw[0] ?? ''
+  }
+  return typeof raw === 'string' ? raw : ''
+})
+
+const { profile, isLoading, error, currentStatus, setStatus, refresh } = useTeamMemberProfile(memberId, {
+  projectId,
+})
 
 const statusOptions: { value: TeamMemberOrderStatus; label: string }[] = [
   { value: 'in-progress', label: 'В работе' },
@@ -49,6 +59,40 @@ const filteredOrders = computed(() => {
 })
 
 const hasOrders = computed(() => filteredOrders.value.length > 0)
+
+const hasProjectContext = computed(() => projectId.value.length > 0)
+
+const isNotFoundError = computed(() => error.value === 'Профиль не найден')
+
+const showProfileNotFound = computed(() => {
+  if (!hasProjectContext.value || isLoading.value) {
+    return false
+  }
+
+  if (isNotFoundError.value) {
+    return true
+  }
+
+  return !profile.value && !error.value
+})
+
+const showProfileError = computed(() => {
+  if (!hasProjectContext.value || isLoading.value) {
+    return false
+  }
+
+  if (isNotFoundError.value) {
+    return false
+  }
+
+  return Boolean(error.value)
+})
+
+const showMissingProject = computed(() => !isLoading.value && !hasProjectContext.value)
+
+const handleRetry = async () => {
+  await refresh()
+}
 
 const OrderStatusDotClass = (status: TeamMemberOrderStatus) => {
   const map: Record<TeamMemberOrderStatus, string> = {
@@ -124,7 +168,50 @@ useHead(() => ({
     </header>
 
     <main class="flex-1 space-y-8 px-4 py-6 pb-24">
-      <section v-if="!profile" class="mt-12 flex flex-col items-center gap-4 text-center">
+      <section v-if="isLoading" class="mt-12 text-center text-gray-500 dark:text-[#9da6b9]">
+        Загрузка профиля...
+      </section>
+
+      <section
+        v-else-if="showMissingProject"
+        class="mt-12 flex flex-col items-center gap-3 rounded-2xl bg-white px-6 py-10 text-center text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]"
+      >
+        <span class="material-symbols-outlined text-4xl opacity-70">info</span>
+        <div class="space-y-1">
+          <p class="text-base font-semibold text-zinc-900 dark:text-white">Не удалось определить проект</p>
+          <p class="text-sm">Откройте профиль коллеги из списка команды проекта и попробуйте снова.</p>
+        </div>
+        <button
+          type="button"
+          class="rounded-full bg-primary px-6 py-2 text-sm font-medium text-white shadow-lg transition hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          @click="$router.back()"
+        >
+          Вернуться назад
+        </button>
+      </section>
+
+      <section
+        v-else-if="showProfileError"
+        class="mt-12 flex flex-col items-center gap-4 rounded-2xl bg-white px-6 py-10 text-center text-gray-600 shadow-sm dark:bg-[#1C2431] dark:text-[#9da6b9]"
+      >
+        <span class="material-symbols-outlined text-4xl opacity-70">error_circle_rounded</span>
+        <div class="space-y-2">
+          <p class="text-base font-semibold text-zinc-900 dark:text-white">Не удалось загрузить профиль</p>
+          <p class="text-sm">{{ error }}</p>
+        </div>
+        <button
+          type="button"
+          class="rounded-full bg-primary px-6 py-2 text-sm font-medium text-white shadow-lg transition hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          @click="handleRetry"
+        >
+          Повторить попытку
+        </button>
+      </section>
+
+      <section
+        v-else-if="showProfileNotFound"
+        class="mt-12 flex flex-col items-center gap-4 text-center"
+      >
         <div class="flex size-20 items-center justify-center rounded-full bg-white text-red-500 shadow-lg shadow-black/10 dark:bg-[#1C2431] dark:text-red-300">
           <span class="material-symbols-outlined text-4xl">person_off</span>
         </div>
@@ -143,7 +230,7 @@ useHead(() => ({
         </button>
       </section>
 
-      <template v-else>
+      <template v-else-if="profile">
         <section class="flex flex-col items-center">
           <div class="flex flex-col items-center gap-3">
             <div
