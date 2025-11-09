@@ -1,9 +1,7 @@
 <template>
   <NuxtLayout>
     <NuxtRouteAnnouncer />
-    <PullToRefresh>
-      <NuxtPage />
-    </PullToRefresh>
+    <NuxtPage />
   </NuxtLayout>
 </template>
 
