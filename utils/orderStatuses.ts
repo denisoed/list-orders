@@ -28,7 +28,7 @@ export interface OrderStatusMeta {
  */
 export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   pending: {
-    label: 'Новый',
+    label: 'Новые',
     tone: 'danger',
     badgeBg: 'bg-red-500/20',
     badgeText: 'text-red-600 dark:text-red-400',
@@ -52,7 +52,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
     },
   },
   review: {
-    label: 'Проверяется',
+    label: 'Проверяются',
     tone: 'info',
     badgeBg: 'bg-blue-500/20',
     badgeText: 'text-blue-500 dark:text-blue-400',
@@ -64,7 +64,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
     },
   },
   done: {
-    label: 'Сделано',
+    label: 'Выполнены',
     tone: 'success',
     badgeBg: 'bg-green-500/20',
     badgeText: 'text-green-500 dark:text-green-400',
