@@ -10,6 +10,7 @@ import { useTelegram } from '~/composables/useTelegram'
 import { useOrderDraft } from '~/composables/useOrderDraft'
 import { useProjectTeam } from '~/composables/useProjectTeam'
 import Checkbox from '~/components/Checkbox.vue'
+import ConfirmationModal from '~/components/ConfirmationModal.vue'
 import Radio from '~/components/Radio.vue'
 import RichTextEditor from '~/components/RichTextEditor.vue'
 import TextInputWithClear from '~/components/TextInputWithClear.vue'
@@ -130,6 +131,7 @@ const deliveryAddressTouched = ref(false)
 const submitAttempted = ref(false)
 const submitError = ref('')
 const isSubmittingLocal = ref(false)
+const isClearDraftModalOpen = ref(false)
 
 const DEFAULT_ASSIGNEE: AssigneeOption = {
   id: 'unassigned',
@@ -405,7 +407,7 @@ const loadDraftToForm = async () => {
 }
 
 // Handle draft clear
-const handleClearDraft = () => {
+const resetDraftState = () => {
   clearDraft()
   // Clear form fields
   title.value = ''
@@ -430,6 +432,19 @@ const handleClearDraft = () => {
   clientPhoneTouched.value = false
   deliveryAddressTouched.value = false
   submitAttempted.value = false
+}
+
+const openClearDraftModal = () => {
+  isClearDraftModalOpen.value = true
+}
+
+const closeClearDraftModal = () => {
+  isClearDraftModalOpen.value = false
+}
+
+const handleConfirmClearDraft = () => {
+  resetDraftState()
+  closeClearDraftModal()
 }
 
 // Load order data for edit mode or draft for new orders
@@ -797,7 +812,7 @@ const handleSubmit = async () => {
       await createOrder(orderData)
       
       // Re-enable draft saving after successful order creation
-      handleClearDraft()
+      resetDraftState()
       
       await router.back()
     }
@@ -915,7 +930,7 @@ useHead({
           type="button"
           class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
           aria-label="Очистить черновик"
-          @click="handleClearDraft"
+          @click="openClearDraftModal"
         >
           <span class="material-symbols-outlined text-3xl">refresh</span>
         </button>
@@ -1221,5 +1236,16 @@ useHead({
         </button>
       </div>
     </footer>
+
+    <ConfirmationModal
+      :is-open="isClearDraftModalOpen"
+      title="Очистить черновик?"
+      message="Это действие удалит заполненные данные и вложения. Вы уверены, что хотите продолжить?"
+      confirm-text="Очистить"
+      cancel-text="Отмена"
+      variant="warning"
+      @close="closeClearDraftModal"
+      @confirm="handleConfirmClearDraft"
+    />
   </div>
 </template>
