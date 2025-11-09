@@ -9,6 +9,7 @@ import DropdownMenu from '~/components/DropdownMenu.vue'
 import ConfirmationModal from '~/components/ConfirmationModal.vue'
 import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
+import { useProjectTeam } from '~/composables/useProjectTeam'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 
 const route = useRoute()
@@ -101,7 +102,11 @@ const loadOrder = async () => {
       }
     }
     project.value = projectData
-    
+
+    if (fetchedOrder.projectId) {
+      fetchProjectMembers()
+    }
+
     const orderDetail = convertOrderToOrderDetail(fetchedOrder, projectData?.title)
     order.value = orderDetail
   } catch (err) {
@@ -154,6 +159,34 @@ const isOrderArchived = computed(() => orderData.value?.archived === true)
 const canArchiveOrder = computed(
   () => isOrderCreator.value && !isOrderArchived.value,
 )
+
+const projectIdForTeam = computed(() => orderData.value?.projectId ?? '')
+const { members: projectTeamMembers, fetchMembers: fetchProjectMembers } = useProjectTeam(projectIdForTeam)
+
+const assigneeProfileLink = computed(() => {
+  const assigneeId = orderData.value?.assigneeTelegramId
+  const projectIdValue = orderData.value?.projectId
+
+  if (!assigneeId || !projectIdValue) {
+    return null
+  }
+
+  const assigneeIdString = assigneeId.toString()
+  const isProjectOwner = project.value?.ownerTelegramId === assigneeId
+  const isProjectMember = projectTeamMembers.value.some((member) => member.id === assigneeIdString)
+
+  if (!isProjectOwner && !isProjectMember) {
+    return null
+  }
+
+  return {
+    path: `/profile/${assigneeId}`,
+    query: {
+      projectId: projectIdValue,
+      from: route.fullPath,
+    },
+  }
+})
 
 // Check if order is in progress
 const isInProgressStatus = computed(() => {
@@ -691,16 +724,38 @@ useHead({
       </section>
 
       <section v-if="(orderFieldsSettings.assignee !== false && hasAssignee) || quickInfoItems.length > 0" class="grid gap-4 lg:grid-cols-2">
-        <article v-if="orderFieldsSettings.assignee !== false && hasAssignee" class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
-          <img
-            :src="order.assignee!.avatarUrl"
-            :alt="`Аватар ответственного ${order.assignee!.name}`"
-            class="size-14 rounded-full object-cover"
-          />
-          <div class="flex flex-1 flex-col">
-            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Ответственный</p>
-            <p class="mt-1 text-base font-semibold leading-tight">{{ order.assignee!.name }}</p>
-            <p class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ order.assignee!.role }}</p>
+        <article v-if="orderFieldsSettings.assignee !== false && hasAssignee" class="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <NuxtLink
+            v-if="assigneeProfileLink"
+            :to="assigneeProfileLink"
+            :aria-label="`Открыть профиль ${order.assignee!.name}`"
+            class="flex w-full items-center gap-4 rounded-xl transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:hover:bg-white/5 dark:focus-visible:ring-offset-[#1C2431]"
+          >
+            <img
+              :src="order.assignee!.avatarUrl"
+              :alt="`Аватар ответственного ${order.assignee!.name}`"
+              class="size-14 rounded-full object-cover"
+            />
+            <div class="flex flex-1 flex-col">
+              <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Ответственный</p>
+              <p class="mt-1 text-base font-semibold leading-tight">{{ order.assignee!.name }}</p>
+              <p class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ order.assignee!.role }}</p>
+            </div>
+          </NuxtLink>
+          <div
+            v-else
+            class="flex items-center gap-4"
+          >
+            <img
+              :src="order.assignee!.avatarUrl"
+              :alt="`Аватар ответственного ${order.assignee!.name}`"
+              class="size-14 rounded-full object-cover"
+            />
+            <div class="flex flex-1 flex-col">
+              <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Ответственный</p>
+              <p class="mt-1 text-base font-semibold leading-tight">{{ order.assignee!.name }}</p>
+              <p class="text-sm text-gray-500 dark:text-[#9da6b9]">{{ order.assignee!.role }}</p>
+            </div>
           </div>
         </article>
 
