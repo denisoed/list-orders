@@ -12,34 +12,52 @@ project_id = <project-id>
 
 ---
 
-## 2. Деплой функции
+## 2. Деплой функций
 
 ```bash
+# Просроченные задачи
 npx supabase functions deploy check-overdue-tasks
+
+# Напоминания о приближающихся сроках
+npx supabase functions deploy remind-upcoming-tasks
 ```
 
-После деплоя функция будет доступна по адресу:
+После деплоя функции будут доступны по адресам:
 
 ```
 https://<project-id>.functions.supabase.co/check-overdue-tasks
+https://<project-id>.functions.supabase.co/remind-upcoming-tasks
 ```
 
 ---
 
-## 3. SQL-запрос для запуска функции по расписанию
+## 3. SQL-запросы для запуска функций по расписанию
 
 ```sql
 -- Убедись, что pg_cron включён
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Планировщик: каждые 30 минут вызывать edge-функцию check-overdue-tasks
+-- Просроченные задачи: каждые 30 минут
 SELECT
   cron.schedule(
-    'check_overdue_tasks_every_30min',     -- имя задачи (уникальное)
-    '*/30 * * * *',                        -- каждые 30 минут
+    'check_overdue_tasks_every_30min',
+    '*/30 * * * *',
     $$
       SELECT net.http_post(
         url := 'https://<project-id>.functions.supabase.co/check-overdue-tasks',
+        headers := '{"Authorization": "Bearer ' || current_setting('service_role_key') || '"}'
+      );
+    $$
+  );
+
+-- Напоминания о сроках: каждые 5 минут
+SELECT
+  cron.schedule(
+    'remind_upcoming_tasks_every_5min',
+    '*/5 * * * *',
+    $$
+      SELECT net.http_post(
+        url := 'https://<project-id>.functions.supabase.co/remind-upcoming-tasks',
         headers := '{"Authorization": "Bearer ' || current_setting('service_role_key') || '"}'
       );
     $$
