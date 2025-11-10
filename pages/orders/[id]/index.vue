@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { convertOrderToOrderDetail } from '~/data/orders'
 import type { Order, OrderDetail, OrderStatusTone } from '~/data/orders'
 import { renderMarkdown } from '~/utils/markdown'
+import { formatReminderList, getReminderLabels } from '~/utils/reminders'
 import { useUserStore } from '~/stores/user'
 import type { DropdownMenuItem } from '~/components/DropdownMenu.vue'
 import DropdownMenu from '~/components/DropdownMenu.vue'
@@ -259,7 +260,7 @@ const hasClientPaymentDetails = computed(() => {
 
 const quickInfoItems = computed(() => {
   const items = []
-  
+
   if (orderFieldsSettings.value.dueDate !== false || orderFieldsSettings.value.dueTime !== false) {
     items.push({
       id: 'due-date',
@@ -325,6 +326,21 @@ const quickInfoIconClass = (itemId: string) =>
       ? 'bg-red-500 text-white dark:bg-red-400 dark:text-white'
       : '',
   ]
+
+const reminderLabels = computed(() => getReminderLabels(orderData.value?.reminderOffset ?? null))
+
+const reminderDescription = computed(() => {
+  if (!reminderLabels.value.length) {
+    return ''
+  }
+
+  const list = formatReminderList(reminderLabels.value)
+  return `За ${list} до срока`
+})
+
+const shouldShowReminderSection = computed(
+  () => orderFieldsSettings.value.reminder === true && reminderLabels.value.length > 0,
+)
 
 const examplesCountLabel = computed(() => {
   if (!order.value) return '0 примеров'
@@ -924,6 +940,22 @@ useHead({
             </div>
           </div>
         </details>
+      </section>
+
+      <section v-if="shouldShowReminderSection" class="space-y-3">
+        <article class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <div
+            class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+          >
+            <span class="material-symbols-outlined text-2xl">notifications_active</span>
+          </div>
+          <div class="flex flex-1 flex-col">
+            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Напоминание</p>
+            <p class="mt-1 text-base font-semibold leading-tight text-black dark:text-white">
+              {{ reminderDescription }}
+            </p>
+          </div>
+        </article>
       </section>
       </template>
     </main>
