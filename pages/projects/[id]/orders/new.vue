@@ -121,7 +121,7 @@ const dueTime = ref('')
 const selectedAssigneeId = ref('unassigned')
 const customAssignee = ref<{ name: string; avatarUrl: string } | null>(null)
 const attachments = ref<ImageAttachment[]>([])
-const reminderOffset = ref<OrderReminderOffset | null>(null)
+const reminderOffsets = ref<OrderReminderOffset[]>([])
 const hasPrepayment = ref(false)
 const paymentAmount = ref('')
 const prepaymentAmount = ref('')
@@ -276,15 +276,149 @@ const createTimeOptions = (stepMinutes: number): string[] => {
 
 const timeOptions = createTimeOptions(30) // 30-minute intervals (00:00, 00:30, 01:00, 01:30, ...)
 
-const reminderOptions: ReadonlyArray<{ label: string; value: OrderReminderOffset }> = [
-  { label: '1 час', value: '1h' },
-  { label: '3 часа', value: '3h' },
-  { label: '1 день', value: '1d' },
+interface ReminderOption {
+  label: string
+  value: OrderReminderOffset
+  milliseconds: number
+}
+
+const reminderOptions: ReadonlyArray<ReminderOption> = [
+  { label: '15 минут', value: '15m', milliseconds: 15 * 60 * 1000 },
+  { label: '30 минут', value: '30m', milliseconds: 30 * 60 * 1000 },
+  { label: '1 час', value: '1h', milliseconds: 60 * 60 * 1000 },
+  { label: '2 часа', value: '2h', milliseconds: 2 * 60 * 60 * 1000 },
+  { label: '3 часа', value: '3h', milliseconds: 3 * 60 * 60 * 1000 },
+  { label: '6 часов', value: '6h', milliseconds: 6 * 60 * 60 * 1000 },
+  { label: '12 часов', value: '12h', milliseconds: 12 * 60 * 60 * 1000 },
+  { label: '1 день', value: '1d', milliseconds: 24 * 60 * 60 * 1000 },
+  { label: '2 дня', value: '2d', milliseconds: 2 * 24 * 60 * 60 * 1000 },
 ]
 
-const handleToggleReminder = (value: OrderReminderOffset) => {
-  reminderOffset.value = reminderOffset.value === value ? null : value
+const reminderOptionsByValue = reminderOptions.reduce<Record<OrderReminderOffset, ReminderOption>>((acc, option) => {
+  acc[option.value] = option
+  return acc
+}, {} as Record<OrderReminderOffset, ReminderOption>)
+
+const reminderOptionValues = new Set(reminderOptions.map(option => option.value))
+
+const dueDateTime = computed<Date | null>(() => {
+  if (!dueDate.value || !dueTime.value) {
+    return null
+  }
+
+  const [year, month, day] = dueDate.value.split('-').map(part => Number(part))
+  const [hours, minutes] = dueTime.value.split(':').map(part => Number(part))
+
+  if ([year, month, day, hours, minutes].some(part => Number.isNaN(part))) {
+    return null
+  }
+
+  return new Date(year, month - 1, day, hours, minutes)
+})
+
+const availableReminderOptions = computed<ReadonlyArray<ReminderOption>>(() => {
+  const dueAt = dueDateTime.value
+  if (!dueAt) {
+    return reminderOptions
+  }
+
+  const diffMs = dueAt.getTime() - Date.now()
+  if (diffMs <= 0) {
+    return []
+  }
+
+  return reminderOptions.filter(option => option.milliseconds <= diffMs)
+})
+
+const selectedReminderLabels = computed(() =>
+  reminderOffsets.value
+    .map(offset => reminderOptionsByValue[offset]?.label)
+    .filter((label): label is string => Boolean(label)),
+)
+
+const normalizeReminderOffsets = (offsets: OrderReminderOffset[]): OrderReminderOffset[] => {
+  const unique = new Set<OrderReminderOffset>()
+  for (const option of reminderOptions) {
+    if (offsets.includes(option.value)) {
+      unique.add(option.value)
+    }
+  }
+  return Array.from(unique)
 }
+
+const parseReminderOffsets = (
+  value: string | string[] | null | undefined,
+): OrderReminderOffset[] => {
+  if (!value) {
+    return []
+  }
+
+  const ensureArray = (): unknown => {
+    if (Array.isArray(value)) {
+      return value
+    }
+
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return []
+    }
+
+    try {
+      if (trimmed.startsWith('[')) {
+        return JSON.parse(trimmed)
+      }
+      return trimmed.split(',').map(item => item.trim()).filter(Boolean)
+    } catch (error) {
+      console.warn('[OrderReminder] Failed to parse reminder offsets, falling back to comma split:', error)
+      return trimmed.split(',').map(item => item.trim()).filter(Boolean)
+    }
+  }
+
+  const parsed = ensureArray()
+  if (!Array.isArray(parsed)) {
+    return []
+  }
+
+  const filtered = parsed.filter((offset): offset is OrderReminderOffset =>
+    typeof offset === 'string' && reminderOptionValues.has(offset as OrderReminderOffset),
+  )
+
+  return normalizeReminderOffsets(filtered)
+}
+
+const serializeReminderOffsets = (offsets: OrderReminderOffset[]): string | null => {
+  if (!offsets || offsets.length === 0) {
+    return null
+  }
+
+  const normalized = normalizeReminderOffsets(offsets)
+  return normalized.length > 0 ? JSON.stringify(normalized) : null
+}
+
+const handleToggleReminder = (value: OrderReminderOffset) => {
+  reminderOffsets.value = reminderOffsets.value.includes(value)
+    ? reminderOffsets.value.filter(offset => offset !== value)
+    : normalizeReminderOffsets([...reminderOffsets.value, value])
+}
+
+watch(
+  () => availableReminderOptions.value.map(option => option.value),
+  availableValues => {
+    if (!availableValues.length) {
+      if (reminderOffsets.value.length) {
+        reminderOffsets.value = []
+      }
+      return
+    }
+
+    const allowed = new Set(availableValues)
+    const filtered = reminderOffsets.value.filter(offset => allowed.has(offset))
+    if (filtered.length !== reminderOffsets.value.length) {
+      reminderOffsets.value = filtered
+    }
+  },
+  { immediate: true },
+)
 
 // Convert dueDate and dueTime to ISO string for API
 const getDueDateISO = (): string | null => {
@@ -364,7 +498,7 @@ const saveFormToDraft = () => {
     selectedAssigneeId: selectedAssigneeId.value,
     customAssignee: customAssignee.value,
     attachmentUrls,
-    reminderOffset: reminderOffset.value,
+    reminderOffsets: normalizeReminderOffsets([...reminderOffsets.value]),
     hasPrepayment: hasPrepayment.value,
     paymentAmount: paymentAmount.value,
     prepaymentAmount: prepaymentAmount.value,
@@ -392,7 +526,15 @@ const loadDraftToForm = async () => {
   dueTime.value = draft.dueTime || ''
   selectedAssigneeId.value = draft.selectedAssigneeId || 'unassigned'
   customAssignee.value = draft.customAssignee || null
-  reminderOffset.value = draft.reminderOffset || null
+  if (draft.reminderOffsets && Array.isArray(draft.reminderOffsets)) {
+    reminderOffsets.value = normalizeReminderOffsets(
+      draft.reminderOffsets as OrderReminderOffset[],
+    )
+  } else if (draft.reminderOffset) {
+    reminderOffsets.value = normalizeReminderOffsets([draft.reminderOffset])
+  } else {
+    reminderOffsets.value = []
+  }
   hasPrepayment.value = draft.hasPrepayment || false
   paymentAmount.value = draft.paymentAmount || ''
   prepaymentAmount.value = draft.prepaymentAmount || ''
@@ -446,7 +588,7 @@ const resetDraftState = () => {
   selectedAssigneeId.value = 'unassigned'
   customAssignee.value = null
   attachments.value = []
-  reminderOffset.value = null
+  reminderOffsets.value = []
   hasPrepayment.value = false
   paymentAmount.value = ''
   prepaymentAmount.value = ''
@@ -536,9 +678,7 @@ onMounted(async () => {
       }
       
       // Load reminder offset
-      if (orderData.reminderOffset) {
-        reminderOffset.value = orderData.reminderOffset as OrderReminderOffset
-      }
+      reminderOffsets.value = parseReminderOffsets(orderData.reminderOffset)
       
       // Set prepayment - parse from formatted string
       if (order.client.prepayment) {
@@ -755,6 +895,7 @@ const handleSubmit = async () => {
     const totalNum = paymentAmount.value ? Number(paymentAmount.value) : null
     const prepayment = prepaymentNum !== null && !isNaN(prepaymentNum) ? prepaymentNum : null
     const total = totalNum !== null && !isNaN(totalNum) ? totalNum : null
+    const reminderPayload = serializeReminderOffsets(reminderOffsets.value)
 
     if (isEditMode.value && orderId.value) {
       // Update existing order
@@ -792,11 +933,7 @@ const handleSubmit = async () => {
       }
       
       // Include reminder_offset (should be TEXT in database, values like "1h", "3h", "1d")
-      if (reminderOffset.value !== null && reminderOffset.value !== undefined) {
-        updateData.reminder_offset = reminderOffset.value
-      } else {
-        updateData.reminder_offset = null
-      }
+      updateData.reminder_offset = reminderPayload
       
       await updateOrder(orderId.value, updateData)
       
@@ -813,7 +950,7 @@ const handleSubmit = async () => {
         due_date: dueDateISO,
         due_time: dueTime.value || null,
         delivery_address: deliveryOption.value === 'delivery' ? deliveryAddress.value || null : null,
-        reminder_offset: reminderOffset.value || null,
+        reminder_offset: reminderPayload,
         payment_type: paymentType,
         prepayment_amount: prepayment,
         total_amount: total,
@@ -876,6 +1013,12 @@ watch(dueDate, (value) => {
   }
 })
 
+watch(dueTime, (value) => {
+  if (!value) {
+    reminderOffsets.value = []
+  }
+})
+
 watch(selectedAssigneeId, (value) => {
   if (value !== 'unassigned' && customAssignee.value) {
     customAssignee.value = null
@@ -893,7 +1036,7 @@ watch(
 )
 
 // Auto-save draft when form fields change (only for creating new orders)
-watch([title, description, clientName, clientPhone, deliveryAddress, deliveryOption, dueDate, dueTime, selectedAssigneeId, customAssignee, reminderOffset, hasPrepayment, paymentAmount, prepaymentAmount], () => {
+watch([title, description, clientName, clientPhone, deliveryAddress, deliveryOption, dueDate, dueTime, selectedAssigneeId, customAssignee, reminderOffsets, hasPrepayment, paymentAmount, prepaymentAmount], () => {
   saveFormToDraft()
 }, { deep: true })
 
@@ -1184,23 +1327,29 @@ useHead({
 
         <div v-if="showReminder && dueTime" class="flex flex-col space-y-3">
           <p class="text-base font-medium leading-normal">Напомнить за:</p>
-          <div class="flex items-center gap-3">
+          <div v-if="availableReminderOptions.length" class="flex flex-wrap items-center gap-3">
             <button
-              v-for="option in reminderOptions"
+              v-for="option in availableReminderOptions"
               :key="option.value"
               type="button"
-              class="flex-1 rounded-xl px-4 py-3 text-base font-medium leading-normal transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              class="min-w-[120px] flex-1 rounded-xl px-4 py-3 text-base font-medium leading-normal transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               :class="
-                reminderOffset === option.value
+                reminderOffsets.includes(option.value)
                   ? 'bg-primary text-white'
                   : 'bg-[#282e39] text-white/80 hover:bg-[#323a47]'
               "
-              :aria-pressed="reminderOffset === option.value"
+              :aria-pressed="reminderOffsets.includes(option.value)"
               @click="handleToggleReminder(option.value)"
             >
               {{ option.label }}
             </button>
           </div>
+          <p v-else class="text-sm text-[#9da6b9]">
+            Нет доступных вариантов напоминаний для выбранной даты и времени
+          </p>
+          <p v-if="selectedReminderLabels.length" class="text-sm text-[#9da6b9]">
+            Выбрано: {{ selectedReminderLabels.join(', ') }}
+          </p>
         </div>
       </div>
 

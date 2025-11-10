@@ -1,7 +1,28 @@
 import type { OrderStatus } from '~/utils/orderStatuses'
 
 export type { OrderStatus }
-export type OrderReminderOffset = '1h' | '3h' | '1d'
+export type OrderReminderOffset =
+  | '15m'
+  | '30m'
+  | '1h'
+  | '2h'
+  | '3h'
+  | '6h'
+  | '12h'
+  | '1d'
+  | '2d'
+
+export const ORDER_REMINDER_OFFSETS: ReadonlyArray<OrderReminderOffset> = [
+  '15m',
+  '30m',
+  '1h',
+  '2h',
+  '3h',
+  '6h',
+  '12h',
+  '1d',
+  '2d',
+]
 
 export interface OrderAttachment {
   id: string
@@ -27,7 +48,7 @@ export interface ProjectOrder {
   clientPhone?: string
   deliveryAddress?: string
   isPickup?: boolean
-  remindBefore?: OrderReminderOffset
+  remindBefore?: OrderReminderOffset | OrderReminderOffset[]
 }
 
 export interface ProjectFeaturesSettings {
