@@ -14,6 +14,7 @@ import ConfirmationModal from '~/components/ConfirmationModal.vue'
 import Radio from '~/components/Radio.vue'
 import RichTextEditor from '~/components/RichTextEditor.vue'
 import TextInputWithClear from '~/components/TextInputWithClear.vue'
+import { useUserStore } from '~/stores/user'
 
 interface AssigneeOption {
   id: string
@@ -23,6 +24,7 @@ interface AssigneeOption {
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const projectId = computed(() => String(route.params.id ?? ''))
 const orderId = computed(() => {
@@ -140,9 +142,25 @@ const DEFAULT_ASSIGNEE: AssigneeOption = {
     'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
 }
 
+const currentUserAssigneeOption = computed<AssigneeOption | null>(() => {
+  const currentUser = userStore.user
+  if (!currentUser) {
+    return null
+  }
+
+  const nameParts = [currentUser.first_name, currentUser.last_name].filter(Boolean)
+  const name = nameParts.length > 0 ? nameParts.join(' ') : currentUser.username || 'Я'
+
+  return {
+    id: String(currentUser.telegram_id),
+    name,
+    avatarUrl: currentUser.photo_url || DEFAULT_ASSIGNEE.avatarUrl,
+  }
+})
+
 const assigneeOptions = computed<AssigneeOption[]>(() => {
   const options: AssigneeOption[] = [DEFAULT_ASSIGNEE]
-  
+
   // Add project team members as assignee options
   if (members.value && members.value.length > 0) {
     const teamMemberOptions: AssigneeOption[] = members.value.map((member) => ({
@@ -152,9 +170,21 @@ const assigneeOptions = computed<AssigneeOption[]>(() => {
     }))
     options.push(...teamMemberOptions)
   }
-  
+
+  const creatorOption = currentUserAssigneeOption.value
+  if (creatorOption && !options.some((option) => option.id === creatorOption.id)) {
+    options.push(creatorOption)
+  }
+
   return options
 })
+
+const findAssigneeOptionById = (id: string): AssigneeOption | null => {
+  if (!id || id === DEFAULT_ASSIGNEE.id) {
+    return null
+  }
+  return assigneeOptions.value.find((option) => option.id === id) ?? null
+}
 
 const selectedAssignee = computed(() => {
   if (customAssignee.value) {
@@ -170,18 +200,13 @@ const selectedAssignee = computed(() => {
 
 // Get selected assignee's telegram ID
 const selectedAssigneeTelegramId = computed(() => {
-  if (selectedAssigneeId.value === 'unassigned' || !selectedAssigneeId.value) {
+  const option = findAssigneeOptionById(selectedAssigneeId.value)
+  if (!option) {
     return null
   }
-  
-  // Find the team member by id to get telegram_id
-  const member = members.value.find((m) => m.id === selectedAssigneeId.value)
-  if (member) {
-    // member.id is the telegram_id as string, convert to number
-    return parseInt(member.id, 10)
-  }
-  
-  return null
+
+  const numericId = Number(option.id)
+  return Number.isFinite(numericId) ? numericId : null
 })
 
 const titleError = computed(() => '')
@@ -553,11 +578,10 @@ onMounted(async () => {
       
       // Set assignee - load from orderData if available
       if (orderData.assigneeTelegramId !== null && orderData.assigneeTelegramId !== undefined) {
-        // Try to find the assignee in the project team members
-        const assigneeMember = members.value.find((m) => m.id === orderData.assigneeTelegramId!.toString())
-        if (assigneeMember) {
+        const assigneeOption = findAssigneeOptionById(orderData.assigneeTelegramId!.toString())
+        if (assigneeOption) {
           // Assignee is a project team member
-          selectedAssigneeId.value = assigneeMember.id
+          selectedAssigneeId.value = assigneeOption.id
           customAssignee.value = null
         } else if (orderData.assigneeTelegramName && orderData.assigneeTelegramAvatarUrl) {
           // Assignee is not in the project team, use custom assignee
@@ -751,8 +775,7 @@ const handleSubmit = async () => {
       
       // Set assignee fields
       if (selectedAssigneeTelegramId.value) {
-        // Assignee is selected from project team members
-        const selectedMember = members.value.find((m) => m.id === selectedAssigneeId.value)
+        const selectedMember = findAssigneeOptionById(selectedAssigneeId.value)
         updateData.assignee_telegram_id = selectedAssigneeTelegramId.value
         updateData.assignee_telegram_name = selectedMember?.name || null
         updateData.assignee_telegram_avatar_url = selectedMember?.avatarUrl || null
@@ -801,7 +824,7 @@ const handleSubmit = async () => {
       
       // Set assignee name and avatar if assignee is selected from project team
       if (selectedAssigneeTelegramId.value) {
-        const selectedMember = members.value.find((m) => m.id === selectedAssigneeId.value)
+        const selectedMember = findAssigneeOptionById(selectedAssigneeId.value)
         if (selectedMember) {
           // Send assignee name and avatar explicitly
           orderData.assignee_telegram_name = selectedMember.name
