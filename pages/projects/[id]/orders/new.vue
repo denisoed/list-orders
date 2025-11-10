@@ -129,6 +129,81 @@ const getTodayInputDate = (timestamp: number): string => {
   return `${year}-${month}-${day}`
 }
 
+const DATE_INPUT_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/
+
+const parseDateInputValue = (value: string): { year: number; month: number; day: number } | null => {
+  if (!value) {
+    return null
+  }
+
+  const match = value.match(DATE_INPUT_REGEX)
+  if (!match) {
+    return null
+  }
+
+  const [, yearStr, monthStr, dayStr] = match
+  const year = Number(yearStr)
+  const month = Number(monthStr)
+  const day = Number(dayStr)
+
+  if ([year, month, day].some(part => Number.isNaN(part))) {
+    return null
+  }
+
+  return { year, month, day }
+}
+
+const createLocalDateFromInput = (value: string, hours = 0, minutes = 0): Date | null => {
+  const parts = parseDateInputValue(value)
+  if (!parts || Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null
+  }
+
+  return new Date(parts.year, parts.month - 1, parts.day, hours, minutes, 0, 0)
+}
+
+const formatInputDateFromDate = (value: Date): string => {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+const formatInputTimeFromDate = (value: Date): string => {
+  const hours = String(value.getHours()).padStart(2, '0')
+  const minutes = String(value.getMinutes()).padStart(2, '0')
+
+  return `${hours}:${minutes}`
+}
+
+const applyStoredDueDate = (storedDate: string | null) => {
+  if (!storedDate) {
+    dueDate.value = ''
+    dueTime.value = ''
+    return
+  }
+
+  const parsedTimestamp = new Date(storedDate)
+  const isParsedValid = !Number.isNaN(parsedTimestamp.getTime())
+
+  if (DATE_INPUT_REGEX.test(storedDate)) {
+    dueDate.value = storedDate
+  } else if (isParsedValid) {
+    dueDate.value = formatInputDateFromDate(parsedTimestamp)
+  } else {
+    dueDate.value = ''
+  }
+
+  if (!isParsedValid) {
+    dueTime.value = ''
+    return
+  }
+
+  const timeLabel = formatInputTimeFromDate(parsedTimestamp)
+  dueTime.value = timeLabel === '00:00' ? '' : timeLabel
+}
+
 const minDueDate = computed(() => getTodayInputDate(nowTimestamp.value))
 const selectedAssigneeId = ref('unassigned')
 const customAssignee = ref<{ name: string; avatarUrl: string } | null>(null)
@@ -265,7 +340,12 @@ const dueDateLabel = computed(() => {
     return 'Не задан'
   }
 
-  const dateLabel = new Date(dueDate.value).toLocaleDateString('ru-RU')
+  const parsedDate = createLocalDateFromInput(dueDate.value)
+  if (!parsedDate) {
+    return 'Не задан'
+  }
+
+  const dateLabel = parsedDate.toLocaleDateString('ru-RU')
 
   return dateLabel
 })
@@ -293,8 +373,8 @@ const isDateBeforeToday = (value: string): boolean => {
     return false
   }
 
-  const selectedDate = new Date(value)
-  if (Number.isNaN(selectedDate.getTime())) {
+  const selectedDate = createLocalDateFromInput(value)
+  if (!selectedDate) {
     return false
   }
 
@@ -315,8 +395,8 @@ const isDateTimeInPast = (dateValue: string, timeValue: string): boolean => {
     return false
   }
 
-  const selected = new Date(dateValue)
-  if (Number.isNaN(selected.getTime())) {
+  const selected = createLocalDateFromInput(dateValue)
+  if (!selected) {
     return false
   }
 
@@ -330,8 +410,8 @@ const availableTimeOptions = computed(() => {
     return timeOptions
   }
 
-  const selectedDate = new Date(dueDate.value)
-  if (Number.isNaN(selectedDate.getTime())) {
+  const selectedDate = createLocalDateFromInput(dueDate.value)
+  if (!selectedDate) {
     return timeOptions
   }
 
@@ -388,14 +468,11 @@ const dueDateTime = computed<Date | null>(() => {
     return null
   }
 
-  const [year, month, day] = dueDate.value.split('-').map(part => Number(part))
-  const [hours, minutes] = dueTime.value.split(':').map(part => Number(part))
+  const [hoursStr, minutesStr] = dueTime.value.split(':')
+  const hours = Number(hoursStr)
+  const minutes = Number(minutesStr)
 
-  if ([year, month, day, hours, minutes].some(part => Number.isNaN(part))) {
-    return null
-  }
-
-  return new Date(year, month - 1, day, hours, minutes)
+  return createLocalDateFromInput(dueDate.value, hours, minutes)
 })
 
 const availableReminderOptions = computed<ReadonlyArray<ReminderOption>>(() => {
@@ -556,23 +633,19 @@ const getDueDateISO = (): string | null => {
 
   try {
     if (dueTime.value) {
-      // Combine date and time
-      const timeParts = dueTime.value.split(':')
-      if (timeParts.length === 2) {
-        const hours = Number(timeParts[0])
-        const minutes = Number(timeParts[1])
-        if (!isNaN(hours) && !isNaN(minutes)) {
-          const date = new Date(dueDate.value)
-          date.setHours(hours, minutes, 0, 0)
+      const [hoursStr, minutesStr] = dueTime.value.split(':')
+      if (hoursStr !== undefined && minutesStr !== undefined) {
+        const hours = Number(hoursStr)
+        const minutes = Number(minutesStr)
+        const date = createLocalDateFromInput(dueDate.value, hours, minutes)
+        if (date) {
           return date.toISOString()
         }
       }
     }
 
-    // Only date, set to start of day
-    const date = new Date(dueDate.value)
-    date.setHours(0, 0, 0, 0)
-    return date.toISOString()
+    const date = createLocalDateFromInput(dueDate.value)
+    return date ? date.toISOString() : null
   } catch (error) {
     console.error('Error converting due date to ISO:', error)
     return null
@@ -786,32 +859,7 @@ onMounted(async () => {
       clientName.value = order.client.name || ''
       clientPhone.value = order.client.phone || ''
       
-      // Parse due date from dueDateLabel (format: "26 октября 2024, 18:00")
-      if (order.dueDateLabel) {
-        const dateMatch = order.dueDateLabel.match(/(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+(\d{4})/)
-        if (dateMatch && dateMatch[1] && dateMatch[2] && dateMatch[3]) {
-          const months: Record<string, string> = {
-            'января': '01', 'февраля': '02', 'марта': '03', 'апреля': '04',
-            'мая': '05', 'июня': '06', 'июля': '07', 'августа': '08',
-            'сентября': '09', 'октября': '10', 'ноября': '11', 'декабря': '12'
-          }
-          const day = dateMatch[1].padStart(2, '0')
-          const month = months[dateMatch[2]] || '01'
-          const year = dateMatch[3]
-          dueDate.value = `${year}-${month}-${day}`
-          
-          // Parse time if available
-          const timeMatch = order.dueDateLabel.match(/(\d{1,2}):(\d{2})/)
-          if (timeMatch && timeMatch[1] && timeMatch[2]) {
-            dueTime.value = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`
-          }
-        }
-      }
-      
-      // Load due_time from orderData if available (prefer over parsed time)
-      if (orderData.dueTime) {
-        dueTime.value = orderData.dueTime
-      }
+      applyStoredDueDate(orderData.dueDate)
       
       // Set delivery option and address
       if (orderData.deliveryAddress) {
@@ -1058,7 +1106,6 @@ const handleSubmit = async () => {
         client_name: clientName.value,
         client_phone: clientPhone.value,
         due_date: dueDateISO,
-        due_time: dueTime.value || null,
         delivery_address: deliveryOption.value === 'delivery' ? deliveryAddress.value || null : null,
         payment_type: paymentType,
         prepayment_amount: prepayment,
@@ -1100,7 +1147,6 @@ const handleSubmit = async () => {
         client_name: clientName.value,
         client_phone: clientPhone.value,
         due_date: dueDateISO,
-        due_time: dueTime.value || null,
         delivery_address: deliveryOption.value === 'delivery' ? deliveryAddress.value || null : null,
         reminder_offset: reminderPayload,
         payment_type: paymentType,

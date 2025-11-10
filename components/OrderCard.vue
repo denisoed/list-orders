@@ -29,7 +29,7 @@ const dueLabel = computed(() => {
     return ''
   }
 
-  return `Срок: ${formatDateAndTime(props.order.dueDate, props.order.dueTime)}`
+  return `Срок: ${formatDateAndTime(props.order.dueDate)}`
 })
 
 const hasDueDate = computed(() => Boolean(props.order.dueDate))
@@ -64,7 +64,7 @@ const titleClasses = computed(() => {
 })
 
 // Format date and time in format "d month yyyy в hh:mm"
-function formatDateAndTime(date: string, time?: string | null): string {
+function formatDateAndTime(date: string): string {
   try {
     const dateObj = new Date(date)
     const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
@@ -72,20 +72,7 @@ function formatDateAndTime(date: string, time?: string | null): string {
       month: 'long',
       year: 'numeric',
     })
-    
-    if (time) {
-      // Parse time string (could be HH:mm or HH:mm:ss)
-      const timeParts = time.split(':')
-      if (timeParts.length >= 2) {
-        const hours = parseInt(timeParts[0], 10)
-        const minutes = parseInt(timeParts[1], 10)
-        if (!isNaN(hours) && !isNaN(minutes)) {
-          return `${dateFormatter.format(dateObj)} в ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-        }
-      }
-    }
-    
-    // If no time or time parsing failed, check if date has time component
+
     const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
@@ -94,9 +81,9 @@ function formatDateAndTime(date: string, time?: string | null): string {
     // If time is 00:00, don't show it
     if (timeStr === '00:00') {
       return dateFormatter.format(dateObj)
-    } else {
-      return `${dateFormatter.format(dateObj)} в ${timeStr}`
     }
+
+    return `${dateFormatter.format(dateObj)} в ${timeStr}`
   } catch (error) {
     return date
   }

@@ -3,6 +3,8 @@ import { mapDbStatusToOrderStatus, getOrderStatusMeta } from '~/utils/orderStatu
 
 export type { OrderStatusTone }
 
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/
+
 /**
  * Order interface matching server API response
  */
@@ -20,7 +22,6 @@ export interface Order {
   creatorTelegramId: number | null
   creatorTelegramName: string | null
   dueDate: string | null
-  dueTime: string | null
   deliveryAddress: string | null
   reminderOffset: string | null
   projectId: string
@@ -146,9 +147,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
   // Format due date in format "d month yyyy в hh:mm"
   let dueDateLabel = ''
   const parseDueDate = (value: string) => {
-    // Handle dates stored as YYYY-MM-DD (without timezone)
-    const dateOnlyMatch = value.match(/^\d{4}-\d{2}-\d{2}$/)
-    if (dateOnlyMatch) {
+    if (DATE_ONLY_REGEX.test(value)) {
       const [yearStr, monthStr, dayStr] = value.split('-')
       const year = Number.parseInt(yearStr, 10)
       const month = Number.parseInt(monthStr, 10)
@@ -177,34 +176,15 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
         year: 'numeric',
       })
 
-      // If dueTime is provided, use it; otherwise use time from dueDate
-      if (order.dueTime) {
-        const timeParts = order.dueTime.split(':')
-        if (timeParts.length >= 2) {
-          const hours = parseInt(timeParts[0], 10)
-          const minutes = parseInt(timeParts[1], 10)
-          if (!isNaN(hours) && !isNaN(minutes)) {
-            date.setHours(hours, minutes, 0, 0)
-            dueDateLabel = `${dateFormatter.format(date)} в ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-          } else {
-            dueDateLabel = dateFormatter.format(date)
-          }
-        } else {
-          dueDateLabel = dateFormatter.format(date)
-        }
+      const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      const timeStr = timeFormatter.format(date)
+      if (timeStr === '00:00') {
+        dueDateLabel = dateFormatter.format(date)
       } else {
-        // If no dueTime, check if date has time component
-        const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        const timeStr = timeFormatter.format(date)
-        // If time is 00:00, don't show it
-        if (timeStr === '00:00') {
-          dueDateLabel = dateFormatter.format(date)
-        } else {
-          dueDateLabel = `${dateFormatter.format(date)} в ${timeStr}`
-        }
+        dueDateLabel = `${dateFormatter.format(date)} в ${timeStr}`
       }
     } catch (error) {
       console.error('Error formatting due date:', error)

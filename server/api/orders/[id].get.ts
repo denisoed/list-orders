@@ -85,7 +85,6 @@ export default defineEventHandler(async (event) => {
       creatorTelegramId: order.user_telegram_id || null,
       creatorTelegramName: creatorName,
       dueDate: order.due_date || null,
-      dueTime: order.due_time || null,
       deliveryAddress: order.delivery_address || null,
       reminderOffset: order.reminder_offset || null,
       projectId: order.project_id,

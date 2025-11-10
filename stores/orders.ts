@@ -14,7 +14,6 @@ export interface CreateOrderInput {
   assignee_telegram_name?: string | null
   assignee_telegram_avatar_url?: string | null
   due_date?: string | null
-  due_time?: string | null
   delivery_address?: string | null
   reminder_offset?: string | null
   client_name?: string | null
@@ -36,7 +35,6 @@ export interface UpdateOrderInput {
   assignee_telegram_name?: string | null
   assignee_telegram_avatar_url?: string | null
   due_date?: string | null
-  due_time?: string | null
   delivery_address?: string | null
   reminder_offset?: string | null
   client_name?: string | null
@@ -196,7 +194,6 @@ export const useOrdersStore = defineStore('orders', () => {
           assignee_telegram_name: input.assignee_telegram_name ?? null,
           assignee_telegram_avatar_url: input.assignee_telegram_avatar_url ?? null,
           due_date: input.due_date || null,
-          due_time: input.due_time || null,
           delivery_address: input.delivery_address || null,
           reminder_offset: input.reminder_offset ?? null,
           client_name: toNullableString(input.client_name ?? null),
@@ -276,9 +273,6 @@ export const useOrdersStore = defineStore('orders', () => {
       }
       if (input.due_date !== undefined) {
         body.due_date = input.due_date
-      }
-      if (input.due_time !== undefined) {
-        body.due_time = input.due_time
       }
       if (input.delivery_address !== undefined) {
         body.delivery_address = input.delivery_address
