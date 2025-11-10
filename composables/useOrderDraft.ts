@@ -1,5 +1,5 @@
 import { computed, type Ref } from 'vue'
-import type { OrderReminderOffset } from '~/data/projects'
+import { ORDER_REMINDER_OFFSETS, type OrderReminderOffset } from '~/data/projects'
 
 export interface OrderDraftData {
   title: string
@@ -13,7 +13,11 @@ export interface OrderDraftData {
   selectedAssigneeId: string
   customAssignee: { name: string; avatarUrl: string } | null
   attachmentUrls: string[] // Only URLs, not blob URLs
-  reminderOffset: OrderReminderOffset | null
+  reminderOffsets: OrderReminderOffset[]
+  /**
+   * @deprecated Use reminderOffsets instead. Left for backward compatibility with older drafts.
+   */
+  reminderOffset?: OrderReminderOffset | null
   hasPrepayment: boolean
   paymentAmount: string
   prepaymentAmount: string
@@ -46,12 +50,32 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
     }
 
     try {
-      const existingDraft = loadDraft()
+      const existingDraft = loadDraft() || {}
       const draftData: OrderDraftData = {
-        ...existingDraft,
+        title: '',
+        description: '',
+        clientName: '',
+        clientPhone: '',
+        deliveryAddress: '',
+        deliveryOption: 'pickup',
+        dueDate: '',
+        dueTime: '',
+        selectedAssigneeId: 'unassigned',
+        customAssignee: null,
+        attachmentUrls: [],
+        reminderOffsets: [],
+        hasPrepayment: false,
+        paymentAmount: '',
+        prepaymentAmount: '',
+        projectId: projectIdRef.value,
+        ...(existingDraft as Partial<OrderDraftData>),
         ...data,
         projectId: projectIdRef.value,
       }
+
+      draftData.reminderOffsets = Array.isArray(draftData.reminderOffsets)
+        ? draftData.reminderOffsets.filter(isValidReminderOffset)
+        : []
 
       // Only save non-empty attachment URLs (not blob URLs)
       if (data.attachmentUrls) {
@@ -81,6 +105,15 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
       }
 
       const draft = JSON.parse(stored) as OrderDraftData
+
+      if (!Array.isArray(draft.reminderOffsets)) {
+        const legacyReminder = draft.reminderOffset
+        draft.reminderOffsets = legacyReminder && isValidReminderOffset(legacyReminder)
+          ? [legacyReminder]
+          : []
+      } else {
+        draft.reminderOffsets = draft.reminderOffsets.filter(isValidReminderOffset)
+      }
 
       // Verify that the draft belongs to the current project
       if (draft.projectId !== projectIdRef.value) {
@@ -142,3 +175,7 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
     createDebouncedSave,
   }
 }
+const isValidReminderOffset = (value: unknown): value is OrderReminderOffset => {
+  return typeof value === 'string' && ORDER_REMINDER_OFFSETS.includes(value as OrderReminderOffset)
+}
+
