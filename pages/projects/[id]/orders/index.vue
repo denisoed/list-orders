@@ -32,35 +32,6 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
   // Map order status to order status
   const OrderStatus: OrderStatus = mapDbStatusToOrderStatus(order.status)
 
-  // Format due date from ISO string to YYYY-MM-DD format when provided
-  let dueDate: string | undefined
-  if (order.dueDate) {
-    try {
-      const date = new Date(order.dueDate)
-      dueDate = date.toISOString().slice(0, 10)
-    } catch (error) {
-      console.error('Error parsing due date:', error)
-    }
-  }
-
-  // Use dueTime from database if available, otherwise extract from dueDate
-  let dueTime: string | undefined
-  if (order.dueTime) {
-    dueTime = order.dueTime
-  } else if (order.dueDate) {
-    try {
-      const date = new Date(order.dueDate)
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      // Only use extracted time if it's not midnight (00:00)
-      if (hours !== '00' || minutes !== '00') {
-        dueTime = `${hours}:${minutes}`
-      }
-    } catch (error) {
-      // Ignore time parsing errors
-    }
-  }
-
   const projectOrder: ProjectOrder = {
     id: order.id,
     title: order.title,
@@ -69,14 +40,10 @@ const convertOrderToOrder = (order: Order): ProjectOrder => {
       avatarUrl: order.assigneeTelegramAvatarUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
     },
     status: OrderStatus,
-    dueTime,
+    dueDate: order.dueDate || undefined,
     description: order.description || undefined,
     clientName: order.clientName,
     clientPhone: order.clientPhone,
-  }
-
-  if (dueDate) {
-    projectOrder.dueDate = dueDate
   }
 
   return projectOrder
@@ -199,20 +166,18 @@ const parseOrderDate = (value: string | undefined) => {
     return null
   }
 
+  const parsed = new Date(value)
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+  }
+
   const parts = value.split('-').map((part) => Number.parseInt(part, 10))
   if (parts.length !== 3) {
     return null
   }
 
-  const year = parts[0]
-  const month = parts[1]
-  const day = parts[2]
-
-  if (year === undefined || month === undefined || day === undefined) {
-    return null
-  }
-
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+  const [year, month, day] = parts
+  if ([year, month, day].some((part) => part === undefined || Number.isNaN(part))) {
     return null
   }
 

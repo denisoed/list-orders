@@ -20,6 +20,9 @@ const TIME_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
   minute: '2-digit',
 })
 
+const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/
+const HAS_TIME_COMPONENT_REGEX = /[T ]\d{2}:\d{2}/
+
 const TELEGRAM_URL_PREFIX = 'https://t.me/'
 
 interface MemberQueryParams {
@@ -31,7 +34,6 @@ interface OrderRecord {
   title: string | null
   status: string | null
   due_date: string | null
-  due_time: string | null
   archived: boolean | null
   updated_at: string | null
 }
@@ -54,27 +56,24 @@ interface UserRecord {
   photo_url: string | null
 }
 
-const parseDueDate = (dueDate: string | null, dueTime: string | null): Date | null => {
-  if (!dueDate) {
+const parseDueDate = (dueDate: string | null): Date | null => {
+  const rawDueDate = (dueDate ?? '').trim()
+  if (!rawDueDate) {
     return null
   }
 
-  const parsedDate = new Date(dueDate)
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null
+  const parsedTimestamp = new Date(rawDueDate)
+  if (!Number.isNaN(parsedTimestamp.getTime())) {
+    return parsedTimestamp
   }
 
-  if (dueTime) {
-    const [hoursStr, minutesStr] = dueTime.split(':')
-    const hours = Number(hoursStr)
-    const minutes = Number(minutesStr)
-
-    if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
-      parsedDate.setHours(hours, minutes, 0, 0)
-    }
+  const match = rawDueDate.match(DATE_ONLY_REGEX)
+  if (match) {
+    const [, year, month, day] = match
+    return new Date(Number(year), Number(month) - 1, Number(day))
   }
 
-  return parsedDate
+  return null
 }
 
 const formatDueDateLabel = (dueDate: Date | null, includeTime: boolean): string => {
@@ -327,7 +326,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
-      .select('id, title, status, due_date, due_time, archived, updated_at')
+  .select('id, title, status, due_date, archived, updated_at')
       .eq('project_id', projectId)
       .eq('assignee_telegram_id', memberTelegramId)
 
@@ -352,9 +351,9 @@ export default defineEventHandler(async (event) => {
         continue
       }
 
-      const dueDate = parseDueDate(order.due_date, order.due_time)
-      const derivedStatus = deriveOrderStatus(order, dueDate)
-      const hasDueTime = Boolean(order.due_time && order.due_time.trim())
+    const dueDate = parseDueDate(order.due_date)
+    const derivedStatus = deriveOrderStatus(order, dueDate)
+    const hasDueTime = Boolean(order.due_date && HAS_TIME_COMPONENT_REGEX.test(order.due_date))
       const dueDateLabel = formatDueDateLabel(dueDate, hasDueTime)
 
       const memberOrder: TeamMemberOrder = {
@@ -428,5 +427,3 @@ export default defineEventHandler(async (event) => {
     )
   }
 })
-
-

@@ -19,7 +19,6 @@ interface OrderRecord {
   title: string | null
   code: string | null
   due_date: string | null
-  due_time: string | null
   status: string | null
   archived: boolean | null
   reminder_offset: string | null
@@ -41,7 +40,14 @@ interface ReminderCandidate {
   reminderTime: Date
 }
 
-const REMINDER_WINDOW_MS = 5 * 60 * 1000
+const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/
+
+const REMINDER_LATE_WINDOW_MS = 3 * 60 * 1000
+const REMINDER_EARLY_WINDOW_MS = 3 * 60 * 1000
+const REMINDER_LOG_LOOKBACK_MS = Math.max(
+  REMINDER_LATE_WINDOW_MS,
+  REMINDER_EARLY_WINDOW_MS,
+)
 
 const REMINDER_OPTIONS: Record<
   OrderReminderOffset,
@@ -130,38 +136,23 @@ function parseReminderOffsets(value: string | null): OrderReminderOffset[] {
 }
 
 function parseDueDate(record: OrderRecord): Date | null {
-  if (!record.due_date) {
+  const rawDueDate = (record.due_date ?? "").trim()
+  if (!rawDueDate) {
     return null
   }
 
-  let dueDate = new Date(record.due_date)
-  if (Number.isNaN(dueDate.getTime())) {
-    const match = record.due_date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    if (match) {
-      const [, year, month, day] = match
-      dueDate = new Date(Number(year), Number(month) - 1, Number(day))
-    }
+  const parsedTimestamp = new Date(rawDueDate)
+  if (!Number.isNaN(parsedTimestamp.getTime())) {
+    return parsedTimestamp
   }
 
-  if (Number.isNaN(dueDate.getTime())) {
-    return null
+  const match = rawDueDate.match(DATE_ONLY_REGEX)
+  if (match) {
+    const [, year, month, day] = match
+    return new Date(Number(year), Number(month) - 1, Number(day))
   }
 
-  const dueTime = (record.due_time ?? "").trim()
-  if (!dueTime) {
-    return null
-  }
-
-  const [hoursStr, minutesStr] = dueTime.split(":")
-  const hours = Number(hoursStr)
-  const minutes = Number(minutesStr)
-
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-    return null
-  }
-
-  dueDate.setHours(hours, minutes, 0, 0)
-  return dueDate
+  return null
 }
 
 function formatDueDateLabel(dueDate: Date): string {
@@ -229,12 +220,14 @@ serve(async (req) => {
 
   try {
     const now = new Date()
-    const windowStart = now.getTime() - REMINDER_WINDOW_MS
+    const nowTimestamp = now.getTime()
+    const earliestReminderTimestamp = nowTimestamp - REMINDER_LATE_WINDOW_MS
+    const latestReminderTimestamp = nowTimestamp + REMINDER_EARLY_WINDOW_MS
 
     const { data: orders, error } = await supabase
       .from<OrderRecord>("orders")
       .select(
-        "id, title, code, due_date, due_time, status, archived, reminder_offset, assignee_telegram_id, assignee_telegram_name, user_telegram_id",
+        "id, title, code, due_date, status, archived, reminder_offset, assignee_telegram_id, assignee_telegram_name, user_telegram_id",
       )
       .not("reminder_offset", "is", null)
       .not("due_date", "is", null)
@@ -272,11 +265,11 @@ serve(async (req) => {
           continue
         }
 
-        if (reminderTimestamp > now.getTime()) {
+        if (reminderTimestamp > latestReminderTimestamp) {
           continue
         }
 
-        if (reminderTimestamp < windowStart) {
+        if (reminderTimestamp < earliestReminderTimestamp) {
           continue
         }
 
@@ -315,7 +308,10 @@ serve(async (req) => {
         .from<OrderReminderLogRecord>("order_reminder_logs")
         .select("order_id, reminder_offset, target_datetime")
         .in("order_id", orderIds)
-        .gte("target_datetime", new Date(minTargetTime - REMINDER_WINDOW_MS).toISOString())
+        .gte(
+          "target_datetime",
+          new Date(minTargetTime - REMINDER_LOG_LOOKBACK_MS).toISOString(),
+        )
 
       if (logsError) {
         console.error("[RemindUpcomingTasks] Failed to fetch reminder logs", logsError)

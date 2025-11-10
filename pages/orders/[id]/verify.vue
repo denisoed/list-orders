@@ -62,17 +62,6 @@ const projectOrder = computed<ProjectOrder | null>(() => {
 
   const orderStatus = mapDbStatusToOrderStatus(order.value.status)
 
-  // Format due date
-  let dueDate = new Date().toISOString().slice(0, 10)
-  if (order.value.dueDate) {
-    try {
-      const date = new Date(order.value.dueDate)
-      dueDate = date.toISOString().slice(0, 10)
-    } catch (error) {
-      console.error('Error parsing due date:', error)
-    }
-  }
-
   return {
     id: order.value.id,
     title: order.value.title,
@@ -81,8 +70,7 @@ const projectOrder = computed<ProjectOrder | null>(() => {
       avatarUrl: order.value.assigneeTelegramAvatarUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
     },
     status: orderStatus,
-    dueDate,
-    dueTime: order.value.dueTime || undefined,
+    dueDate: order.value.dueDate || undefined,
     description: order.value.description || undefined,
     clientName: order.value.clientName,
     clientPhone: order.value.clientPhone,

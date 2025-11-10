@@ -34,34 +34,23 @@ const formatStatus = (order: Order) => {
 }
 
 const formatDueDate = (order: Order) => {
-  if (!order.dueDate && !order.dueTime) {
+  if (!order.dueDate) {
     return 'Срок не указан'
   }
 
   try {
-    let label = ''
+    const date = new Date(order.dueDate)
+    const dateLabel = new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+    }).format(date)
 
-    if (order.dueDate) {
-      const date = new Date(order.dueDate)
-      label = new Intl.DateTimeFormat('ru-RU', {
-        day: 'numeric',
-        month: 'long',
-      }).format(date)
+    const timeLabel = new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date)
 
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      const hasTimeFromDate = !(hours === '00' && minutes === '00')
-
-      if (order.dueTime) {
-        label += ` в ${order.dueTime}`
-      } else if (hasTimeFromDate) {
-        label += ` в ${hours}:${minutes}`
-      }
-    } else if (order.dueTime) {
-      label = `В ${order.dueTime}`
-    }
-
-    return label || 'Срок не указан'
+    return timeLabel === '00:00' ? dateLabel : `${dateLabel} в ${timeLabel}`
   } catch (err) {
     console.error('Failed to format due date:', err)
     return 'Срок не указан'

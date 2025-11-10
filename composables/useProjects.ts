@@ -103,5 +103,3 @@ export const useProjects = () => {
   }
 }
 
-// Re-export types for convenience
-export type { CreateProjectInput, UpdateProjectInput }
