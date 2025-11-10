@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useHead, useRoute, useRouter } from '#imports'
 import type { ImageAttachment } from '~/components/ImageUploader.vue'
 import type { OrderReminderOffset } from '~/data/projects'
@@ -118,6 +118,18 @@ const deliveryAddress = ref(deliveryAddressDefault)
 const deliveryOption = ref<'pickup' | 'delivery' | ''>('pickup')
 const dueDate = ref('')
 const dueTime = ref('')
+const nowTimestamp = ref(Date.now())
+let nowIntervalId: ReturnType<typeof setInterval> | null = null
+
+const getTodayInputDate = (timestamp: number): string => {
+  const now = new Date(timestamp)
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const minDueDate = computed(() => getTodayInputDate(nowTimestamp.value))
 const selectedAssigneeId = ref('unassigned')
 const customAssignee = ref<{ name: string; avatarUrl: string } | null>(null)
 const attachments = ref<ImageAttachment[]>([])
@@ -276,6 +288,76 @@ const createTimeOptions = (stepMinutes: number): string[] => {
 
 const timeOptions = createTimeOptions(30) // 30-minute intervals (00:00, 00:30, 01:00, 01:30, ...)
 
+const isDateBeforeToday = (value: string): boolean => {
+  if (!value) {
+    return false
+  }
+
+  const selectedDate = new Date(value)
+  if (Number.isNaN(selectedDate.getTime())) {
+    return false
+  }
+
+  const today = new Date(nowTimestamp.value)
+  today.setHours(0, 0, 0, 0)
+  selectedDate.setHours(0, 0, 0, 0)
+
+  return selectedDate.getTime() < today.getTime()
+}
+
+const isDateTimeInPast = (dateValue: string, timeValue: string): boolean => {
+  if (!dateValue || !timeValue) {
+    return false
+  }
+
+  const [hours, minutes] = timeValue.split(':').map(part => Number(part))
+  if ([hours, minutes].some(part => Number.isNaN(part))) {
+    return false
+  }
+
+  const selected = new Date(dateValue)
+  if (Number.isNaN(selected.getTime())) {
+    return false
+  }
+
+  selected.setHours(hours, minutes, 0, 0)
+
+  return selected.getTime() < nowTimestamp.value
+}
+
+const availableTimeOptions = computed(() => {
+  if (!dueDate.value) {
+    return timeOptions
+  }
+
+  const selectedDate = new Date(dueDate.value)
+  if (Number.isNaN(selectedDate.getTime())) {
+    return timeOptions
+  }
+
+  const now = new Date(nowTimestamp.value)
+  const isSameDay =
+    selectedDate.getFullYear() === now.getFullYear() &&
+    selectedDate.getMonth() === now.getMonth() &&
+    selectedDate.getDate() === now.getDate()
+
+  if (!isSameDay) {
+    return timeOptions
+  }
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+  return timeOptions.filter(option => {
+    const [hours, minutes] = option.split(':').map(part => Number(part))
+    if ([hours, minutes].some(part => Number.isNaN(part))) {
+      return false
+    }
+
+    const optionMinutes = hours * 60 + minutes
+    return optionMinutes >= currentMinutes
+  })
+})
+
 interface ReminderOption {
   label: string
   value: OrderReminderOffset
@@ -322,13 +404,59 @@ const availableReminderOptions = computed<ReadonlyArray<ReminderOption>>(() => {
     return reminderOptions
   }
 
-  const diffMs = dueAt.getTime() - Date.now()
+  const diffMs = dueAt.getTime() - nowTimestamp.value
   if (diffMs <= 0) {
     return []
   }
 
   return reminderOptions.filter(option => option.milliseconds <= diffMs)
 })
+
+const enforceValidDueTime = () => {
+  if (dueDate.value && dueTime.value && isDateTimeInPast(dueDate.value, dueTime.value)) {
+    dueTime.value = ''
+  }
+}
+
+const handleDueDateChange = (event: Event) => {
+  const target = event.target as HTMLInputElement | null
+  if (!target) {
+    return
+  }
+
+  const value = target.value
+  if (!value) {
+    dueTime.value = ''
+    return
+  }
+
+  if (isDateBeforeToday(value)) {
+    dueDate.value = minDueDate.value
+  }
+
+  enforceValidDueTime()
+}
+
+const handleDueTimeChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement | null
+  if (!target) {
+    return
+  }
+
+  const value = target.value
+  if (!value) {
+    return
+  }
+
+  if (!dueDate.value) {
+    dueTime.value = ''
+    return
+  }
+
+  if (isDateTimeInPast(dueDate.value, value)) {
+    dueTime.value = ''
+  }
+}
 
 const selectedReminderLabels = computed(() =>
   reminderOffsets.value
@@ -623,7 +751,24 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => nowTimestamp.value,
+  () => {
+    enforceValidDueTime()
+  },
+)
+
 onMounted(async () => {
+  if (import.meta.client) {
+    nowTimestamp.value = Date.now()
+    if (nowIntervalId !== null) {
+      clearInterval(nowIntervalId)
+    }
+    nowIntervalId = window.setInterval(() => {
+      nowTimestamp.value = Date.now()
+    }, 60_000)
+  }
+
   updateBannerVisibility()
 
   // Fetch project team members first
@@ -752,6 +897,13 @@ onMounted(async () => {
   } else {
     // Load draft for new order creation
     await loadDraftToForm()
+  }
+})
+
+onBeforeUnmount(() => {
+  if (nowIntervalId !== null) {
+    clearInterval(nowIntervalId)
+    nowIntervalId = null
   }
 })
 
@@ -1287,6 +1439,8 @@ useHead({
                 type="date"
                 class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                 aria-label="Установите срок выполнения"
+                :min="minDueDate"
+                @change="handleDueDateChange"
               />
               <div class="flex items-center gap-2 text-base font-medium leading-normal text-primary">
                 <span>{{ dueDate ? 'Изменить' : 'Установить' }}</span>
@@ -1311,9 +1465,14 @@ useHead({
                 v-model="dueTime"
                 class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                 aria-label="Установите время выполнения"
+                @change="handleDueTimeChange"
               >
                 <option value="">Не задано</option>
-                <option v-for="option in timeOptions" :key="option" :value="option">
+                <option
+                  v-for="option in availableTimeOptions"
+                  :key="option"
+                  :value="option"
+                >
                   {{ option }}
                 </option>
               </select>
