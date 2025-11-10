@@ -387,10 +387,9 @@ const handleEditProject = () => {
   const { fallbackPath, returnPath } = getReturnPath()
 
   router.push({
-    path: '/projects/new',
+    path: `/projects/${projectId.value}/edit`,
     query: {
       from: returnPath,
-      edit: projectId.value,
       fallback: fallbackPath,
     },
   })
