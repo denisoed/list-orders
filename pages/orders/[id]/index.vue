@@ -814,7 +814,7 @@ useHead({
       </section>
 
       <section v-if="showClient" class="space-y-3">
-        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]" open>
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
           >
@@ -860,7 +860,7 @@ useHead({
       </section>
 
       <section v-if="showPayment && hasClientPaymentDetails" class="space-y-3">
-        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]" open>
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
           >
@@ -881,7 +881,7 @@ useHead({
       </section>
 
       <section v-if="showDelivery" class="space-y-3">
-        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+        <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]" open>
           <summary
             class="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-black dark:text-white"
           >
