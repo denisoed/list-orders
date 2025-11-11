@@ -16,7 +16,7 @@ import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const { fetchOrder, updateOrder } = useOrders()
+const { fetchOrder, updateOrder, getOrderById } = useOrders()
 const { getProjectById, fetchProject } = useProjects()
 
 const orderId = computed(() => {
@@ -81,40 +81,57 @@ const startAppParam = computed(() => {
 })
 
 // Load order from API
+const applyOrderData = async (sourceOrder: Order) => {
+  orderData.value = sourceOrder
+
+  const projectId = sourceOrder.projectId
+  let projectData = projectId ? getProjectById(projectId) ?? null : null
+
+  project.value = projectData
+  order.value = convertOrderToOrderDetail(sourceOrder, projectData?.title)
+
+  if (projectId) {
+    fetchProjectMembers()
+
+    if (!projectData) {
+      try {
+        projectData = await fetchProject(projectId)
+        project.value = projectData
+        order.value = convertOrderToOrderDetail(sourceOrder, projectData?.title)
+      } catch (error) {
+        console.error('Failed to load project:', error)
+      }
+    }
+  }
+}
+
 const loadOrder = async () => {
   if (!orderId.value) {
     return
   }
 
-  isLoading.value = true
   error.value = null
+
+  const cachedOrder = getOrderById(orderId.value)
+  const hasCachedOrder = Boolean(cachedOrder)
+
+  if (cachedOrder) {
+    isLoading.value = false
+    await applyOrderData(cachedOrder)
+  } else {
+    isLoading.value = true
+  }
 
   try {
     const fetchedOrder = await fetchOrder(orderId.value)
-    orderData.value = fetchedOrder
-    
-    // Load project to check features settings
-    let projectData = getProjectById(fetchedOrder.projectId)
-    if (!projectData) {
-      try {
-        projectData = await fetchProject(fetchedOrder.projectId)
-      } catch (error) {
-        console.error('Failed to load project:', error)
-      }
-    }
-    project.value = projectData
-
-    if (fetchedOrder.projectId) {
-      fetchProjectMembers()
-    }
-
-    const orderDetail = convertOrderToOrderDetail(fetchedOrder, projectData?.title)
-    order.value = orderDetail
+    await applyOrderData(fetchedOrder)
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : 'Не удалось загрузить задачу'
-    error.value = errorMessage
     console.error('Error loading order:', err)
+    if (!hasCachedOrder) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Не удалось загрузить задачу'
+      error.value = errorMessage
+    }
   } finally {
     isLoading.value = false
   }

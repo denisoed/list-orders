@@ -5,6 +5,7 @@ import type { ImageAttachment } from '~/components/ImageUploader.vue'
 import type { OrderReminderOffset } from '~/data/projects'
 import { useOrders } from '~/composables/useOrders'
 import { convertOrderToOrderDetail } from '~/data/orders'
+import type { Order } from '~/data/orders'
 import { useProjects } from '~/composables/useProjects'
 import { useTelegram } from '~/composables/useTelegram'
 import { useOrderDraft } from '~/composables/useOrderDraft'
@@ -35,7 +36,14 @@ const orderId = computed(() => {
 const isEditMode = computed(() => Boolean(orderId.value))
 
 const { getProjectById } = useProjects()
-const { fetchOrder, createOrder, updateOrder, isCreating, isUpdating } = useOrders()
+const {
+  fetchOrder,
+  createOrder,
+  updateOrder,
+  isCreating,
+  isUpdating,
+  getOrderById,
+} = useOrders()
 const { members, fetchMembers, isLoading: isLoadingMembers } = useProjectTeam(projectId)
 
 const project = computed(() => getProjectById(projectId.value))
@@ -831,6 +839,113 @@ watch(
   },
 )
 
+const applyOrderDataToForm = (sourceOrder: Order) => {
+  const projectData = project.value
+  const order = convertOrderToOrderDetail(sourceOrder, projectData?.title)
+
+  title.value = order.title || ''
+  description.value = order.description || ''
+  clientName.value = order.client.name || ''
+  clientPhone.value = order.client.phone || ''
+
+  applyStoredDueDate(sourceOrder.dueDate)
+
+  if (sourceOrder.deliveryAddress) {
+    deliveryOption.value = 'delivery'
+    deliveryAddress.value = sourceOrder.deliveryAddress
+  } else {
+    deliveryOption.value = 'pickup'
+    deliveryAddress.value = deliveryAddressDefault
+  }
+
+  reminderOffsets.value = parseReminderOffsets(sourceOrder.reminderOffset)
+
+  if (order.client.prepayment) {
+    const prepaymentMatch = order.client.prepayment.match(/[\d\s]+/)
+    if (prepaymentMatch) {
+      hasPrepayment.value = true
+      prepaymentAmount.value = prepaymentMatch[0].replace(/\s/g, '')
+    }
+  } else {
+    hasPrepayment.value = false
+    prepaymentAmount.value = ''
+  }
+
+  if (order.client.totalAmount) {
+    const totalMatch = order.client.totalAmount.match(/[\d\s]+/)
+    if (totalMatch) {
+      paymentAmount.value = totalMatch[0].replace(/\s/g, '')
+    }
+  } else {
+    paymentAmount.value = ''
+  }
+
+  if (sourceOrder.imageUrls && sourceOrder.imageUrls.length > 0) {
+    attachments.value = sourceOrder.imageUrls.map((url, index) => ({
+      id: `existing-${index}`,
+      name: `image-${index + 1}`,
+      previewUrl: url,
+      file: new File([], `image-${index + 1}`),
+    }))
+  } else if (order.attachments && order.attachments.length > 0) {
+    attachments.value = order.attachments.map((att) => ({
+      id: att.id,
+      name: att.name || 'image',
+      previewUrl: att.previewUrl,
+      file: new File([], att.name || 'image'),
+    }))
+  } else {
+    attachments.value = []
+  }
+
+  if (
+    sourceOrder.assigneeTelegramId !== null &&
+    sourceOrder.assigneeTelegramId !== undefined
+  ) {
+    const assigneeOption = findAssigneeOptionById(sourceOrder.assigneeTelegramId!.toString())
+    if (assigneeOption) {
+      selectedAssigneeId.value = assigneeOption.id
+      customAssignee.value = null
+    } else if (sourceOrder.assigneeTelegramName && sourceOrder.assigneeTelegramAvatarUrl) {
+      customAssignee.value = {
+        name: sourceOrder.assigneeTelegramName,
+        avatarUrl: sourceOrder.assigneeTelegramAvatarUrl,
+      }
+      selectedAssigneeId.value = 'unassigned'
+    } else {
+      selectedAssigneeId.value = 'unassigned'
+      customAssignee.value = null
+    }
+  } else if (order.assignee) {
+    customAssignee.value = {
+      name: order.assignee.name,
+      avatarUrl: order.assignee.avatarUrl,
+    }
+    selectedAssigneeId.value = 'unassigned'
+  } else {
+    selectedAssigneeId.value = 'unassigned'
+    customAssignee.value = null
+  }
+}
+
+const loadOrderForEdit = async () => {
+  if (!orderId.value) {
+    return
+  }
+
+  const cachedOrder = getOrderById(orderId.value)
+  if (cachedOrder) {
+    applyOrderDataToForm(cachedOrder)
+  }
+
+  try {
+    const orderData = await fetchOrder(orderId.value)
+    applyOrderDataToForm(orderData)
+  } catch (error) {
+    console.error('Failed to load order data:', error)
+  }
+}
+
 onMounted(async () => {
   if (import.meta.client) {
     nowTimestamp.value = Date.now()
@@ -848,100 +963,7 @@ onMounted(async () => {
   await fetchMembers()
   
   if (orderId.value) {
-    try {
-      const orderData = await fetchOrder(orderId.value)
-      const projectData = project.value
-      const order = convertOrderToOrderDetail(orderData, projectData?.title)
-      
-      // Fill form with order data
-      title.value = order.title || ''
-      description.value = order.description || ''
-      clientName.value = order.client.name || ''
-      clientPhone.value = order.client.phone || ''
-      
-      applyStoredDueDate(orderData.dueDate)
-      
-      // Set delivery option and address
-      if (orderData.deliveryAddress) {
-        deliveryOption.value = 'delivery'
-        deliveryAddress.value = orderData.deliveryAddress
-      } else {
-        deliveryOption.value = 'pickup'
-        deliveryAddress.value = deliveryAddressDefault
-      }
-      
-      // Load reminder offset
-      reminderOffsets.value = parseReminderOffsets(orderData.reminderOffset)
-      
-      // Set prepayment - parse from formatted string
-      if (order.client.prepayment) {
-        // Extract numeric value from formatted string like "50 000 ₽"
-        const prepaymentMatch = order.client.prepayment.match(/[\d\s]+/)
-        if (prepaymentMatch) {
-          hasPrepayment.value = true
-          prepaymentAmount.value = prepaymentMatch[0].replace(/\s/g, '')
-        }
-      }
-      
-      if (order.client.totalAmount) {
-        // Extract numeric value from formatted string
-        const totalMatch = order.client.totalAmount.match(/[\d\s]+/)
-        if (totalMatch) {
-          paymentAmount.value = totalMatch[0].replace(/\s/g, '')
-        }
-      }
-      
-      // Load existing images from orderData.imageUrls
-      if (orderData.imageUrls && orderData.imageUrls.length > 0) {
-        attachments.value = orderData.imageUrls.map((url, index) => ({
-          id: `existing-${index}`,
-          name: `image-${index + 1}`,
-          previewUrl: url,
-          file: new File([], `image-${index + 1}`), // Empty file for existing attachments
-        }))
-      } else if (order.attachments && order.attachments.length > 0) {
-        // Fallback to order.attachments if imageUrls is not available
-        attachments.value = order.attachments.map((att) => ({
-          id: att.id,
-          name: att.name || 'image',
-          previewUrl: att.previewUrl,
-          file: new File([], att.name || 'image'), // Create empty file for existing attachments
-        }))
-      }
-      
-      // Set assignee - load from orderData if available
-      if (orderData.assigneeTelegramId !== null && orderData.assigneeTelegramId !== undefined) {
-        const assigneeOption = findAssigneeOptionById(orderData.assigneeTelegramId!.toString())
-        if (assigneeOption) {
-          // Assignee is a project team member
-          selectedAssigneeId.value = assigneeOption.id
-          customAssignee.value = null
-        } else if (orderData.assigneeTelegramName && orderData.assigneeTelegramAvatarUrl) {
-          // Assignee is not in the project team, use custom assignee
-          customAssignee.value = {
-            name: orderData.assigneeTelegramName,
-            avatarUrl: orderData.assigneeTelegramAvatarUrl,
-          }
-          selectedAssigneeId.value = 'unassigned'
-        } else {
-          selectedAssigneeId.value = 'unassigned'
-          customAssignee.value = null
-        }
-      } else if (order.assignee) {
-        // Fallback to order.assignee if available
-        customAssignee.value = {
-          name: order.assignee.name,
-          avatarUrl: order.assignee.avatarUrl,
-        }
-        selectedAssigneeId.value = 'unassigned'
-      } else {
-        selectedAssigneeId.value = 'unassigned'
-        customAssignee.value = null
-      }
-    } catch (error) {
-      console.error('Failed to load order data:', error)
-      // If order loading fails, form will remain empty
-    }
+    await loadOrderForEdit()
   } else {
     // Load draft for new order creation
     await loadDraftToForm()
