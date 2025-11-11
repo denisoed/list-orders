@@ -118,7 +118,7 @@ const getTabButtonClasses = (tab: TabDefinition) => {
     return 'flex-1 rounded-xl px-3 py-2 text-sm font-medium text-zinc-500/60 cursor-not-allowed'
   }
   if (activeTab.value === tab.id) {
-    return 'flex-1 rounded-xl bg-primary/15 px-3 py-2 text-sm font-semibold text-primary shadow-inner transition-colors'
+    return 'flex-1 rounded-xl bg-primary/15 px-3 py-2 text-sm font-semibold text-white shadow-inner transition-colors'
   }
   return 'flex-1 rounded-xl px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white'
 }
