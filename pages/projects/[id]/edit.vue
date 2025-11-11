@@ -37,8 +37,25 @@ const activeTab = ref<TabId>('general')
 const tabs: TabDefinition[] = [
   { id: 'general', label: 'Основное' },
   { id: 'links', label: 'Настройки' },
-  { id: 'metrics', label: 'Метрики', disabled: true },
+  { id: 'metrics', label: 'Метрики' },
 ]
+
+const internalTabs: TabId[] = ['general', 'links']
+
+const resolveTabFromQuery = (value: unknown): TabId => {
+  if (typeof value === 'string' && internalTabs.includes(value as TabId)) {
+    return value as TabId
+  }
+
+  if (Array.isArray(value) && value.length > 0) {
+    const [first] = value
+    if (typeof first === 'string' && internalTabs.includes(first as TabId)) {
+      return first as TabId
+    }
+  }
+
+  return 'general'
+}
 
 const projectId = computed(() => {
   const { id } = route.params
@@ -106,11 +123,55 @@ const submitButtonText = computed(() => (isSubmitting.value ? 'Сохранен�
 const pageTitle = 'Настройки проекта'
 const closeAriaLabel = 'Закрыть редактирование проекта'
 
+const updateTabQuery = (tabId: TabId) => {
+  const query = { ...route.query }
+
+  if (tabId === 'general') {
+    if (!('tab' in query)) {
+      return
+    }
+
+    delete query.tab
+  } else {
+    if (query.tab === tabId) {
+      return
+    }
+
+    query.tab = tabId
+  }
+
+  router.replace({
+    path: route.path,
+    query,
+  })
+}
+
 const selectTab = (tab: TabDefinition) => {
   if (tab.disabled) {
     return
   }
+
+  if (tab.id === 'metrics') {
+    if (!projectId.value) {
+      return
+    }
+
+    const metricsQuery: Record<string, string> = { from: route.fullPath }
+    const targetReturnPath = returnPath.value
+
+    if (targetReturnPath.length > 0 && targetReturnPath !== route.fullPath) {
+      metricsQuery.fallback = targetReturnPath
+    }
+
+    router.push({
+      path: `/projects/${projectId.value}/metrics`,
+      query: metricsQuery,
+    })
+    return
+  }
+
   activeTab.value = tab.id
+  updateTabQuery(tab.id)
 }
 
 const getTabButtonClasses = (tab: TabDefinition) => {
@@ -122,6 +183,17 @@ const getTabButtonClasses = (tab: TabDefinition) => {
   }
   return 'flex-1 rounded-xl px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white'
 }
+
+watch(
+  () => route.query.tab,
+  (tabQuery) => {
+    const resolved = resolveTabFromQuery(tabQuery)
+    if (internalTabs.includes(resolved)) {
+      activeTab.value = resolved
+    }
+  },
+  { immediate: true },
+)
 
 const handleTitleBlur = () => {
   titleTouched.value = true
