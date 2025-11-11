@@ -54,7 +54,7 @@ const handleEdit = () => {
         aria-label="Редактировать проект"
         @click="handleEdit"
       >
-        <span class="material-symbols-outlined">settings</span>
+        <span class="material-symbols-outlined">edit_square</span>
       </button>
       <div v-else class="flex w-12 items-center justify-end"></div>
     </div>
