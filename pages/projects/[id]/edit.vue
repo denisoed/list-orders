@@ -35,8 +35,8 @@ const isArchiveModalOpen = ref(false)
 const activeTab = ref<TabId>('general')
 
 const tabs: TabDefinition[] = [
-  { id: 'general', label: 'Поля' },
-  { id: 'links', label: 'Навигация' },
+  { id: 'general', label: 'Основное' },
+  { id: 'links', label: 'Настройки' },
   { id: 'metrics', label: 'Метрики', disabled: true },
 ]
 
@@ -103,7 +103,7 @@ const isProjectArchived = computed(() => editableProject.value?.archived === tru
 
 const submitButtonText = computed(() => (isSubmitting.value ? 'Сохранение…' : 'Сохранить изменения'))
 
-const pageTitle = 'Редактирование проекта'
+const pageTitle = 'Настройки проекта'
 const closeAriaLabel = 'Закрыть редактирование проекта'
 
 const selectTab = (tab: TabDefinition) => {
