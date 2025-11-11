@@ -497,6 +497,18 @@ const availableReminderOptions = computed<ReadonlyArray<ReminderOption>>(() => {
   return reminderOptions.filter(option => option.milliseconds <= diffMs)
 })
 
+const shouldHideReminderSection = computed(() => {
+  if (!isEditMode.value || !dueDate.value) {
+    return false
+  }
+
+  if (dueTime.value) {
+    return isDateTimeInPast(dueDate.value, dueTime.value)
+  }
+
+  return isDateBeforeToday(dueDate.value)
+})
+
 const enforceValidDueTime = () => {
   if (dueDate.value && dueTime.value && isDateTimeInPast(dueDate.value, dueTime.value)) {
     dueTime.value = ''
@@ -1552,7 +1564,7 @@ useHead({
           </div>
         </div>
 
-        <div v-if="showReminder && dueTime" class="flex flex-col space-y-3">
+        <div v-if="showReminder && dueTime && !shouldHideReminderSection" class="flex flex-col space-y-3">
           <p class="text-base font-medium leading-normal">Напомнить за:</p>
           <div v-if="availableReminderOptions.length" class="flex flex-wrap items-center gap-3">
             <button
