@@ -25,6 +25,40 @@ interface MetricsSection {
   items: MetricItem[]
 }
 
+interface SummaryCard extends MetricItem {
+  id: string
+}
+
+interface StatusChartBar {
+  status: OrderStatus
+  label: string
+  count: number
+  share: number
+  width: string
+  barClass: string
+}
+
+type DeadlineSegmentId = 'overdue' | 'dueSoon' | 'onTrack'
+
+interface DeadlineSegment {
+  id: DeadlineSegmentId
+  label: string
+  count: number
+  share: number
+  width: string
+  class: string
+  dotClass: string
+}
+
+type FinanceSegmentId = 'prepaid' | 'outstanding'
+
+interface FinanceChartSegment {
+  id: FinanceSegmentId
+  label: string
+  share: number
+  value: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const projectsStore = useProjectsStore()
@@ -46,6 +80,36 @@ const valueToneClasses: Record<MetricTone, string> = {
   warning: 'text-amber-300',
   danger: 'text-red-400',
   info: 'text-sky-300',
+}
+
+const statusBarClasses: Record<OrderStatus, string> = {
+  pending: 'bg-gradient-to-r from-red-500/90 via-red-400/80 to-red-500/70',
+  in_progress: 'bg-gradient-to-r from-amber-400/90 via-amber-300/80 to-yellow-400/70',
+  review: 'bg-gradient-to-r from-sky-500/90 via-sky-400/80 to-blue-400/70',
+  done: 'bg-gradient-to-r from-emerald-500/90 via-emerald-400/80 to-green-400/70',
+}
+
+const timelineSegmentClasses: Record<DeadlineSegmentId, string> = {
+  overdue: 'bg-gradient-to-r from-red-600/90 to-red-500/70',
+  dueSoon: 'bg-gradient-to-r from-amber-400/90 to-amber-300/70',
+  onTrack: 'bg-gradient-to-r from-emerald-500/90 to-emerald-400/70',
+}
+
+const timelineDotClasses: Record<DeadlineSegmentId, string> = {
+  overdue: 'bg-red-400',
+  dueSoon: 'bg-amber-300',
+  onTrack: 'bg-emerald-400',
+}
+
+const financeChartColors: Record<FinanceSegmentId, string> = {
+  prepaid: '#34d399',
+  outstanding: '#f59e0b',
+}
+
+const financeNeutralColor = 'rgba(255, 255, 255, 0.08)'
+
+const clampShare = (value: number): number => {
+  return Math.min(100, Math.max(0, value))
 }
 
 const statusDescriptions: Record<OrderStatus, string> = {
@@ -288,6 +352,176 @@ const statusBreakdown = computed(() => {
     label: ORDER_STATUS_META[status].label,
     count: statusTotals.value[status],
   }))
+})
+
+const totalOrdersLabel = computed(() => {
+  return `${formatNumber(totalOrders.value)} заказов`
+})
+
+const summaryCards = computed<SummaryCard[]>(() => [
+  {
+    id: 'completed',
+    label: 'Выполнено',
+    value: completionRateLabel.value,
+    hint: `${formatNumber(completedOrders.value)} из ${formatNumber(totalOrders.value)}`,
+    tone: completedOrders.value > 0 ? 'success' : 'default',
+  },
+  {
+    id: 'active',
+    label: 'Активные задачи',
+    value: formatNumber(activeOrdersCount.value),
+    hint:
+      ordersRequiringAttention.value > 0
+        ? `${formatNumber(ordersRequiringAttention.value)} требуют внимания`
+        : 'Нет задач на ключевых этапах',
+    tone: activeOrdersCount.value > 0 ? 'info' : 'success',
+  },
+  {
+    id: 'revenue',
+    label: 'Оборот',
+    value: totalRevenue.value > 0 ? formatCurrencyValue(totalRevenue.value) : '—',
+    hint:
+      totalRevenue.value > 0
+        ? `Предоплата ${
+            totalPrepayment.value > 0 ? formatCurrencyValue(totalPrepayment.value) : '—'
+          }`
+        : 'Добавьте суммы в заказах',
+    tone: totalRevenue.value > 0 ? 'info' : 'default',
+  },
+  {
+    id: 'overdue',
+    label: 'Просрочено',
+    value: formatNumber(overdueOrders.value),
+    hint:
+      overdueOrders.value > 0
+        ? `${formatPercent(overdueShare.value)} от активных задач`
+        : 'Все дедлайны под контролем',
+    tone: overdueOrders.value > 0 ? 'danger' : 'success',
+  },
+])
+
+const statusChartBars = computed<StatusChartBar[]>(() => {
+  return statusBreakdown.value.map((item) => {
+    const share = calculateShare(item.count, totalOrders.value)
+    return {
+      ...item,
+      share,
+      width: `${clampShare(share)}%`,
+      barClass: statusBarClasses[item.status],
+    }
+  })
+})
+
+const hasStatusData = computed(() => statusChartBars.value.some((item) => item.count > 0))
+
+const onTrackCount = computed(() => {
+  return Math.max(totalOrders.value - overdueOrders.value - dueSoonOrders.value, 0)
+})
+
+const onTrackShare = computed(() => {
+  return clampShare(calculateShare(onTrackCount.value, totalOrders.value))
+})
+
+const deadlineChartSegments = computed<DeadlineSegment[]>(() => [
+  {
+    id: 'overdue',
+    label: 'Просрочено',
+    count: overdueOrders.value,
+    share: clampShare(overdueShare.value),
+    width: `${clampShare(overdueShare.value)}%`,
+    class: timelineSegmentClasses.overdue,
+    dotClass: timelineDotClasses.overdue,
+  },
+  {
+    id: 'dueSoon',
+    label: 'До дедлайна < 48 ч',
+    count: dueSoonOrders.value,
+    share: clampShare(dueSoonShare.value),
+    width: `${clampShare(dueSoonShare.value)}%`,
+    class: timelineSegmentClasses.dueSoon,
+    dotClass: timelineDotClasses.dueSoon,
+  },
+  {
+    id: 'onTrack',
+    label: 'В графике',
+    count: onTrackCount.value,
+    share: clampShare(onTrackShare.value),
+    width: `${clampShare(onTrackShare.value)}%`,
+    class: timelineSegmentClasses.onTrack,
+    dotClass: timelineDotClasses.onTrack,
+  },
+])
+
+const hasDeadlineData = computed(() => deadlineChartSegments.value.some((segment) => segment.count > 0))
+
+const schedulingHighlights = computed(() => [
+  {
+    id: 'withDueDate',
+    label: 'С указанным сроком',
+    value: formatNumber(ordersWithDueDate.value),
+    hint:
+      ordersWithDueDate.value > 0
+        ? `${formatPercent(dueDateCoverage.value)} от всех заказов`
+        : 'Добавьте сроки, чтобы видеть нагрузку',
+  },
+  {
+    id: 'withReminder',
+    label: 'С напоминаниями',
+    value: formatNumber(ordersWithReminder.value),
+    hint:
+      ordersWithReminder.value > 0
+        ? `${formatPercent(remindersShare.value)} задач получают автоматические сигналы`
+        : 'Настройте напоминания, чтобы не пропускать дедлайны',
+  },
+])
+
+const totalRevenueLabel = computed(() => {
+  return totalRevenue.value > 0 ? formatCurrencyValue(totalRevenue.value) : 'Нет данных'
+})
+
+const prepaymentShareLabel = computed(() => formatPercent(prepaymentShare.value))
+
+const outstandingShare = computed(() => {
+  if (totalRevenue.value <= 0) {
+    return 0
+  }
+  return calculateShare(outstandingAmount.value, totalRevenue.value)
+})
+
+const financeChartSegments = computed<FinanceChartSegment[]>(() => [
+  {
+    id: 'prepaid',
+    label: 'Предоплачено',
+    share: clampShare(prepaymentShare.value),
+    value: totalPrepayment.value > 0 ? formatCurrencyValue(totalPrepayment.value) : '—',
+  },
+  {
+    id: 'outstanding',
+    label: 'Остаток к оплате',
+    share: clampShare(outstandingShare.value),
+    value: outstandingAmount.value > 0 ? formatCurrencyValue(outstandingAmount.value) : '—',
+  },
+])
+
+const hasFinanceData = computed(() => totalRevenue.value > 0 || totalPrepayment.value > 0)
+
+const financeChartStyle = computed(() => {
+  if (!hasFinanceData.value) {
+    return {
+      background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+    }
+  }
+
+  const prepaid = clampShare(prepaymentShare.value)
+  const outstanding = clampShare(outstandingShare.value)
+  const remainder = clampShare(100 - prepaid - outstanding)
+
+  const outstandingStop = prepaid + outstanding
+  const remainderStop = outstandingStop + remainder
+
+  return {
+    background: `conic-gradient(${financeChartColors.prepaid} 0% ${prepaid}%, ${financeChartColors.outstanding} ${prepaid}% ${outstandingStop}%, ${financeNeutralColor} ${outstandingStop}% ${remainderStop}%)`,
+  }
 })
 
 const lastActivityLabel = computed(() => {
@@ -697,27 +931,6 @@ useHead({
           </section>
 
           <section
-            v-if="showStatusBreakdown"
-            class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-          >
-            <article
-              v-for="status in statusBreakdown"
-              :key="status.status"
-              :class="getStatusCardClasses(status.status)"
-            >
-              <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                {{ status.label }}
-              </p>
-              <p class="mt-3 text-3xl font-bold leading-none text-zinc-900 dark:text-white">
-                {{ formatNumber(status.count) }}
-              </p>
-              <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-300">
-                {{ statusDescriptions[status.status] }}
-              </p>
-            </article>
-          </section>
-
-          <section
             v-if="isLoadingAny"
             class="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-zinc-300"
           >
@@ -731,39 +944,224 @@ useHead({
           </section>
           <section
             v-else
-            class="grid gap-4 xl:grid-cols-2"
+            class="grid gap-4 xl:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)]"
           >
-            <article
-              v-for="section in metricsSections"
-              :key="section.id"
-              class="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6"
-            >
-              <div>
-                <h3 class="text-lg font-semibold leading-tight text-white">
-                  {{ section.title }}
-                </h3>
-                <p class="mt-1 text-sm text-zinc-300">
-                  {{ section.description }}
-                </p>
-              </div>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div
-                  v-for="item in section.items"
-                  :key="item.label"
-                  class="rounded-xl border border-white/10 bg-black/20 p-4"
+            <div class="space-y-4">
+              <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <article
+                  v-for="card in summaryCards"
+                  :key="card.id"
+                  class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm shadow-black/10"
                 >
                   <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    {{ item.label }}
+                    {{ card.label }}
                   </p>
-                  <p :class="['mt-3', getMetricValueClasses(item.tone)]">
-                    {{ item.value }}
+                  <p :class="['mt-3', getMetricValueClasses(card.tone)]">
+                    {{ card.value }}
                   </p>
-                  <p v-if="item.hint" class="mt-2 text-xs text-zinc-400">
-                    {{ item.hint }}
+                  <p v-if="card.hint" class="mt-2 text-xs text-zinc-400">
+                    {{ card.hint }}
                   </p>
+                </article>
+              </section>
+
+              <section
+                v-if="showStatusBreakdown"
+                class="rounded-2xl border border-white/10 bg-white/5 p-6"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-semibold leading-tight text-white">Статусы по этапам</h3>
+                    <p class="mt-1 text-sm text-zinc-400">
+                      Как распределяются заказы по ключевым состояниям.
+                    </p>
+                  </div>
+                  <span class="text-xs text-zinc-500">{{ totalOrdersLabel }}</span>
                 </div>
-              </div>
-            </article>
+                <div class="mt-5 grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+                  <article
+                    v-for="status in statusBreakdown"
+                    :key="status.status"
+                    :class="[
+                      'rounded-2xl p-4 shadow-sm shadow-black/10 transition hover:-translate-y-0.5 hover:shadow-lg',
+                      getStatusCardClasses(status.status),
+                    ]"
+                  >
+                    <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      {{ status.label }}
+                    </p>
+                    <p class="mt-3 text-3xl font-bold leading-none text-zinc-900 dark:text-white">
+                      {{ formatNumber(status.count) }}
+                    </p>
+                    <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-300">
+                      {{ statusDescriptions[status.status] }}
+                    </p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="grid gap-4 lg:grid-cols-2">
+                <article
+                  v-for="section in metricsSections"
+                  :key="section.id"
+                  class="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-black/10"
+                >
+                  <div>
+                    <h3 class="text-lg font-semibold leading-tight text-white">
+                      {{ section.title }}
+                    </h3>
+                    <p class="mt-1 text-sm text-zinc-300">
+                      {{ section.description }}
+                    </p>
+                  </div>
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div
+                      v-for="item in section.items"
+                      :key="item.label"
+                      class="rounded-xl border border-white/10 bg-black/20 p-4"
+                    >
+                      <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                        {{ item.label }}
+                      </p>
+                      <p :class="['mt-3', getMetricValueClasses(item.tone)]">
+                        {{ item.value }}
+                      </p>
+                      <p v-if="item.hint" class="mt-2 text-xs text-zinc-400">
+                        {{ item.hint }}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              </section>
+            </div>
+
+            <aside class="space-y-4">
+              <article class="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-black/10">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-semibold leading-tight text-white">Распределение статусов</h3>
+                    <p class="mt-1 text-sm text-zinc-400">Доля заказов в каждом состоянии.</p>
+                  </div>
+                  <span class="text-xs text-zinc-500">{{ completionRateLabel }}</span>
+                </div>
+                <div v-if="hasStatusData" class="mt-6 space-y-4">
+                  <div
+                    v-for="bar in statusChartBars"
+                    :key="bar.status"
+                    class="space-y-2"
+                  >
+                    <div class="flex items-center justify-between text-sm">
+                      <span class="text-zinc-200">{{ bar.label }}</span>
+                      <span class="text-zinc-400">{{ formatPercent(bar.share) }}</span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        :class="bar.barClass"
+                        :style="{ width: bar.width }"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <p v-else class="mt-6 text-sm text-zinc-400">
+                  Создайте первые заказы, чтобы увидеть распределение по статусам.
+                </p>
+              </article>
+
+              <article class="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-black/10">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-semibold leading-tight text-white">Контроль сроков</h3>
+                    <p class="mt-1 text-sm text-zinc-400">Какая часть задач просрочена или приближается к дедлайну.</p>
+                  </div>
+                  <span class="text-xs text-zinc-500">{{ lastActivityLabel }}</span>
+                </div>
+                <div class="mt-6">
+                  <div class="h-3 w-full overflow-hidden rounded-full bg-white/10">
+                    <template v-if="hasDeadlineData">
+                      <div
+                        v-for="segment in deadlineChartSegments"
+                        :key="segment.id"
+                        class="h-full transition-all duration-500"
+                        :class="segment.class"
+                        :style="{ width: segment.width }"
+                      ></div>
+                    </template>
+                    <div v-else class="flex h-full items-center justify-center text-xs text-zinc-500">
+                      Нет данных по срокам
+                    </div>
+                  </div>
+                  <dl class="mt-5 space-y-3">
+                    <div
+                      v-for="segment in deadlineChartSegments"
+                      :key="segment.id"
+                      class="flex items-center justify-between gap-3"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex size-2.5 rounded-full" :class="segment.dotClass"></span>
+                        <span class="text-sm text-zinc-200">{{ segment.label }}</span>
+                      </div>
+                      <span class="text-sm font-semibold text-white">{{ formatPercent(segment.share) }}</span>
+                    </div>
+                  </dl>
+                  <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div
+                      v-for="highlight in schedulingHighlights"
+                      :key="highlight.id"
+                      class="rounded-xl border border-white/10 bg-black/20 p-4"
+                    >
+                      <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                        {{ highlight.label }}
+                      </p>
+                      <p class="mt-2 text-lg font-semibold text-white">
+                        {{ highlight.value }}
+                      </p>
+                      <p class="mt-1 text-xs text-zinc-400">
+                        {{ highlight.hint }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-black/10">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-semibold leading-tight text-white">Финансовый профиль</h3>
+                    <p class="mt-1 text-sm text-zinc-400">Предоплаты и остатки по заказам.</p>
+                  </div>
+                  <span class="text-xs text-zinc-500">{{ totalRevenueLabel }}</span>
+                </div>
+                <div class="mt-6 flex items-center gap-5">
+                  <div class="relative flex size-28 items-center justify-center rounded-full bg-white/10 p-4">
+                    <div
+                      class="absolute inset-0 rounded-full opacity-80"
+                      :style="financeChartStyle"
+                    ></div>
+                    <div class="relative text-center">
+                      <p class="text-xs text-zinc-400">Предоплата</p>
+                      <p class="text-lg font-semibold text-white">{{ prepaymentShareLabel }}</p>
+                    </div>
+                  </div>
+                  <dl class="flex-1 space-y-3">
+                    <div
+                      v-for="segment in financeChartSegments"
+                      :key="segment.id"
+                      class="flex items-start justify-between gap-3"
+                    >
+                      <div>
+                        <p class="text-sm text-zinc-200">{{ segment.label }}</p>
+                        <p class="text-xs text-zinc-400">{{ segment.value }}</p>
+                      </div>
+                      <span class="text-sm font-semibold text-white">{{ formatPercent(segment.share) }}</span>
+                    </div>
+                  </dl>
+                </div>
+                <p v-if="!hasFinanceData" class="mt-4 text-xs text-zinc-400">
+                  Добавьте суммы заказов и предоплаты, чтобы видеть финансовую динамику проекта.
+                </p>
+              </article>
+            </aside>
           </section>
         </template>
       </div>
