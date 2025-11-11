@@ -37,7 +37,7 @@ const activeTab = ref<TabId>('general')
 const tabs: TabDefinition[] = [
   { id: 'general', label: 'Основное' },
   { id: 'links', label: 'Настройки' },
-  { id: 'metrics', label: 'Метрики' },
+  { id: 'metrics', label: 'Метрики', disabled: true },
 ]
 
 const internalTabs: TabId[] = ['general', 'links']
