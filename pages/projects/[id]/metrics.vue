@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useHead, useRoute, useRouter } from '#imports'
 import { useProjectsStore } from '~/stores/projects'
 import { useProjects } from '~/composables/useProjects'
@@ -28,6 +29,8 @@ const route = useRoute()
 const router = useRouter()
 const projectsStore = useProjectsStore()
 const ordersStore = useOrdersStore()
+const { isLoading: isProjectsLoading } = storeToRefs(projectsStore)
+const { orders: ordersList, isLoading: isOrdersLoading } = storeToRefs(ordersStore)
 const { fetchProject } = useProjects()
 
 const pageTitle = 'Метрики проекта'
@@ -158,8 +161,7 @@ const returnPath = computed(() => {
 const loadError = ref('')
 const isRefreshing = ref(false)
 
-const isProjectsLoading = computed(() => projectsStore.isLoading.value)
-const isOrdersLoading = computed(() => ordersStore.isLoading.value)
+const safeOrders = computed(() => (Array.isArray(ordersList.value) ? ordersList.value : []))
 const isLoadingAny = computed(() => isProjectsLoading.value || isOrdersLoading.value)
 
 const projectOrders = computed(() => {
@@ -167,7 +169,7 @@ const projectOrders = computed(() => {
   if (!currentId) {
     return []
   }
-  return ordersStore.orders.value.filter((order) => order.projectId === currentId)
+  return safeOrders.value.filter((order) => order.projectId === currentId)
 })
 
 const statusTotals = computed<Record<OrderStatus, number>>(() => {
