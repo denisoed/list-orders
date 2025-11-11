@@ -930,6 +930,22 @@ useHead({
         </details>
       </section>
 
+      <section v-if="shouldShowReminderSection" class="space-y-3">
+        <article class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
+          <div
+            class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+          >
+            <span class="material-symbols-outlined text-2xl">notifications_active</span>
+          </div>
+          <div class="flex flex-1 flex-col">
+            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Напоминание</p>
+            <p class="mt-1 text-base font-semibold leading-tight text-black dark:text-white">
+              {{ reminderDescription }}
+            </p>
+          </div>
+        </article>
+      </section>
+
       <section class="space-y-3">
         <details class="group rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
           <summary
@@ -957,22 +973,6 @@ useHead({
             </div>
           </div>
         </details>
-      </section>
-
-      <section v-if="shouldShowReminderSection" class="space-y-3">
-        <article class="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-[#1C2431]">
-          <div
-            class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
-          >
-            <span class="material-symbols-outlined text-2xl">notifications_active</span>
-          </div>
-          <div class="flex flex-1 flex-col">
-            <p class="text-sm font-medium text-gray-500 dark:text-[#9da6b9]">Напоминание</p>
-            <p class="mt-1 text-base font-semibold leading-tight text-black dark:text-white">
-              {{ reminderDescription }}
-            </p>
-          </div>
-        </article>
       </section>
       </template>
     </main>
