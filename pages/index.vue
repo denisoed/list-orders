@@ -36,6 +36,8 @@ onMounted(async () => {
   }
 })
 
+type TaskFilter = 'all' | 'today' | 'tomorrow' | 'other'
+
 const visibleProjects = computed<Project[]>(() => {
   if (route.query.empty === 'true') {
     return []
@@ -45,6 +47,138 @@ const visibleProjects = computed<Project[]>(() => {
 })
 
 const hasProjects = computed(() => visibleProjects.value.length > 0)
+
+const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+const todayDate = computed(() => startOfDay(new Date()))
+
+const tomorrowDate = computed(() => {
+  const next = new Date(todayDate.value)
+  next.setDate(next.getDate() + 1)
+  return next
+})
+
+const parseOrderDueDate = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  const dateOnlyMatch = value.match(/^\d{4}-\d{2}-\d{2}$/)
+  if (dateOnlyMatch) {
+    const [yearStr, monthStr, dayStr] = value.split('-')
+    const year = Number.parseInt(yearStr, 10)
+    const month = Number.parseInt(monthStr, 10)
+    const day = Number.parseInt(dayStr, 10)
+
+    if ([year, month, day].some((part) => Number.isNaN(part))) {
+      return null
+    }
+
+    return new Date(year, month - 1, day)
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return startOfDay(parsed)
+}
+
+const activeTaskFilter = ref<TaskFilter>('all')
+
+const getOrderTaskFilter = (order: Order): TaskFilter => {
+  const dueDate = parseOrderDueDate(order.dueDate)
+  if (!dueDate) {
+    return 'other'
+  }
+
+  if (dueDate.getTime() === todayDate.value.getTime()) {
+    return 'today'
+  }
+
+  if (dueDate.getTime() === tomorrowDate.value.getTime()) {
+    return 'tomorrow'
+  }
+
+  return 'other'
+}
+
+const activeOrders = computed(() =>
+  ordersList.value.filter((order: Order) => !order.archived),
+)
+
+const filterCounts = computed(() => {
+  const counts: Record<TaskFilter, number> = {
+    all: activeOrders.value.length,
+    today: 0,
+    tomorrow: 0,
+    other: 0,
+  }
+
+  activeOrders.value.forEach((order: Order) => {
+    const category = getOrderTaskFilter(order)
+    counts[category] += 1
+  })
+
+  return counts
+})
+
+const taskFilterButtons = computed(() => [
+  { id: 'all' as const, label: 'Все', count: filterCounts.value.all },
+  { id: 'today' as const, label: 'На сегодня', count: filterCounts.value.today },
+  { id: 'tomorrow' as const, label: 'На завтра', count: filterCounts.value.tomorrow },
+  { id: 'other' as const, label: 'Остальные', count: filterCounts.value.other },
+])
+
+const filteredOrders = computed(() => {
+  if (activeTaskFilter.value === 'all') {
+    return activeOrders.value
+  }
+
+  return activeOrders.value.filter(
+    (order: Order) => getOrderTaskFilter(order) === activeTaskFilter.value,
+  )
+})
+
+const filteredOrderPreviews = computed(() => filteredOrders.value.slice(0, 5))
+
+const hasMoreTasksThanPreview = computed(
+  () => filteredOrders.value.length > filteredOrderPreviews.value.length,
+)
+
+const projectNameMap = computed(() => {
+  const map = new Map<string, string>()
+  projects.value.forEach((project) => {
+    map.set(project.id, project.title)
+  })
+  return map
+})
+
+const getProjectTitle = (projectId: string) =>
+  projectNameMap.value.get(projectId) ?? 'Проект'
+
+const dueDateFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'long',
+})
+
+const getTaskDueDateLabel = (order: Order) => {
+  const dueDate = parseOrderDueDate(order.dueDate)
+  if (!dueDate) {
+    return 'Без срока'
+  }
+
+  if (dueDate.getTime() === todayDate.value.getTime()) {
+    return 'Сегодня'
+  }
+
+  if (dueDate.getTime() === tomorrowDate.value.getTime()) {
+    return 'Завтра'
+  }
+
+  return dueDateFormatter.format(dueDate)
+}
 
 const userProfile = computed(() => {
   const user = userStore.user
@@ -155,49 +289,122 @@ useHead({
     <main class="flex-1 px-4 pt-4">
       <DataLoadingIndicator v-if="isLoading" message="Загрузка проектов..." />
 
-      <div v-else-if="hasProjects" class="flex flex-col gap-3 pb-24">
-        <NuxtLink
-          v-for="project in visibleProjects"
-          :key="project.id"
-          :to="`/projects/${project.id}/orders`"
-          class="group flex cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
-          :aria-label="`Перейти к задачам проекта «${project.title}»`"
-        >
-          <div class="flex items-start gap-3">
-            <div class="flex items-start gap-2 flex-1" :class="{ 'items-center': !project.description }">
-              <div
-                class="flex size-12 shrink-0 items-center justify-center rounded-xl transition group-hover:opacity-80"
-                :style="project.color ? { backgroundColor: project.color + '20', color: project.color } : {}"
-                :class="!project.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white group-hover:bg-black/10 dark:group-hover:bg-white/15'"
-              >
-                <span class="material-symbols-outlined text-2xl">folder</span>
-              </div>
-              <div class="flex-1 space-y-1">
-                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
-                  {{ project.title }}
-                </p>
-                <p v-if="project.description" class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
-                  {{ project.description }}
-                </p>
-              </div>
-            </div>
-            <span
-              class="material-symbols-outlined shrink-0 text-gray-400 transition group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
+      <div v-else-if="hasProjects" class="flex flex-col gap-6 pb-24">
+        <div class="-mx-4 overflow-x-auto pb-2">
+          <div class="flex gap-3 px-4">
+            <NuxtLink
+              v-for="project in visibleProjects"
+              :key="project.id"
+              :to="`/projects/${project.id}/orders`"
+              class="group flex min-w-[280px] max-w-sm cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
+              :aria-label="`Перейти к задачам проекта «${project.title}»`"
             >
-              chevron_right
-            </span>
+              <div class="flex items-start gap-3">
+                <div class="flex flex-1 items-start gap-2" :class="{ 'items-center': !project.description }">
+                  <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-xl transition group-hover:opacity-80"
+                    :style="project.color ? { backgroundColor: project.color + '20', color: project.color } : {}"
+                    :class="!project.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white group-hover:bg-black/10 dark:group-hover:bg-white/15'"
+                  >
+                    <span class="material-symbols-outlined text-2xl">folder</span>
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
+                      {{ project.title }}
+                    </p>
+                    <p v-if="project.description" class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
+                      {{ project.description }}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  class="material-symbols-outlined shrink-0 text-gray-400 transition group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
+                >
+                  chevron_right
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base text-primary">checklist</span>
+                  {{ formatOrderCount(project) }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base text-primary">group</span>
+                  {{ formatParticipantCount(project) }}
+                </div>
+              </div>
+            </NuxtLink>
           </div>
-          <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-base text-primary">checklist</span>
-              {{ formatOrderCount(project) }}
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-base text-primary">group</span>
-              {{ formatParticipantCount(project) }}
-            </div>
+        </div>
+
+        <section class="space-y-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-[#1C2431]/80">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Задачи</h2>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">
+              {{ filterCounts[activeTaskFilter] }} {{ declOfNum(filterCounts[activeTaskFilter], ['задача', 'задачи', 'задач']) }}
+            </p>
           </div>
-        </NuxtLink>
+
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="button in taskFilterButtons"
+              :key="button.id"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              :class="
+                activeTaskFilter === button.id
+                  ? 'bg-primary text-white shadow-lg'
+                  : 'bg-black/5 text-zinc-700 hover:bg-black/10 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/15'
+              "
+              :aria-pressed="activeTaskFilter === button.id"
+              @click="activeTaskFilter = button.id"
+            >
+              <span>{{ button.label }}</span>
+              <span
+                class="rounded-full bg-black/10 px-2 py-0.5 text-xs font-semibold text-black/80 dark:bg-white/10 dark:text-white/80"
+              >
+                {{ button.count }}
+              </span>
+            </button>
+          </div>
+
+          <div v-if="filteredOrderPreviews.length > 0" class="space-y-3">
+            <NuxtLink
+              v-for="order in filteredOrderPreviews"
+              :key="order.id"
+              :to="`/orders/${order.id}`"
+              class="group flex items-start justify-between gap-3 rounded-xl border border-black/5 bg-white/90 p-3 transition hover:border-primary/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1F2937]/80"
+              :aria-label="`Перейти к задаче «${order.title}»`"
+            >
+              <div class="space-y-1">
+                <p class="text-sm font-semibold leading-tight text-zinc-900 dark:text-white">
+                  {{ order.title }}
+                </p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                  {{ getProjectTitle(order.projectId) }}
+                </p>
+              </div>
+              <div class="flex flex-col items-end gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+                <span class="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-black/60 dark:bg-white/10 dark:text-white/70">
+                  <span class="material-symbols-outlined !text-[14px] text-primary">calendar_month</span>
+                  {{ getTaskDueDateLabel(order) }}
+                </span>
+              </div>
+            </NuxtLink>
+          </div>
+          <p
+            v-else
+            class="rounded-xl border border-dashed border-black/10 bg-white/70 p-4 text-center text-sm text-zinc-500 dark:border-white/10 dark:bg-[#1F2937]/60 dark:text-zinc-400"
+          >
+            В этой категории пока нет задач.
+          </p>
+          <p
+            v-if="hasMoreTasksThanPreview"
+            class="text-xs text-zinc-500 dark:text-zinc-400"
+          >
+            Показаны первые {{ filteredOrderPreviews.length }} {{ declOfNum(filteredOrderPreviews.length, ['задача', 'задачи', 'задач']) }} из {{ filteredOrders.length }}.
+          </p>
+        </section>
       </div>
 
       <div
