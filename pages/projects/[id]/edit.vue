@@ -35,8 +35,8 @@ const isArchiveModalOpen = ref(false)
 const activeTab = ref<TabId>('general')
 
 const tabs: TabDefinition[] = [
-  { id: 'general', label: 'Поля' },
-  { id: 'links', label: 'Навигация' },
+  { id: 'general', label: 'Основное' },
+  { id: 'links', label: 'Настройки' },
   { id: 'metrics', label: 'Метрики', disabled: true },
 ]
 
@@ -103,7 +103,7 @@ const isProjectArchived = computed(() => editableProject.value?.archived === tru
 
 const submitButtonText = computed(() => (isSubmitting.value ? 'Сохранение…' : 'Сохранить изменения'))
 
-const pageTitle = 'Редактирование проекта'
+const pageTitle = 'Настройки проекта'
 const closeAriaLabel = 'Закрыть редактирование проекта'
 
 const selectTab = (tab: TabDefinition) => {
@@ -118,7 +118,7 @@ const getTabButtonClasses = (tab: TabDefinition) => {
     return 'flex-1 rounded-xl px-3 py-2 text-sm font-medium text-zinc-500/60 cursor-not-allowed'
   }
   if (activeTab.value === tab.id) {
-    return 'flex-1 rounded-xl bg-primary/15 px-3 py-2 text-sm font-semibold text-primary shadow-inner transition-colors'
+    return 'flex-1 rounded-xl bg-primary/15 px-3 py-2 text-sm font-semibold text-white shadow-inner transition-colors'
   }
   return 'flex-1 rounded-xl px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white'
 }
