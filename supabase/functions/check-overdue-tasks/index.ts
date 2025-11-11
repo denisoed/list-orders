@@ -15,16 +15,21 @@ interface OrderRecord {
   user_telegram_id: number | null
 }
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "long",
   year: "numeric",
-})
+}
 
-const TIME_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+const TIME_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   hour: "2-digit",
   minute: "2-digit",
-})
+}
+
+interface UserTimeZoneRecord {
+  telegram_id: number
+  time_zone: string | null
+}
 
 const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/
 
@@ -48,12 +53,51 @@ function parseDueDate(record: OrderRecord): Date | null {
   return null
 }
 
-function formatDueDateLabel(dueDate: Date, includeTime: boolean): string {
+function formatWithTimeZone(
+  date: Date,
+  options: Intl.DateTimeFormatOptions,
+  timeZone: string | null,
+): string {
+  try {
+    const formatOptions = timeZone ? { ...options, timeZone } : options
+    return new Intl.DateTimeFormat("ru-RU", formatOptions).format(date)
+  } catch (error) {
+    console.warn(
+      `[Cron] Failed to format date with time zone ${timeZone ?? "<empty>"}:`,
+      error,
+    )
+    return new Intl.DateTimeFormat("ru-RU", options).format(date)
+  }
+}
+
+function formatDueDateLabel(
+  dueDate: Date,
+  includeTime: boolean,
+  timeZone: string | null,
+): string {
   if (!includeTime) {
-    return DATE_FORMATTER.format(dueDate)
+    return formatWithTimeZone(dueDate, DATE_FORMAT_OPTIONS, timeZone)
   }
 
-  return `${DATE_FORMATTER.format(dueDate)} в ${TIME_FORMATTER.format(dueDate)}`
+  const dateLabel = formatWithTimeZone(dueDate, DATE_FORMAT_OPTIONS, timeZone)
+  const timeLabel = formatWithTimeZone(dueDate, TIME_FORMAT_OPTIONS, timeZone)
+  return `${dateLabel} в ${timeLabel}`
+}
+
+function collectTelegramRecipients(order: OrderRecord): Set<number> {
+  const recipients = new Set<number>()
+
+  const assigneeTelegramId = Number(order.assignee_telegram_id)
+  if (!Number.isNaN(assigneeTelegramId) && assigneeTelegramId > 0) {
+    recipients.add(assigneeTelegramId)
+  }
+
+  const creatorTelegramId = Number(order.user_telegram_id)
+  if (!Number.isNaN(creatorTelegramId) && creatorTelegramId > 0) {
+    recipients.add(creatorTelegramId)
+  }
+
+  return recipients
 }
 
 async function sendTelegramMessage(
@@ -155,49 +199,68 @@ serve(async (req) => {
 
     let notificationsSent = 0
 
-    for (const { order, dueDate } of overdueOrders) {
-      const recipients = new Set<number>()
+    const overdueOrdersWithRecipients = overdueOrders.map(({ order, dueDate }) => {
+      const recipients = collectTelegramRecipients(order)
+      return { order, dueDate, recipients }
+    })
 
-      const assigneeTelegramId = Number(order.assignee_telegram_id)
-      if (!Number.isNaN(assigneeTelegramId) && assigneeTelegramId > 0) {
-        recipients.add(assigneeTelegramId)
+    const allRecipientIds = new Set<number>()
+    for (const { recipients } of overdueOrdersWithRecipients) {
+      for (const telegramId of recipients) {
+        allRecipientIds.add(telegramId)
       }
+    }
 
-      const creatorTelegramId = Number(order.user_telegram_id)
-      if (!Number.isNaN(creatorTelegramId) && creatorTelegramId > 0) {
-        recipients.add(creatorTelegramId)
+    let timeZonesByTelegramId = new Map<number, string | null>()
+
+    if (allRecipientIds.size > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from<UserTimeZoneRecord>("users")
+        .select("telegram_id, time_zone")
+        .in("telegram_id", Array.from(allRecipientIds))
+
+      if (usersError) {
+        console.error("[Cron] Failed to fetch user time zones", usersError)
+      } else if (users) {
+        timeZonesByTelegramId = new Map(
+          users.map((user) => [Number(user.telegram_id), user.time_zone ?? null]),
+        )
       }
+    }
 
+    for (const { order, dueDate, recipients } of overdueOrdersWithRecipients) {
       if (recipients.size === 0) {
         continue
       }
 
-      const dueLabel = formatDueDateLabel(dueDate, true)
       const orderTitle = (order.title ?? "").trim() || "Задача"
       const assigneeName = (order.assignee_telegram_name ?? "").trim()
-
-      const messageLines = [
-        "⚠️ <b>Задача просрочена</b>",
-        "",
-        `Задача: <b>${orderTitle}</b>`,
-        `Срок: <b>${dueLabel}</b>`,
-        "",
-        "Пожалуйста завершите задачу или измените срок.",
-      ]
-
-      if (assigneeName) {
-        messageLines.splice(2, 0, `Исполнитель: <b>${assigneeName}</b>`)
-      }
 
       const orderUrl = `${webUrl}/orders/${order.id}`
       const replyMarkup = {
         inline_keyboard: [[{ text: "Перейти к задаче", web_app: { url: orderUrl } }]],
       }
 
-      const message = messageLines.join("\n")
-
       for (const telegramId of recipients) {
         try {
+          const timeZone = timeZonesByTelegramId.get(telegramId) ?? null
+          const dueLabel = formatDueDateLabel(dueDate, true, timeZone)
+
+          const messageLines = [
+            "⚠️ <b>Задача просрочена</b>",
+            "",
+            `Задача: <b>${orderTitle}</b>`,
+            `Срок: <b>${dueLabel}</b>`,
+            "",
+            "Пожалуйста завершите задачу или измените срок.",
+          ]
+
+          if (assigneeName) {
+            messageLines.splice(2, 0, `Исполнитель: <b>${assigneeName}</b>`)
+          }
+
+          const message = messageLines.join("\n")
+
           await sendTelegramMessage(telegramId, message, replyMarkup)
           notificationsSent += 1
         } catch (err) {

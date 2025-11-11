@@ -13,8 +13,28 @@ interface SupabaseUser {
   language_code: string | null
   is_premium: boolean | null
   photo_url: string | null
+  time_zone: string | null
   created_at: string | null
   updated_at: string | null
+}
+
+function sanitizeTimeZone(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: trimmed }).format(new Date())
+    return trimmed
+  } catch (error) {
+    console.log(`[@list-orders] Invalid time zone received: ${trimmed}`, error)
+    return null
+  }
 }
 
 /**
@@ -30,7 +50,10 @@ interface SupabaseUser {
  * const dbUser = await findOrCreateUser(user)
  * ```
  */
-async function findOrCreateUser(user: TelegramUser): Promise<SupabaseUser | null> {
+async function findOrCreateUser(
+  user: TelegramUser,
+  timeZone: string | null,
+): Promise<SupabaseUser | null> {
   try {
     const supabase = getSupabaseClient()
 
@@ -52,8 +75,30 @@ async function findOrCreateUser(user: TelegramUser): Promise<SupabaseUser | null
         return null
       }
     } else if (existingUser) {
-      // User already exists, return it
+      // User already exists, update timezone if needed
       console.log(`[Telegram User] User with telegram_id ${user.id} already exists`)
+
+      if (timeZone && existingUser.time_zone !== timeZone) {
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update({ time_zone: timeZone })
+          .eq('telegram_id', user.id)
+          .select('*')
+          .single()
+
+        if (updateError) {
+          console.log(
+            `[Telegram User] Failed to update time zone for telegram_id ${user.id}:`,
+            updateError,
+          )
+          return existingUser as SupabaseUser
+        }
+
+        if (updatedUser) {
+          return updatedUser as SupabaseUser
+        }
+      }
+
       return existingUser as SupabaseUser
     }
 
@@ -66,6 +111,7 @@ async function findOrCreateUser(user: TelegramUser): Promise<SupabaseUser | null
       language_code: user.language_code ?? null,
       is_premium: user.is_premium ?? null,
       photo_url: user.photo_url ?? null,
+      time_zone: timeZone,
     }
 
     const { data: newUser, error: insertError } = await supabase
@@ -86,6 +132,25 @@ async function findOrCreateUser(user: TelegramUser): Promise<SupabaseUser | null
           .eq('telegram_id', user.id)
           .single()
         
+        if (raceUser && timeZone && raceUser.time_zone !== timeZone) {
+          const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update({ time_zone: timeZone })
+            .eq('telegram_id', user.id)
+            .select('*')
+            .single()
+
+          if (updateError) {
+            console.log(
+              `[Telegram User] Failed to update time zone for telegram_id ${user.id} after race condition:`,
+              updateError,
+            )
+            return raceUser as SupabaseUser | null
+          }
+
+          return updatedUser as SupabaseUser | null
+        }
+
         return raceUser as SupabaseUser | null
       }
       console.log(`[Telegram User] Error inserting user:`, insertError)
@@ -135,7 +200,9 @@ export default defineEventHandler(async (event) => {
       }
       
       // Find or create user in Supabase
-      const dbUser = await findOrCreateUser(user)
+      const timeZone = sanitizeTimeZone(body?.timeZone)
+
+      const dbUser = await findOrCreateUser(user, timeZone)
       
       if (!dbUser) {
         console.log('[Telegram InitData Validation] Warning: Could not get or create user in database')

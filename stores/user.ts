@@ -11,6 +11,7 @@ export interface User {
   language_code: string | null
   is_premium: boolean | null
   photo_url: string | null
+  time_zone: string | null
   created_at: string | null
   updated_at: string | null
 }
@@ -20,6 +21,7 @@ export interface UserProfileUpdates {
   last_name?: string | null
   username?: string | null
   language_code?: string | null
+  time_zone?: string | null
 }
 
 /**
