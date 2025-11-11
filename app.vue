@@ -18,10 +18,11 @@ const userStore = useUserStore()
 onMounted(async () => {
   try {
     const initData = getInitData()
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
     const response = await $fetch<{ success: boolean; user: User | null }>('/api/user', {
       method: 'POST',
-      body: { initData },
+      body: { initData, timeZone },
     })
 
     // After successful validation, set user data directly from response
