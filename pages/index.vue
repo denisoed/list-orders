@@ -68,8 +68,6 @@ const STATUS_COLOR_BY_STATUS = {
   done: '#22C55E',
 } as const
 
-const MAX_OTHER_TASKS = 5
-
 const formatDateKey = (date: Date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -136,7 +134,7 @@ const availableOtherOrders = computed(() =>
 )
 
 const otherTasks = computed<TaskItem[]>(() => {
-  return availableOtherOrders.value.slice(0, MAX_OTHER_TASKS).map((order) => {
+  return availableOtherOrders.value.map((order) => {
     const normalizedStatus = mapDbStatusToOrderStatus(order.status)
     const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
 
@@ -148,10 +146,6 @@ const otherTasks = computed<TaskItem[]>(() => {
     }
   })
 })
-
-const shouldShowViewAllOtherTasks = computed(
-  () => availableOtherOrders.value.length > MAX_OTHER_TASKS,
-)
 
 const taskSections = computed<TaskSection[]>(() => [
   {
@@ -343,7 +337,10 @@ useHead({
               </span>
             </NuxtLink>
           </template>
-          <div v-if="isSectionExpanded(section.id)" class="mt-4 flex flex-col gap-3">
+          <div
+            v-if="section.id !== 'others' && isSectionExpanded(section.id)"
+            class="mt-4 flex flex-col gap-3"
+          >
             <template v-if="section.tasks.length">
               <div
                 v-for="task in section.tasks"
@@ -360,14 +357,6 @@ useHead({
               </div>
             </template>
             <p v-else class="text-sm text-gray-500 dark:text-[#9da6b9]">Задач пока нет</p>
-            <NuxtLink
-              v-if="section.id === 'others' && shouldShowViewAllOtherTasks"
-              to="/tasks"
-              class="mt-1 inline-flex items-center justify-center gap-2 self-start rounded-full bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <span class="material-symbols-outlined text-base">list_alt</span>
-              Посмотреть все задачи
-            </NuxtLink>
           </div>
         </section>
 
@@ -425,7 +414,7 @@ useHead({
 
           <div
             v-else
-            class="mt-6 flex w-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
+            class="flex w-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
           >
             <span class="material-symbols-outlined text-5xl text-primary">folder_off</span>
             <div class="space-y-2">
