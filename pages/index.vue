@@ -87,9 +87,6 @@ const toggleSection = (sectionId: string) => {
 
 const getSectionTaskCountLabel = (section: TaskSection) => {
   const count = section.tasks.length
-  if (count === 0)
-    return null
-
   return `${count} ${declOfNum(count, ['задача', 'задачи', 'задач'])}`
 }
 
@@ -206,14 +203,14 @@ useHead({
         <section v-for="section in taskSections" :key="section.id" class="rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow dark:border-white/10 dark:bg-[#1C2431]/80">
           <button
             type="button"
-            class="flex w-full items-center gap-3"
+            class="flex w-full items-center justify-between gap-3"
             @click="toggleSection(section.id)"
           >
-            <div class="flex-1 text-left">
+            <div class="flex items-center gap-2 text-left">
               <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
-              <p v-if="getSectionTaskCountLabel(section)" class="mt-1 inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-[#c7cedd]">
+              <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">
                 {{ getSectionTaskCountLabel(section) }}
-              </p>
+              </span>
             </div>
             <span
               class="material-symbols-outlined shrink-0 text-gray-500 transition"
