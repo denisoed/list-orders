@@ -70,13 +70,51 @@ const STATUS_COLOR_BY_STATUS = {
 
 const MAX_OTHER_TASKS = 5
 
-const todayTasks: TaskItem[] = [
-  { id: 'call-client', title: 'Позвонить клиенту', project: 'Дом', statusColor: '#F97316' },
-  { id: 'take-documents', title: 'Забрать документы', project: 'Гум', statusColor: '#22C55E' },
-  { id: 'agree-layout', title: 'Согласовать макет', project: 'Бета 2', statusColor: '#3B82F6' },
-]
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
 
-const tomorrowTasks: TaskItem[] = []
+  return `${year}-${month}-${day}`
+}
+
+const getTaskItemsForDate = (targetDateKey: string) => {
+  return ordersList.value
+    .filter((order: Order) => {
+      if (order.archived || !order.dueDate) {
+        return false
+      }
+
+      const dueDate = new Date(order.dueDate)
+      if (Number.isNaN(dueDate.getTime())) {
+        return false
+      }
+
+      return formatDateKey(dueDate) === targetDateKey
+    })
+    .map((order) => {
+      const normalizedStatus = mapDbStatusToOrderStatus(order.status)
+      const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
+
+      return {
+        id: order.id,
+        title: order.title,
+        project: projectTitle,
+        statusColor: STATUS_COLOR_BY_STATUS[normalizedStatus] ?? '#3B82F6',
+      }
+    })
+}
+
+const todayTasks = computed<TaskItem[]>(() => {
+  const today = new Date()
+  return getTaskItemsForDate(formatDateKey(today))
+})
+
+const tomorrowTasks = computed<TaskItem[]>(() => {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return getTaskItemsForDate(formatDateKey(tomorrow))
+})
 
 const projectTitleById = computed(() => {
   const map = new Map<string, string>()
@@ -86,8 +124,15 @@ const projectTitleById = computed(() => {
   return map
 })
 
+const usedTaskIds = computed(() => {
+  return new Set([
+    ...todayTasks.value.map((task) => task.id),
+    ...tomorrowTasks.value.map((task) => task.id),
+  ])
+})
+
 const availableOtherOrders = computed(() =>
-  ordersList.value.filter((order: Order) => !order.archived),
+  ordersList.value.filter((order: Order) => !order.archived && !usedTaskIds.value.has(order.id)),
 )
 
 const otherTasks = computed<TaskItem[]>(() => {
@@ -112,12 +157,12 @@ const taskSections = computed<TaskSection[]>(() => [
   {
     id: 'today',
     title: 'Сегодня',
-    tasks: todayTasks,
+    tasks: todayTasks.value,
   },
   {
     id: 'tomorrow',
     title: 'Завтра',
-    tasks: tomorrowTasks,
+    tasks: tomorrowTasks.value,
   },
   {
     id: 'others',
@@ -126,14 +171,23 @@ const taskSections = computed<TaskSection[]>(() => [
   },
 ])
 
+const collapsibleSectionIds = new Set<TaskSection['id']>(['today', 'tomorrow'])
+
 const expandedSections = reactive<Record<string, boolean>>({
   today: true,
   tomorrow: false,
-  others: false,
 })
 
-const toggleSection = (sectionId: string) => {
+const toggleSection = (sectionId: TaskSection['id']) => {
+  if (!collapsibleSectionIds.has(sectionId)) {
+    return
+  }
+
   expandedSections[sectionId] = !expandedSections[sectionId]
+}
+
+const isSectionExpanded = (sectionId: TaskSection['id']) => {
+  return collapsibleSectionIds.has(sectionId) ? expandedSections[sectionId] : true
 }
 
 const getSectionTaskCountLabel = (section: TaskSection) => {
@@ -198,6 +252,10 @@ const formatOrderCount = (project: Project) => {
   return `${count} ${declOfNum(count, ['задача', 'задачи', 'задач'])}`
 }
 
+const projectCardWidthClass = computed(() =>
+  visibleProjects.value.length > 1 ? 'min-w-[70%]' : 'min-w-full',
+)
+
 const getParticipantCount = (project: Project) => {
   // Use membersCount from project (excluding owner)
   return project.membersCount ?? 0
@@ -252,25 +310,40 @@ useHead({
 
       <div v-else class="flex flex-col gap-6 pb-24">
         <section v-for="section in taskSections" :key="section.id" class="rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow dark:border-white/10 dark:bg-[#1C2431]/80">
-          <button
-            type="button"
-            class="flex w-full items-center justify-between gap-3"
-            @click="toggleSection(section.id)"
-          >
-            <div class="flex items-center gap-2 text-left">
-              <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
-              <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">
-                {{ getSectionTaskCountLabel(section) }}
-              </span>
-            </div>
-            <span
-              class="material-symbols-outlined shrink-0 text-gray-500"
-              :class="expandedSections[section.id] ? 'rotate-0' : 'rotate-180'"
+          <template v-if="collapsibleSectionIds.has(section.id)">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-3"
+              @click="toggleSection(section.id)"
             >
-              expand_more
-            </span>
-          </button>
-          <div v-show="expandedSections[section.id]" class="mt-4 flex flex-col gap-3">
+              <div class="flex items-center gap-2 text-left">
+                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
+                <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">
+                  {{ getSectionTaskCountLabel(section) }}
+                </span>
+              </div>
+              <span
+                class="material-symbols-outlined shrink-0 text-gray-500"
+                :class="isSectionExpanded(section.id) ? 'rotate-0' : 'rotate-180'"
+              >
+                expand_more
+              </span>
+            </button>
+          </template>
+          <template v-else>
+            <NuxtLink to="/tasks" class="flex w-full items-center justify-between gap-3">
+              <div class="flex items-center gap-2 text-left">
+                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
+                <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">
+                  {{ getSectionTaskCountLabel(section) }}
+                </span>
+              </div>
+              <span class="material-symbols-outlined shrink-0 text-gray-400 transition dark:text-gray-600">
+                chevron_right
+              </span>
+            </NuxtLink>
+          </template>
+          <div v-if="isSectionExpanded(section.id)" class="mt-4 flex flex-col gap-3">
             <template v-if="section.tasks.length">
               <div
                 v-for="task in section.tasks"
@@ -301,12 +374,16 @@ useHead({
         <section class="flex flex-col gap-3">
           <h2 class="px-1 text-base font-semibold leading-tight text-zinc-900 dark:text-white">Проекты</h2>
 
-          <div v-if="hasProjects" class="flex flex-col gap-3">
+          <div
+            v-if="hasProjects"
+            class="flex gap-3 overflow-x-auto pb-2"
+          >
             <NuxtLink
               v-for="project in visibleProjects"
               :key="project.id"
               :to="`/projects/${project.id}/orders`"
-              class="group flex cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
+              class="group flex w-full flex-none cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
+              :class="projectCardWidthClass"
               :aria-label="`Перейти к задачам проекта «${project.title}»`"
             >
               <div class="flex items-start gap-3">
@@ -348,7 +425,7 @@ useHead({
 
           <div
             v-else
-            class="mx-auto mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
+            class="mt-6 flex w-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
           >
             <span class="material-symbols-outlined text-5xl text-primary">folder_off</span>
             <div class="space-y-2">
