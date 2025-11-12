@@ -247,7 +247,9 @@ const formatOrderCount = (project: Project) => {
 }
 
 const projectCardWidthClass = computed(() =>
-  visibleProjects.value.length > 1 ? 'min-w-[70%]' : 'min-w-full',
+  visibleProjects.value.length > 1
+    ? 'min-w-[70%] max-w-[70%]'
+    : 'min-w-full max-w-full',
 )
 
 const getParticipantCount = (project: Project) => {
@@ -342,19 +344,21 @@ useHead({
             class="mt-4 flex flex-col gap-3"
           >
             <template v-if="section.tasks.length">
-              <div
+              <NuxtLink
                 v-for="task in section.tasks"
                 :key="task.id"
-                class="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-sm text-gray-700 shadow-sm dark:bg-[#2A3242]/70 dark:text-[#c7cedd]"
+                :to="`/orders/${task.id}`"
+                class="group flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-sm text-gray-700 shadow-sm transition hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#2A3242]/70 dark:text-[#c7cedd] dark:hover:bg-[#343d52]"
+                :aria-label="`Открыть задачу «${task.title}»`"
               >
                 <div class="flex items-center gap-3">
                   <span class="inline-flex size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: task.statusColor }" />
-                  <span class="font-medium text-zinc-900 dark:text-white">{{ task.title }}</span>
+                  <span class="font-medium text-zinc-900 transition group-hover:text-primary dark:text-white dark:group-hover:text-primary/80">{{ task.title }}</span>
                 </div>
-                <span class="text-xs font-medium text-gray-500 dark:text-[#9da6b9]">
+                <span class="text-xs font-medium text-gray-500 transition group-hover:text-gray-700 dark:text-[#9da6b9] dark:group-hover:text-[#b9c2d6]">
                   {{ task.project }}
                 </span>
-              </div>
+              </NuxtLink>
             </template>
             <p v-else class="text-sm text-gray-500 dark:text-[#9da6b9]">Задач пока нет</p>
           </div>
@@ -365,7 +369,7 @@ useHead({
 
           <div
             v-if="hasProjects"
-            class="flex gap-3 overflow-x-auto pb-2"
+            class="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <NuxtLink
               v-for="project in visibleProjects"
