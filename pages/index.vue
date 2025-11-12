@@ -123,6 +123,23 @@ const formatTaskDueDate = (dueDate: string | null) => {
   return dateFormatter.format(parsedDate)
 }
 
+const formatOverdueTaskDueDate = (dueDate: string | null) => {
+  const parsedDate = parseDueDate(dueDate)
+  if (!parsedDate) {
+    return ''
+  }
+
+  const formatter = new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return formatter.format(parsedDate)
+}
+
 const getTaskItemsForDate = (targetDateKey: string) => {
   return ordersList.value
     .filter((order: Order) => {
@@ -151,6 +168,42 @@ const getTaskItemsForDate = (targetDateKey: string) => {
     })
 }
 
+const startOfToday = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+})
+
+const overdueTasks = computed<TaskItem[]>(() => {
+  const todayStart = startOfToday.value.getTime()
+
+  return ordersList.value
+    .filter((order: Order) => {
+      if (order.archived || !order.dueDate) {
+        return false
+      }
+
+      const parsedDate = parseDueDate(order.dueDate)
+      if (!parsedDate) {
+        return false
+      }
+
+      return parsedDate.getTime() < todayStart
+    })
+    .map((order) => {
+      const normalizedStatus = mapDbStatusToOrderStatus(order.status)
+      const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
+
+      return {
+        id: order.id,
+        title: order.title,
+        project: projectTitle,
+        statusColor: STATUS_COLOR_BY_STATUS[normalizedStatus] ?? '#EF4444',
+        dueDateLabel: formatOverdueTaskDueDate(order.dueDate),
+      }
+    })
+})
+
 const todayTasks = computed<TaskItem[]>(() => {
   const today = new Date()
   return getTaskItemsForDate(formatDateKey(today))
@@ -172,6 +225,7 @@ const projectTitleById = computed(() => {
 
 const usedTaskIds = computed(() => {
   return new Set([
+    ...overdueTasks.value.map((task) => task.id),
     ...todayTasks.value.map((task) => task.id),
     ...tomorrowTasks.value.map((task) => task.id),
   ])
@@ -197,6 +251,13 @@ const otherTasks = computed<TaskItem[]>(() => {
 })
 
 const taskSections = computed<TaskSection[]>(() => [
+  ...(overdueTasks.value.length
+    ? [{
+        id: 'overdue' as const,
+        title: 'Просрочено',
+        tasks: overdueTasks.value,
+      }]
+    : []),
   {
     id: 'today',
     title: 'Сегодня',
@@ -208,15 +269,16 @@ const taskSections = computed<TaskSection[]>(() => [
     tasks: tomorrowTasks.value,
   },
   {
-    id: 'others',
-    title: 'Остальные',
+    id: 'all',
+    title: 'Все задачи',
     tasks: otherTasks.value,
   },
 ])
 
-const collapsibleSectionIds = new Set<TaskSection['id']>(['today', 'tomorrow'])
+const collapsibleSectionIds = new Set<TaskSection['id']>(['overdue', 'today', 'tomorrow'])
 
 const expandedSections = reactive<Record<string, boolean>>({
+  overdue: true,
   today: true,
   tomorrow: false,
 })
@@ -233,8 +295,12 @@ const isSectionExpanded = (sectionId: TaskSection['id']) => {
   return collapsibleSectionIds.has(sectionId) ? expandedSections[sectionId] : true
 }
 
+const totalActiveTaskCount = computed(() =>
+  ordersList.value.filter((order: Order) => !order.archived).length,
+)
+
 const getSectionTaskCountLabel = (section: TaskSection) => {
-  const count = section.tasks.length
+  const count = section.id === 'all' ? totalActiveTaskCount.value : section.tasks.length
   return `${count} ${declOfNum(count, ['задача', 'задачи', 'задач'])}`
 }
 
@@ -354,7 +420,16 @@ useHead({
       <DataLoadingIndicator v-if="isLoading" message="Загрузка…" />
 
       <div v-else class="flex flex-col gap-6 pb-24">
-        <section v-for="section in taskSections" :key="section.id" class="rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow dark:border-white/10 dark:bg-[#1C2431]/80">
+        <section
+          v-for="section in taskSections"
+          :key="section.id"
+          :class="[
+            'rounded-2xl border p-4 shadow-sm transition-shadow',
+            section.id === 'overdue'
+              ? 'border-red-200 bg-red-50 dark:border-red-500/40 dark:bg-red-500/10'
+              : 'border-black/5 bg-white/80 dark:border-white/10 dark:bg-[#1C2431]/80',
+          ]"
+        >
           <template v-if="collapsibleSectionIds.has(section.id)">
             <button
               type="button"
@@ -389,7 +464,7 @@ useHead({
             </NuxtLink>
           </template>
           <div
-            v-if="section.id !== 'others' && isSectionExpanded(section.id)"
+            v-if="section.id !== 'all' && isSectionExpanded(section.id)"
             class="mt-4 flex flex-col gap-3"
           >
             <template v-if="section.tasks.length">
@@ -409,7 +484,7 @@ useHead({
                     {{ task.project }}
                   </span>
                   <span
-                    v-if="(section.id === 'today' || section.id === 'tomorrow') && task.dueDateLabel"
+                    v-if="(['overdue', 'today', 'tomorrow'].includes(section.id) && task.dueDateLabel)"
                     class="text-[11px] font-normal text-gray-400 transition group-hover:text-gray-600 dark:text-[#8892a8] dark:group-hover:text-[#a0aac1]"
                   >
                     Срок: {{ task.dueDateLabel }}
