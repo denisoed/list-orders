@@ -168,15 +168,7 @@ const getTaskItemsForDate = (targetDateKey: string) => {
     })
 }
 
-const startOfToday = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return today
-})
-
 const overdueTasks = computed<TaskItem[]>(() => {
-  const todayStart = startOfToday.value.getTime()
-
   return ordersList.value
     .filter((order: Order) => {
       if (order.archived || !order.dueDate) {
@@ -193,7 +185,7 @@ const overdueTasks = computed<TaskItem[]>(() => {
         return false
       }
 
-      return parsedDate.getTime() < todayStart
+      return parsedDate.getTime() < Date.now()
     })
     .map((order) => {
       const normalizedStatus = mapDbStatusToOrderStatus(order.status)
