@@ -346,6 +346,27 @@ const quickInfoIconClass = (itemId: string) =>
 
 const reminderLabels = computed(() => getReminderLabels(orderData.value?.reminderOffset ?? null))
 
+const projectLink = computed(() => {
+  const projectId = orderData.value?.projectId
+  if (!projectId) {
+    return null
+  }
+
+  return `/projects/${projectId}/orders`
+})
+
+const projectIconStyle = computed(() => {
+  const color = project.value?.color?.trim()
+  if (!color) {
+    return undefined
+  }
+
+  return {
+    backgroundColor: `${color}20`,
+    color,
+  }
+})
+
 const reminderDescription = computed(() => {
   if (!reminderLabels.value.length) {
     return ''
@@ -753,12 +774,20 @@ useHead({
             <span class="material-symbols-outlined text-base">adjust</span>
             <span>{{ primaryStatusChip.label }}</span>
           </span>
-          <span
-            v-if="order.projectName"
-            class="ml-auto text-sm font-semibold text-gray-500 dark:text-[#9da6b9]"
+          <NuxtLink
+            v-if="order.projectName && projectLink"
+            :to="projectLink"
+            class="ml-auto inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold text-gray-500 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-[#9da6b9] dark:hover:bg-white/5 dark:focus-visible:ring-offset-[#1C2431]"
           >
-            {{ order.projectName }}
-          </span>
+            <span
+              class="flex size-8 shrink-0 items-center justify-center rounded-lg transition"
+              :style="projectIconStyle"
+              :class="!project?.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white'"
+            >
+              <span class="material-symbols-outlined text-lg">folder</span>
+            </span>
+            <span class="whitespace-nowrap">{{ order.projectName }}</span>
+          </NuxtLink>
         </div>
       </section>
 
