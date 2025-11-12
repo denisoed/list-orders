@@ -46,6 +46,53 @@ const visibleProjects = computed<Project[]>(() => {
 
 const hasProjects = computed(() => visibleProjects.value.length > 0)
 
+interface TaskItem {
+  id: string
+  title: string
+  project: string
+  statusColor: string
+}
+
+interface TaskSection {
+  id: string
+  title: string
+  tasks: TaskItem[]
+}
+
+const taskSections = ref<TaskSection[]>([
+  {
+    id: 'today',
+    title: 'Сегодня',
+    tasks: [
+      { id: 'call-client', title: 'Позвонить клиенту', project: 'Дом', statusColor: '#F97316' },
+      { id: 'take-documents', title: 'Забрать документы', project: 'Гум', statusColor: '#22C55E' },
+      { id: 'agree-layout', title: 'Согласовать макет', project: 'Бета 2', statusColor: '#3B82F6' },
+    ],
+  },
+  {
+    id: 'tomorrow',
+    title: 'Завтра',
+    tasks: [],
+  },
+])
+
+const expandedSections = reactive<Record<string, boolean>>({
+  today: true,
+  tomorrow: false,
+})
+
+const toggleSection = (sectionId: string) => {
+  expandedSections[sectionId] = !expandedSections[sectionId]
+}
+
+const getSectionTaskCountLabel = (section: TaskSection) => {
+  const count = section.tasks.length
+  if (count === 0)
+    return null
+
+  return `${count} ${declOfNum(count, ['задача', 'задачи', 'задач'])}`
+}
+
 const userProfile = computed(() => {
   const user = userStore.user
   const showEmptyAvatar = route.query.noAvatar === 'true'
@@ -118,7 +165,7 @@ const handleAddProject = () => {
 }
 
 useHead({
-  title: 'Мои проекты',
+  title: 'Задачи',
   htmlAttrs: {
     lang: 'ru',
     class: 'dark',
@@ -146,7 +193,7 @@ useHead({
     :style="{ backgroundColor: 'var(--telegram-background-color, #f6f6f8)' }"
   >
     <ProjectsPageHeader
-      title="Мои проекты"
+      title="Задачи"
       :profile-url="userProfile.profileUrl"
       :avatar-url="userProfile.avatarUrl"
       :user-name="userProfile.name"
@@ -155,70 +202,124 @@ useHead({
     <main class="flex-1 px-4 pt-4">
       <DataLoadingIndicator v-if="isLoading" message="Загрузка проектов..." />
 
-      <div v-else-if="hasProjects" class="flex flex-col gap-3 pb-24">
-        <NuxtLink
-          v-for="project in visibleProjects"
-          :key="project.id"
-          :to="`/projects/${project.id}/orders`"
-          class="group flex cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
-          :aria-label="`Перейти к задачам проекта «${project.title}»`"
-        >
-          <div class="flex items-start gap-3">
-            <div class="flex items-start gap-2 flex-1" :class="{ 'items-center': !project.description }">
-              <div
-                class="flex size-12 shrink-0 items-center justify-center rounded-xl transition group-hover:opacity-80"
-                :style="project.color ? { backgroundColor: project.color + '20', color: project.color } : {}"
-                :class="!project.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white group-hover:bg-black/10 dark:group-hover:bg-white/15'"
-              >
-                <span class="material-symbols-outlined text-2xl">folder</span>
-              </div>
-              <div class="flex-1 space-y-1">
-                <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
-                  {{ project.title }}
-                </p>
-                <p v-if="project.description" class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
-                  {{ project.description }}
-                </p>
-              </div>
+      <div v-else class="flex flex-col gap-6 pb-24">
+        <section v-for="section in taskSections" :key="section.id" class="rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow dark:border-white/10 dark:bg-[#1C2431]/80">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3"
+            @click="toggleSection(section.id)"
+          >
+            <div class="flex-1 text-left">
+              <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
+              <p v-if="getSectionTaskCountLabel(section)" class="mt-1 inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-[#c7cedd]">
+                {{ getSectionTaskCountLabel(section) }}
+              </p>
             </div>
             <span
-              class="material-symbols-outlined shrink-0 text-gray-400 transition group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
+              class="material-symbols-outlined shrink-0 text-gray-500 transition"
+              :class="expandedSections[section.id] ? 'rotate-0' : 'rotate-180'"
             >
-              chevron_right
+              expand_more
             </span>
-          </div>
-          <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-base text-primary">checklist</span>
-              {{ formatOrderCount(project) }}
+          </button>
+          <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+          >
+            <div v-show="expandedSections[section.id]" class="mt-4 flex flex-col gap-3">
+              <template v-if="section.tasks.length">
+                <div
+                  v-for="task in section.tasks"
+                  :key="task.id"
+                  class="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-sm text-gray-700 shadow-sm transition dark:bg-[#2A3242]/70 dark:text-[#c7cedd]"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="inline-flex size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: task.statusColor }" />
+                    <span class="font-medium text-zinc-900 dark:text-white">{{ task.title }}</span>
+                  </div>
+                  <span class="text-xs font-medium text-gray-500 dark:text-[#9da6b9]">
+                    {{ task.project }}
+                  </span>
+                </div>
+              </template>
+              <p v-else class="text-sm text-gray-500 dark:text-[#9da6b9]">Задач пока нет</p>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-base text-primary">group</span>
-              {{ formatParticipantCount(project) }}
-            </div>
-          </div>
-        </NuxtLink>
-      </div>
+          </Transition>
+        </section>
 
-      <div
-        v-else-if="!isLoading"
-        class="mx-auto mt-20 flex w-full max-w-xl flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
-      >
-        <span class="material-symbols-outlined text-5xl text-primary">folder_off</span>
-        <div class="space-y-2">
-          <p class="text-lg font-semibold text-black dark:text-white">Проектов пока нет</p>
-          <p class="max-w-sm text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
-            Создайте первый проект, чтобы начать работу с задачами и отслеживать прогресс вашей команды.
-          </p>
-        </div>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          @click="handleAddProject"
-        >
-          <span class="material-symbols-outlined !text-base">add</span>
-          Создать проект
-        </button>
+        <section class="flex flex-col gap-3">
+          <h2 class="px-1 text-base font-semibold leading-tight text-zinc-900 dark:text-white">Проекты</h2>
+
+          <div v-if="hasProjects" class="flex flex-col gap-3">
+            <NuxtLink
+              v-for="project in visibleProjects"
+              :key="project.id"
+              :to="`/projects/${project.id}/orders`"
+              class="group flex cursor-pointer flex-col gap-4 rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-[#1C2431]/80"
+              :aria-label="`Перейти к задачам проекта «${project.title}»`"
+            >
+              <div class="flex items-start gap-3">
+                <div class="flex items-start gap-2 flex-1" :class="{ 'items-center': !project.description }">
+                  <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-xl transition group-hover:opacity-80"
+                    :style="project.color ? { backgroundColor: project.color + '20', color: project.color } : {}"
+                    :class="!project.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white group-hover:bg-black/10 dark:group-hover:bg-white/15'"
+                  >
+                    <span class="material-symbols-outlined text-2xl">folder</span>
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">
+                      {{ project.title }}
+                    </p>
+                    <p v-if="project.description" class="text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
+                      {{ project.description }}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  class="material-symbols-outlined shrink-0 text-gray-400 transition group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
+                >
+                  chevron_right
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base text-primary">checklist</span>
+                  {{ formatOrderCount(project) }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base text-primary">group</span>
+                  {{ formatParticipantCount(project) }}
+                </div>
+              </div>
+            </NuxtLink>
+          </div>
+
+          <div
+            v-else
+            class="mx-auto mt-6 flex w-full max-w-xl flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600 dark:border-gray-700 dark:bg-[#1C2431] dark:text-[#9da6b9]"
+          >
+            <span class="material-symbols-outlined text-5xl text-primary">folder_off</span>
+            <div class="space-y-2">
+              <p class="text-lg font-semibold text-black dark:text-white">Проектов пока нет</p>
+              <p class="max-w-sm text-sm leading-6 text-gray-500 dark:text-[#9da6b9]">
+                Создайте первый проект, чтобы начать работу с задачами и отслеживать прогресс вашей команды.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              @click="handleAddProject"
+            >
+              <span class="material-symbols-outlined !text-base">add</span>
+              Создать проект
+            </button>
+          </div>
+        </section>
       </div>
     </main>
 
