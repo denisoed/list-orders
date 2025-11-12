@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, onMounted, reactive } from 'vue'
 import { useAllProjects } from '~/composables/useProjectOrders'
 import { useProjects } from '~/composables/useProjects'
 import { useOrders } from '~/composables/useOrders'
@@ -6,6 +7,7 @@ import type { Project } from '~/data/projects'
 import type { Order } from '~/data/orders'
 import { useUserStore } from '~/stores/user'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
+import { mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
 
 const route = useRoute()
 const projects = useAllProjects()
@@ -17,7 +19,7 @@ const { fetchOrders, orders, isLoading: isLoadingOrders } = useOrders()
 const isLoading = computed(() => isLoadingProjects.value || isLoadingOrders.value)
 
 // Use computed to get orders array
-const ordersList = computed(() => {
+const ordersList = computed<Order[]>(() => {
   if (typeof orders === 'function') {
     return []
   }
@@ -59,26 +61,75 @@ interface TaskSection {
   tasks: TaskItem[]
 }
 
-const taskSections = ref<TaskSection[]>([
+const STATUS_COLOR_BY_STATUS = {
+  pending: '#EF4444',
+  in_progress: '#F59E0B',
+  review: '#3B82F6',
+  done: '#22C55E',
+} as const
+
+const MAX_OTHER_TASKS = 5
+
+const todayTasks: TaskItem[] = [
+  { id: 'call-client', title: 'Позвонить клиенту', project: 'Дом', statusColor: '#F97316' },
+  { id: 'take-documents', title: 'Забрать документы', project: 'Гум', statusColor: '#22C55E' },
+  { id: 'agree-layout', title: 'Согласовать макет', project: 'Бета 2', statusColor: '#3B82F6' },
+]
+
+const tomorrowTasks: TaskItem[] = []
+
+const projectTitleById = computed(() => {
+  const map = new Map<string, string>()
+  for (const project of projects.value) {
+    map.set(project.id, project.title)
+  }
+  return map
+})
+
+const availableOtherOrders = computed(() =>
+  ordersList.value.filter((order: Order) => !order.archived),
+)
+
+const otherTasks = computed<TaskItem[]>(() => {
+  return availableOtherOrders.value.slice(0, MAX_OTHER_TASKS).map((order) => {
+    const normalizedStatus = mapDbStatusToOrderStatus(order.status)
+    const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
+
+    return {
+      id: order.id,
+      title: order.title,
+      project: projectTitle,
+      statusColor: STATUS_COLOR_BY_STATUS[normalizedStatus] ?? '#3B82F6',
+    }
+  })
+})
+
+const shouldShowViewAllOtherTasks = computed(
+  () => availableOtherOrders.value.length > MAX_OTHER_TASKS,
+)
+
+const taskSections = computed<TaskSection[]>(() => [
   {
     id: 'today',
     title: 'Сегодня',
-    tasks: [
-      { id: 'call-client', title: 'Позвонить клиенту', project: 'Дом', statusColor: '#F97316' },
-      { id: 'take-documents', title: 'Забрать документы', project: 'Гум', statusColor: '#22C55E' },
-      { id: 'agree-layout', title: 'Согласовать макет', project: 'Бета 2', statusColor: '#3B82F6' },
-    ],
+    tasks: todayTasks,
   },
   {
     id: 'tomorrow',
     title: 'Завтра',
-    tasks: [],
+    tasks: tomorrowTasks,
+  },
+  {
+    id: 'others',
+    title: 'Остальные',
+    tasks: otherTasks.value,
   },
 ])
 
 const expandedSections = reactive<Record<string, boolean>>({
   today: true,
   tomorrow: false,
+  others: false,
 })
 
 const toggleSection = (sectionId: string) => {
@@ -197,7 +248,7 @@ useHead({
     />
 
     <main class="flex-1 px-4 pt-4">
-      <DataLoadingIndicator v-if="isLoading" message="Загрузка проектов..." />
+      <DataLoadingIndicator v-if="isLoading" message="Загрузка…" />
 
       <div v-else class="flex flex-col gap-6 pb-24">
         <section v-for="section in taskSections" :key="section.id" class="rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm transition-shadow dark:border-white/10 dark:bg-[#1C2431]/80">
@@ -213,39 +264,38 @@ useHead({
               </span>
             </div>
             <span
-              class="material-symbols-outlined shrink-0 text-gray-500 transition"
+              class="material-symbols-outlined shrink-0 text-gray-500"
               :class="expandedSections[section.id] ? 'rotate-0' : 'rotate-180'"
             >
               expand_more
             </span>
           </button>
-          <Transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0 -translate-y-1"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 -translate-y-1"
-          >
-            <div v-show="expandedSections[section.id]" class="mt-4 flex flex-col gap-3">
-              <template v-if="section.tasks.length">
-                <div
-                  v-for="task in section.tasks"
-                  :key="task.id"
-                  class="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-sm text-gray-700 shadow-sm transition dark:bg-[#2A3242]/70 dark:text-[#c7cedd]"
-                >
-                  <div class="flex items-center gap-3">
-                    <span class="inline-flex size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: task.statusColor }" />
-                    <span class="font-medium text-zinc-900 dark:text-white">{{ task.title }}</span>
-                  </div>
-                  <span class="text-xs font-medium text-gray-500 dark:text-[#9da6b9]">
-                    {{ task.project }}
-                  </span>
+          <div v-show="expandedSections[section.id]" class="mt-4 flex flex-col gap-3">
+            <template v-if="section.tasks.length">
+              <div
+                v-for="task in section.tasks"
+                :key="task.id"
+                class="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-sm text-gray-700 shadow-sm dark:bg-[#2A3242]/70 dark:text-[#c7cedd]"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: task.statusColor }" />
+                  <span class="font-medium text-zinc-900 dark:text-white">{{ task.title }}</span>
                 </div>
-              </template>
-              <p v-else class="text-sm text-gray-500 dark:text-[#9da6b9]">Задач пока нет</p>
-            </div>
-          </Transition>
+                <span class="text-xs font-medium text-gray-500 dark:text-[#9da6b9]">
+                  {{ task.project }}
+                </span>
+              </div>
+            </template>
+            <p v-else class="text-sm text-gray-500 dark:text-[#9da6b9]">Задач пока нет</p>
+            <NuxtLink
+              v-if="section.id === 'others' && shouldShowViewAllOtherTasks"
+              to="/tasks"
+              class="mt-1 inline-flex items-center justify-center gap-2 self-start rounded-full bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span class="material-symbols-outlined text-base">list_alt</span>
+              Посмотреть все задачи
+            </NuxtLink>
+          </div>
         </section>
 
         <section class="flex flex-col gap-3">

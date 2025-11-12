@@ -12,6 +12,7 @@ export type OrderStatusFilter = 'all' | OrderStatus
  */
 export interface OrderStatusMeta {
   label: string
+  singularLabel: string
   tone: OrderStatusTone
   badgeBg: string
   badgeText: string
@@ -29,6 +30,7 @@ export interface OrderStatusMeta {
 export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   pending: {
     label: 'Новые',
+    singularLabel: 'Новая',
     tone: 'danger',
     badgeBg: 'bg-red-500/20',
     badgeText: 'text-red-600 dark:text-red-400',
@@ -41,6 +43,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   },
   in_progress: {
     label: 'В работе',
+    singularLabel: 'В работе',
     tone: 'warning',
     badgeBg: 'bg-yellow-500/20',
     badgeText: 'text-yellow-600 dark:text-yellow-400',
@@ -53,6 +56,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   },
   review: {
     label: 'Проверяются',
+    singularLabel: 'На проверке',
     tone: 'info',
     badgeBg: 'bg-blue-500/20',
     badgeText: 'text-blue-500 dark:text-blue-400',
@@ -65,6 +69,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   },
   done: {
     label: 'Выполнены',
+    singularLabel: 'Выполнена',
     tone: 'success',
     badgeBg: 'bg-green-500/20',
     badgeText: 'text-green-500 dark:text-green-400',

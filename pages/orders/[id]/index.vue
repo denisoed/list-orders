@@ -745,13 +745,19 @@ useHead({
 
       <template v-else>
       <section v-if="primaryStatusChip" class="space-y-3">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span
             class="inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-medium"
             :class="primaryStatusChip.classes"
           >
             <span class="material-symbols-outlined text-base">adjust</span>
             <span>{{ primaryStatusChip.label }}</span>
+          </span>
+          <span
+            v-if="order.projectName"
+            class="ml-auto text-sm font-semibold text-gray-500 dark:text-[#9da6b9]"
+          >
+            {{ order.projectName }}
           </span>
         </div>
       </section>
