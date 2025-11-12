@@ -183,6 +183,11 @@ const overdueTasks = computed<TaskItem[]>(() => {
         return false
       }
 
+      const normalizedStatus = mapDbStatusToOrderStatus(order.status)
+      if (normalizedStatus === 'done') {
+        return false
+      }
+
       const parsedDate = parseDueDate(order.dueDate)
       if (!parsedDate) {
         return false
