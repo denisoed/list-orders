@@ -53,6 +53,7 @@ interface TaskItem {
   title: string
   project: string
   statusColor: string
+  dueDateLabel: string
 }
 
 interface TaskSection {
@@ -74,6 +75,52 @@ const formatDateKey = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0')
 
   return `${year}-${month}-${day}`
+}
+
+const parseDueDate = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  const dateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/
+
+  if (dateOnlyRegex.test(value)) {
+    const [yearStr, monthStr, dayStr] = value.split('-')
+    const year = Number.parseInt(yearStr, 10)
+    const month = Number.parseInt(monthStr, 10)
+    const day = Number.parseInt(dayStr, 10)
+
+    if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+      return new Date(year, month - 1, day)
+    }
+  }
+
+  const parsedDate = new Date(value)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
+const formatTaskDueDate = (dueDate: string | null) => {
+  const parsedDate = parseDueDate(dueDate)
+  if (!parsedDate) {
+    return ''
+  }
+
+  const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  const timeLabel = timeFormatter.format(parsedDate)
+  if (timeLabel !== '00:00') {
+    return timeLabel
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+  })
+
+  return dateFormatter.format(parsedDate)
 }
 
 const getTaskItemsForDate = (targetDateKey: string) => {
@@ -99,6 +146,7 @@ const getTaskItemsForDate = (targetDateKey: string) => {
         title: order.title,
         project: projectTitle,
         statusColor: STATUS_COLOR_BY_STATUS[normalizedStatus] ?? '#3B82F6',
+        dueDateLabel: formatTaskDueDate(order.dueDate),
       }
     })
 }
@@ -143,6 +191,7 @@ const otherTasks = computed<TaskItem[]>(() => {
       title: order.title,
       project: projectTitle,
       statusColor: STATUS_COLOR_BY_STATUS[normalizedStatus] ?? '#3B82F6',
+      dueDateLabel: formatTaskDueDate(order.dueDate ?? null),
     }
   })
 })
@@ -355,9 +404,17 @@ useHead({
                   <span class="inline-flex size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: task.statusColor }" />
                   <span class="font-medium text-zinc-900 transition group-hover:text-primary dark:text-white dark:group-hover:text-primary/80">{{ task.title }}</span>
                 </div>
-                <span class="text-xs font-medium text-gray-500 transition group-hover:text-gray-700 dark:text-[#9da6b9] dark:group-hover:text-[#b9c2d6]">
-                  {{ task.project }}
-                </span>
+                <div class="flex flex-col items-end gap-0.5 text-xs text-gray-500 transition group-hover:text-gray-700 dark:text-[#9da6b9] dark:group-hover:text-[#b9c2d6]">
+                  <span class="font-medium">
+                    {{ task.project }}
+                  </span>
+                  <span
+                    v-if="(section.id === 'today' || section.id === 'tomorrow') && task.dueDateLabel"
+                    class="text-[11px] font-normal text-gray-400 transition group-hover:text-gray-600 dark:text-[#8892a8] dark:group-hover:text-[#a0aac1]"
+                  >
+                    Срок: {{ task.dueDateLabel }}
+                  </span>
+                </div>
               </NuxtLink>
             </template>
             <p v-else class="text-sm text-gray-500 dark:text-[#9da6b9]">Задач пока нет</p>
