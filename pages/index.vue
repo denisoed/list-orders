@@ -376,7 +376,7 @@ useHead({
             </button>
           </template>
           <template v-else>
-            <NuxtLink to="/tasks" class="flex w-full items-center justify-between gap-3">
+            <NuxtLink to="/orders" class="flex w-full items-center justify-between gap-3">
               <div class="flex items-center gap-2 text-left">
                 <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
                 <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">

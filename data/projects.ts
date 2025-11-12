@@ -48,6 +48,8 @@ export interface ProjectOrder {
   deliveryAddress?: string
   isPickup?: boolean
   remindBefore?: OrderReminderOffset | OrderReminderOffset[]
+  projectId?: string
+  projectTitle?: string
 }
 
 export interface ProjectFeaturesSettings {

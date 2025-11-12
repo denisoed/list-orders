@@ -7,11 +7,11 @@ import OrderPageHeader from '~/components/OrderPageHeader.vue'
 import OrderStatusChips from '~/components/OrderStatusChips.vue'
 import MonthSelector from '~/components/MonthSelector.vue'
 import { ORDER_STATUS_FILTERS, useProjectOrders, type OrderStatusFilter } from '~/composables/useProjectOrders'
-import { mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
+import { convertOrderToProjectOrder } from '~/utils/convertOrderToProjectOrder'
 import { useProjects } from '~/composables/useProjects'
 import { useOrders } from '~/composables/useOrders'
 import type { Order } from '~/data/orders'
-import type { ProjectOrder, OrderStatus } from '~/data/projects'
+import type { ProjectOrder } from '~/data/projects'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 import { useUserStore } from '~/stores/user'
 
@@ -27,33 +27,15 @@ const { fetchOrders, getOrdersByProjectId, isLoading: isLoadingOrders } = useOrd
 
 const isLoading = computed(() => isLoadingProject.value || isLoadingOrders.value)
 
-// Convert Order to ProjectOrder format
-const convertOrderToOrder = (order: Order): ProjectOrder => {
-  // Map order status to order status
-  const OrderStatus: OrderStatus = mapDbStatusToOrderStatus(order.status)
-
-  const projectOrder: ProjectOrder = {
-    id: order.id,
-    title: order.title,
-    assignee: {
-      name: order.assigneeTelegramName || 'Не назначен',
-      avatarUrl: order.assigneeTelegramAvatarUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
-    },
-    status: OrderStatus,
-    dueDate: order.dueDate || undefined,
-    description: order.description || undefined,
-    clientName: order.clientName,
-    clientPhone: order.clientPhone,
-  }
-
-  return projectOrder
-}
-
 // Get orders for current project and convert to orders
 const projectOrders = computed(() =>
   getOrdersByProjectId(projectId.value).filter((order) => !order.archived),
 )
-const ordersAsOrders = computed(() => projectOrders.value.map(convertOrderToOrder))
+const ordersAsOrders = computed(() =>
+  projectOrders.value.map((order) =>
+    convertOrderToProjectOrder(order, { projectTitle: project.value?.title ?? null }),
+  ),
+)
 
 // Check if review feature is enabled
 const isReviewEnabled = computed(() => {

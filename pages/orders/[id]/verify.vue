@@ -7,7 +7,7 @@ import { useProjects } from '~/composables/useProjects'
 import OrderCard from '~/components/OrderCard.vue'
 import ReturnOrderModal from '~/components/ReturnOrderModal.vue'
 import type { ProjectOrder } from '~/data/projects'
-import { mapDbStatusToOrderStatus } from '~/utils/orderStatuses'
+import { convertOrderToProjectOrder } from '~/utils/convertOrderToProjectOrder'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +18,7 @@ const orderId = computed(() => {
 })
 
 const { fetchOrder, updateOrder } = useOrders()
-const { getProjectById } = useProjects()
+const { getProjectById, fetchProject } = useProjects()
 
 const order = ref<Order | null>(null)
 const orderDetail = ref<OrderDetail | null>(null)
@@ -29,6 +29,18 @@ const isCompleting = ref(false)
 const isReturnModalOpen = ref(false)
 
 // Load order data
+const ensureProjectLoaded = async (projectId: string) => {
+  if (!projectId || getProjectById(projectId)) {
+    return
+  }
+
+  try {
+    await fetchProject(projectId)
+  } catch (error) {
+    console.error('Failed to load project for order:', error)
+  }
+}
+
 onMounted(async () => {
   if (!orderId.value) {
     loadError.value = 'Order ID is missing'
@@ -41,6 +53,7 @@ onMounted(async () => {
   try {
     const orderData = await fetchOrder(orderId.value)
     order.value = orderData
+    await ensureProjectLoaded(orderData.projectId)
     const project = getProjectById(orderData.projectId)
     const detail = convertOrderToOrderDetail(orderData, project?.title)
     orderDetail.value = detail
@@ -55,26 +68,22 @@ onMounted(async () => {
 })
 
 // Convert Order to ProjectOrder for OrderCard
+const projectForOrder = computed(() => {
+  if (!order.value) {
+    return null
+  }
+
+  return getProjectById(order.value.projectId) ?? null
+})
+
 const projectOrder = computed<ProjectOrder | null>(() => {
   if (!order.value) {
     return null
   }
 
-  const orderStatus = mapDbStatusToOrderStatus(order.value.status)
-
-  return {
-    id: order.value.id,
-    title: order.value.title,
-    assignee: {
-      name: order.value.assigneeTelegramName || 'Не назначен',
-      avatarUrl: order.value.assigneeTelegramAvatarUrl || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23282e39%22/%3E%3Cpath d=%22M32 34c6.075 0 11-4.925 11-11S38.075 12 32 12s-11 4.925-11 11 4.925 11 11 11Zm0 4c-7.732 0-21 3.882-21 11.5V52a4 4 0 0 0 4 4h34a4 4 0 0 0 4-4v-2.5C53 41.882 39.732 38 32 38Z%22 fill=%22%239da6b9%22/%3E%3C/svg%3E',
-    },
-    status: orderStatus,
-    dueDate: order.value.dueDate || undefined,
-    description: order.value.description || undefined,
-    clientName: order.value.clientName,
-    clientPhone: order.value.clientPhone,
-  }
+  return convertOrderToProjectOrder(order.value, {
+    projectTitle: projectForOrder.value?.title ?? null,
+  })
 })
 
 // Handle image click
@@ -106,6 +115,7 @@ const handleReturn = async (reason: string) => {
     // Reload order to get updated data
     const orderData = await fetchOrder(orderId.value)
     order.value = orderData
+    await ensureProjectLoaded(orderData.projectId)
     const project = getProjectById(orderData.projectId)
     const detail = convertOrderToOrderDetail(orderData, project?.title)
     orderDetail.value = detail
