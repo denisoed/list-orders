@@ -56,10 +56,16 @@ interface TaskItem {
   dueDateLabel: string
 }
 
+interface TaskSectionIcon {
+  name: string
+  colorClass: string
+}
+
 interface TaskSection {
   id: string
   title: string
   tasks: TaskItem[]
+  icon: TaskSectionIcon
 }
 
 const STATUS_COLOR_BY_STATUS = {
@@ -253,22 +259,26 @@ const taskSections = computed<TaskSection[]>(() => [
         id: 'overdue' as const,
         title: 'Просрочено',
         tasks: overdueTasks.value,
+        icon: { name: 'error', colorClass: 'text-red-500 dark:text-red-400' },
       }]
     : []),
   {
     id: 'today',
     title: 'Сегодня',
     tasks: todayTasks.value,
+    icon: { name: 'today', colorClass: 'text-amber-500 dark:text-amber-400' },
   },
   {
     id: 'tomorrow',
     title: 'Завтра',
     tasks: tomorrowTasks.value,
+    icon: { name: 'event_upcoming', colorClass: 'text-sky-500 dark:text-sky-400' },
   },
   {
     id: 'all',
     title: 'Все задачи',
     tasks: otherTasks.value,
+    icon: { name: 'view_list', colorClass: 'text-primary' },
   },
 ])
 
@@ -433,7 +443,14 @@ useHead({
               class="flex w-full items-center justify-between gap-3"
               @click="toggleSection(section.id)"
             >
-              <div class="flex items-center gap-2 text-left">
+              <div class="flex items-center gap-3 text-left">
+                <span
+                  class="material-symbols-outlined shrink-0 text-lg"
+                  :class="section.icon.colorClass"
+                  aria-hidden="true"
+                >
+                  {{ section.icon.name }}
+                </span>
                 <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
                 <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">
                   {{ getSectionTaskCountLabel(section) }}
@@ -449,7 +466,14 @@ useHead({
           </template>
           <template v-else>
             <NuxtLink to="/orders" class="flex w-full items-center justify-between gap-3">
-              <div class="flex items-center gap-2 text-left">
+              <div class="flex items-center gap-3 text-left">
+                <span
+                  class="material-symbols-outlined shrink-0 text-lg"
+                  :class="section.icon.colorClass"
+                  aria-hidden="true"
+                >
+                  {{ section.icon.name }}
+                </span>
                 <p class="text-base font-semibold leading-tight text-zinc-900 dark:text-white">{{ section.title }}</p>
                 <span class="inline-flex items-center rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-gray-600 whitespace-nowrap dark:bg-white/10 dark:text-[#c7cedd]">
                   {{ getSectionTaskCountLabel(section) }}
