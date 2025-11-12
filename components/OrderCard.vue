@@ -120,7 +120,7 @@ function formatDateAndTime(date: string): string {
         :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
       >
         <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
-        <span>{{ statusMeta.label }}</span>
+        <span>{{ statusMeta.singularLabel }}</span>
       </div>
     </div>
   </NuxtLink>

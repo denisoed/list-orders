@@ -346,6 +346,27 @@ const quickInfoIconClass = (itemId: string) =>
 
 const reminderLabels = computed(() => getReminderLabels(orderData.value?.reminderOffset ?? null))
 
+const projectLink = computed(() => {
+  const projectId = orderData.value?.projectId
+  if (!projectId) {
+    return null
+  }
+
+  return `/projects/${projectId}/orders`
+})
+
+const projectIconStyle = computed(() => {
+  const color = project.value?.color?.trim()
+  if (!color) {
+    return undefined
+  }
+
+  return {
+    backgroundColor: `${color}20`,
+    color,
+  }
+})
+
 const reminderDescription = computed(() => {
   if (!reminderLabels.value.length) {
     return ''
@@ -745,7 +766,7 @@ useHead({
 
       <template v-else>
       <section v-if="primaryStatusChip" class="space-y-3">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span
             class="inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-medium"
             :class="primaryStatusChip.classes"
@@ -753,6 +774,20 @@ useHead({
             <span class="material-symbols-outlined text-base">adjust</span>
             <span>{{ primaryStatusChip.label }}</span>
           </span>
+          <NuxtLink
+            v-if="order.projectName && projectLink"
+            :to="projectLink"
+            class="ml-auto inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold text-gray-500 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-[#9da6b9] dark:hover:bg-white/5 dark:focus-visible:ring-offset-[#1C2431]"
+          >
+            <span
+              class="flex size-8 shrink-0 items-center justify-center rounded-lg transition"
+              :style="projectIconStyle"
+              :class="!project?.color && 'bg-black/5 text-black dark:bg-white/10 dark:text-white'"
+            >
+              <span class="material-symbols-outlined text-lg">folder</span>
+            </span>
+            <span class="whitespace-nowrap">{{ order.projectName }}</span>
+          </NuxtLink>
         </div>
       </section>
 

@@ -198,7 +198,7 @@ export const convertOrderToOrderDetail = (order: Order, projectName?: string): O
     const statusMeta = getOrderStatusMeta(orderStatus)
     statusChips.push({
       id: `status-${order.status}`,
-      label: statusMeta.label,
+      label: statusMeta.singularLabel,
       tone: statusMeta.tone,
     })
   }
