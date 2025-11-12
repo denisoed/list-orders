@@ -3,17 +3,22 @@ interface Props {
   title: string
   subtitle?: string
   isOwner?: boolean
+  showFilterButton?: boolean
+  isFilterActive?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   title: 'Задачи',
   subtitle: undefined,
   isOwner: false,
+  showFilterButton: false,
+  isFilterActive: false,
 })
 
 const emit = defineEmits<{
   (event: 'back'): void
   (event: 'edit'): void
+  (event: 'filter'): void
 }>()
 
 const handleBack = () => {
@@ -22,6 +27,10 @@ const handleBack = () => {
 
 const handleEdit = () => {
   emit('edit')
+}
+
+const handleFilter = () => {
+  emit('filter')
 }
 </script>
 
@@ -47,16 +56,29 @@ const handleEdit = () => {
           {{ subtitle }}
         </p>
       </div>
-      <button
-        v-if="isOwner"
-        type="button"
-        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
-        aria-label="Редактировать проект"
-        @click="handleEdit"
-      >
-        <span class="material-symbols-outlined">edit_square</span>
-      </button>
-      <div v-else class="flex w-12 items-center justify-end"></div>
+      <div class="flex items-center justify-end gap-2">
+        <button
+          v-if="showFilterButton"
+          type="button"
+          class="flex size-12 shrink-0 items-center justify-center rounded-full border border-transparent bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
+          :class="isFilterActive ? 'border-primary/40 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary/90' : ''"
+          aria-label="Открыть фильтры"
+          :aria-pressed="isFilterActive"
+          @click="handleFilter"
+        >
+          <span class="material-symbols-outlined">tune</span>
+        </button>
+        <button
+          v-if="isOwner"
+          type="button"
+          class="flex size-12 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition hover:bg-black/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/5"
+          aria-label="Редактировать проект"
+          @click="handleEdit"
+        >
+          <span class="material-symbols-outlined">edit_square</span>
+        </button>
+        <div v-else-if="!showFilterButton" class="flex w-12 items-center justify-end"></div>
+      </div>
     </div>
   </header>
 </template>

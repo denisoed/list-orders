@@ -6,6 +6,7 @@ import OrderEmptyState from '~/components/OrderEmptyState.vue'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
 import MonthSelector from '~/components/MonthSelector.vue'
 import OrderStatusChips from '~/components/OrderStatusChips.vue'
+import OrderFilterModal from '~/components/OrderFilterModal.vue'
 import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
 import { useUserStore } from '~/stores/user'
@@ -27,17 +28,120 @@ const projectId = computed(() => {
 })
 
 const { orders, fetchOrders, isLoading: isLoadingOrders } = useOrders()
-const { fetchProjects, fetchProject, getProjectById, isLoading: isLoadingProjects } = useProjects()
+const {
+  fetchProjects,
+  fetchProject,
+  getProjectById,
+  isLoading: isLoadingProjects,
+  projects,
+} = useProjects()
 
 const isLoading = computed(() => isLoadingOrders.value || isLoadingProjects.value)
 
 const ordersList = computed<Order[]>(() => (Array.isArray(orders.value) ? orders.value : []))
 
-const ordersFilteredByProject = computed(() => {
-  if (projectId.value) {
-    return ordersList.value.filter((order) => order.projectId === projectId.value)
+const appliedProjectIds = ref<string[]>([])
+const appliedAssigneeIds = ref<number[]>([])
+const isFilterModalOpen = ref(false)
+
+const filterProjectIds = computed(() => {
+  if (appliedProjectIds.value.length > 0) {
+    return appliedProjectIds.value
   }
+  return projectId.value ? [projectId.value] : []
+})
+
+const hasActiveFilters = computed(
+  () => filterProjectIds.value.length > 0 || appliedAssigneeIds.value.length > 0,
+)
+
+const projectFilterOptions = computed(() => {
+  const map = new Map<string, { id: string; label: string }>()
+
+  projects.value
+    .filter((project) => !project.archived)
+    .forEach((project) => {
+      map.set(project.id, {
+        id: project.id,
+        label: project.title,
+      })
+    })
+
+  ordersList.value
+    .filter((order) => !order.archived)
+    .forEach((order) => {
+      if (map.has(order.projectId)) {
+        return
+      }
+
+      const projectTitle = getProjectById(order.projectId)?.title ?? 'Без проекта'
+      map.set(order.projectId, {
+        id: order.projectId,
+        label: projectTitle,
+      })
+    })
+
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ru-RU'))
+})
+
+const UNASSIGNED_ASSIGNEE_ID = -1
+
+const assigneeFilterOptions = computed(() => {
+  const map = new Map<number, { id: number; name: string; avatarUrl: string | null }>()
+  let hasUnassigned = false
+
+  ordersList.value
+    .filter((order) => !order.archived)
+    .forEach((order) => {
+      if (order.assigneeTelegramId === null) {
+        if (!hasUnassigned) {
+          hasUnassigned = true
+        }
+        return
+      }
+
+      if (map.has(order.assigneeTelegramId)) {
+        return
+      }
+
+      map.set(order.assigneeTelegramId, {
+        id: order.assigneeTelegramId,
+        name: order.assigneeTelegramName?.trim() || 'Без имени',
+        avatarUrl: order.assigneeTelegramAvatarUrl,
+      })
+    })
+
+  const options = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ru-RU'))
+
+  if (hasUnassigned) {
+    options.push({ id: UNASSIGNED_ASSIGNEE_ID, name: 'Без исполнителя', avatarUrl: null })
+  }
+
+  return options
+})
+
+const ordersFilteredByProject = computed(() => {
+  if (filterProjectIds.value.length > 0) {
+    const projectIdSet = new Set(filterProjectIds.value)
+    return ordersList.value.filter((order) => projectIdSet.has(order.projectId))
+  }
+
   return ordersList.value
+})
+
+const ordersFilteredByAssignee = computed(() => {
+  if (appliedAssigneeIds.value.length === 0) {
+    return ordersFilteredByProject.value
+  }
+
+  const assigneeIdSet = new Set(appliedAssigneeIds.value)
+  return ordersFilteredByProject.value.filter((order) => {
+    if (order.assigneeTelegramId === null) {
+      return assigneeIdSet.has(UNASSIGNED_ASSIGNEE_ID)
+    }
+
+    return assigneeIdSet.has(order.assigneeTelegramId)
+  })
 })
 
 const project = computed(() => {
@@ -48,7 +152,7 @@ const project = computed(() => {
 })
 
 const projectOrders = computed<ProjectOrder[]>(() =>
-  ordersFilteredByProject.value
+  ordersFilteredByAssignee.value
     .filter((order) => !order.archived)
     .map((order) => convertOrderToProjectOrder(order, {
       projectTitle: getProjectById(order.projectId)?.title ?? null,
@@ -176,13 +280,13 @@ watch(
   { immediate: true },
 )
 
-watch(projectId, (nextId, previousId) => {
-  if (nextId === previousId) {
-    return
+watch(filterProjectIds, () => {
+  if (activeStatus.value !== 'all') {
+    activeStatus.value = 'all'
   }
-
-  activeStatus.value = 'all'
-  selectedMonthId.value = ''
+  if (selectedMonthId.value !== '') {
+    selectedMonthId.value = ''
+  }
 })
 
 const handleMonthChange = (value: string) => {
@@ -324,6 +428,53 @@ const handleAddOrder = () => {
   })
 }
 
+const openFilterModal = () => {
+  isFilterModalOpen.value = true
+}
+
+const closeFilterModal = () => {
+  isFilterModalOpen.value = false
+}
+
+const removeProjectIdQueryParam = async () => {
+  if (!projectId.value) {
+    return
+  }
+
+  const updatedQuery = { ...route.query } as Record<string, string | string[]>
+  delete updatedQuery.projectId
+  await router.replace({ query: updatedQuery })
+}
+
+const handleApplyFilters = async ({
+  projectIds,
+  assigneeIds,
+}: {
+  projectIds: string[]
+  assigneeIds: number[]
+}) => {
+  appliedProjectIds.value = projectIds
+  appliedAssigneeIds.value = assigneeIds
+  isFilterModalOpen.value = false
+
+  const shouldRemoveProjectQuery =
+    projectIds.length === 0 || projectIds.some((id) => id !== projectId.value)
+
+  if (projectId.value && shouldRemoveProjectQuery) {
+    await removeProjectIdQueryParam()
+  }
+}
+
+const handleClearFilters = async () => {
+  appliedProjectIds.value = []
+  appliedAssigneeIds.value = []
+  isFilterModalOpen.value = false
+
+  if (projectId.value) {
+    await removeProjectIdQueryParam()
+  }
+}
+
 const canCreateOrder = computed(() => projectId.value.length > 0)
 
 onMounted(async () => {
@@ -344,6 +495,11 @@ onMounted(async () => {
 watch(projectId, async (nextId, previousId) => {
   if (nextId === previousId) {
     return
+  }
+
+  if (nextId) {
+    appliedProjectIds.value = []
+    appliedAssigneeIds.value = []
   }
 
   try {
@@ -389,8 +545,11 @@ useHead({
       :title="pageTitle"
       :subtitle="subtitle"
       :is-owner="isProjectOwner"
+      :show-filter-button="true"
+      :is-filter-active="hasActiveFilters"
       @back="handleBack"
       @edit="handleEditProject"
+      @filter="openFilterModal"
     />
 
     <main class="flex-1 px-4 pb-24">
@@ -472,5 +631,16 @@ useHead({
     >
       <span class="material-symbols-outlined !text-3xl">add</span>
     </button>
+
+    <OrderFilterModal
+      :is-open="isFilterModalOpen"
+      :project-options="projectFilterOptions"
+      :assignee-options="assigneeFilterOptions"
+      :initial-project-ids="filterProjectIds"
+      :initial-assignee-ids="appliedAssigneeIds"
+      @close="closeFilterModal"
+      @apply="handleApplyFilters"
+      @clear="handleClearFilters"
+    />
   </div>
 </template>
