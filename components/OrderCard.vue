@@ -48,6 +48,21 @@ const dueTextClass = computed(() => {
   return 'text-sm font-normal text-zinc-600 dark:text-zinc-400'
 })
 
+const projectLabel = computed(() => props.order.projectTitle ?? '')
+const hasProject = computed(() => projectLabel.value.length > 0)
+
+const projectIconClass = computed(() =>
+  isCompleted.value ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400',
+)
+
+const projectTextClass = computed(() => {
+  if (isCompleted.value) {
+    return 'text-sm font-normal text-emerald-600 dark:text-emerald-400'
+  }
+
+  return 'text-sm font-normal text-zinc-600 dark:text-zinc-400'
+})
+
 const containerClasses = computed(() => {
   return [
     'block flex flex-col gap-4 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
@@ -111,6 +126,14 @@ function formatDateAndTime(date: string): string {
         </span>
         <p :class="dueTextClass">
           {{ dueLabel }}
+        </p>
+      </div>
+      <div v-if="hasProject" class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-base" :class="projectIconClass">
+          folder_open
+        </span>
+        <p :class="projectTextClass">
+          {{ projectLabel }}
         </p>
       </div>
     </div>
