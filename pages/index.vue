@@ -490,7 +490,12 @@ useHead({
                   </span>
                   <span
                     v-if="(['overdue', 'today', 'tomorrow'].includes(section.id) && task.dueDateLabel)"
-                    class="text-[11px] font-normal text-gray-400 transition group-hover:text-gray-600 dark:text-[#8892a8] dark:group-hover:text-[#a0aac1]"
+                    :class="[
+                      'text-[11px] font-normal transition',
+                      ['today', 'tomorrow'].includes(section.id)
+                        ? 'text-red-500 group-hover:text-red-600 dark:text-red-300 dark:group-hover:text-red-200'
+                        : 'text-gray-400 group-hover:text-gray-600 dark:text-[#8892a8] dark:group-hover:text-[#a0aac1]',
+                    ]"
                   >
                     Срок: {{ task.dueDateLabel }}
                   </span>
