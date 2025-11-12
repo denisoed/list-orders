@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import OrderPageHeader from '~/components/OrderPageHeader.vue'
 import OrderCard from '~/components/OrderCard.vue'
 import OrderEmptyState from '~/components/OrderEmptyState.vue'
 import DataLoadingIndicator from '~/components/DataLoadingIndicator.vue'
+import MonthSelector from '~/components/MonthSelector.vue'
+import OrderStatusChips from '~/components/OrderStatusChips.vue'
 import { useOrders } from '~/composables/useOrders'
 import { useProjects } from '~/composables/useProjects'
 import { useUserStore } from '~/stores/user'
 import { convertOrderToProjectOrder } from '~/utils/convertOrderToProjectOrder'
+import { ORDER_STATUS_FILTERS, type OrderStatusFilter } from '~/utils/orderStatuses'
 import type { ProjectOrder } from '~/data/projects'
 import type { Order } from '~/data/orders'
 
@@ -30,7 +33,7 @@ const isLoading = computed(() => isLoadingOrders.value || isLoadingProjects.valu
 
 const ordersList = computed<Order[]>(() => (Array.isArray(orders.value) ? orders.value : []))
 
-const filteredOrders = computed(() => {
+const ordersFilteredByProject = computed(() => {
   if (projectId.value) {
     return ordersList.value.filter((order) => order.projectId === projectId.value)
   }
@@ -45,11 +48,31 @@ const project = computed(() => {
 })
 
 const projectOrders = computed<ProjectOrder[]>(() =>
-  filteredOrders.value
+  ordersFilteredByProject.value
     .filter((order) => !order.archived)
     .map((order) => convertOrderToProjectOrder(order, {
       projectTitle: getProjectById(order.projectId)?.title ?? null,
     })),
+)
+
+const activeStatus = ref<OrderStatusFilter>('all')
+
+const statusFilteredOrders = computed(() => {
+  if (activeStatus.value === 'all') {
+    return projectOrders.value
+  }
+
+  return projectOrders.value.filter((order) => order.status === activeStatus.value)
+})
+
+const statusOptions = computed(() =>
+  ORDER_STATUS_FILTERS.map((option) => ({
+    ...option,
+    count:
+      option.value === 'all'
+        ? projectOrders.value.length
+        : projectOrders.value.filter((order) => order.status === option.value).length,
+  })),
 )
 
 const declOfNum = (count: number, forms: [string, string, string]) => {
@@ -101,6 +124,102 @@ const periodFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month
 const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'short' })
 const dayNumberFormatter = new Intl.DateTimeFormat('ru-RU', { day: '2-digit' })
 
+const monthNameFormatter = new Intl.DateTimeFormat('ru-RU', { month: 'long' })
+
+const formatMonthLabel = (date: Date) => `${capitalize(monthNameFormatter.format(date))} ${date.getFullYear()}`
+
+const formatMonthId = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+const monthOptions = computed(() => {
+  const monthMap = new Map<string, Date>()
+
+  projectOrders.value.forEach((order) => {
+    const date = parseOrderDate(order.dueDate)
+    if (!date) {
+      return
+    }
+
+    const monthId = formatMonthId(date)
+    if (!monthMap.has(monthId) || monthMap.get(monthId)!.getTime() > date.getTime()) {
+      monthMap.set(monthId, date)
+    }
+  })
+
+  return Array.from(monthMap.entries())
+    .map(([value, date]) => ({
+      value,
+      label: formatMonthLabel(date),
+      date,
+    }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+})
+
+const currentMonthId = computed(() => formatMonthId(new Date()))
+const selectedMonthId = ref('')
+
+watch(
+  monthOptions,
+  (options) => {
+    if (options.length === 0) {
+      selectedMonthId.value = ''
+      return
+    }
+
+    if (options.some((option) => option.value === selectedMonthId.value)) {
+      return
+    }
+
+    const currentOption = options.find((option) => option.value === currentMonthId.value)
+    const firstOption = options[0]
+    selectedMonthId.value = currentOption ? currentOption.value : firstOption?.value ?? ''
+  },
+  { immediate: true },
+)
+
+watch(projectId, (nextId, previousId) => {
+  if (nextId === previousId) {
+    return
+  }
+
+  activeStatus.value = 'all'
+  selectedMonthId.value = ''
+})
+
+const handleMonthChange = (value: string) => {
+  selectedMonthId.value = value
+}
+
+watch(selectedMonthId, () => {
+  if (activeStatus.value !== 'all') {
+    activeStatus.value = 'all'
+  }
+})
+
+const filteredOrders = computed(() => {
+  const orders = statusFilteredOrders.value
+
+  if (!selectedMonthId.value) {
+    return orders
+  }
+
+  return orders.filter((order) => {
+    const date = parseOrderDate(order.dueDate)
+    if (!date) {
+      return true
+    }
+
+    return formatMonthId(date) === selectedMonthId.value
+  })
+})
+
+const hasStatusFilteredOrders = computed(() => statusFilteredOrders.value.length > 0)
+const hasFilteredOrders = computed(() => filteredOrders.value.length > 0)
+const hasOrders = computed(() => projectOrders.value.length > 0)
+
+const handleStatusChange = (value: string) => {
+  activeStatus.value = value as OrderStatusFilter
+}
+
 const datedOrderGroups = computed(() => {
   const groups = new Map<
     string,
@@ -113,7 +232,7 @@ const datedOrderGroups = computed(() => {
     }
   >()
 
-  const datedOrders = projectOrders.value
+  const datedOrders = filteredOrders.value
     .map((order) => ({ order, date: parseOrderDate(order.dueDate) }))
     .filter((item): item is { order: ProjectOrder; date: Date } => item.date !== null)
     .sort((a, b) => a.date.getTime() - b.date.getTime())
@@ -140,7 +259,7 @@ const datedOrderGroups = computed(() => {
 })
 
 const undatedOrders = computed(() =>
-  projectOrders.value
+  filteredOrders.value
     .filter((order) => !parseOrderDate(order.dueDate))
     .sort((a, b) => a.title.localeCompare(b.title, 'ru-RU')),
 )
@@ -279,6 +398,20 @@ useHead({
         <DataLoadingIndicator v-if="isLoading" message="Загрузка задач..." />
 
         <template v-else>
+          <div class="flex flex-col gap-4">
+            <MonthSelector
+              v-if="monthOptions.length > 0"
+              :model-value="selectedMonthId"
+              :options="monthOptions"
+              @update:model-value="handleMonthChange"
+            />
+            <OrderStatusChips
+              :model-value="activeStatus"
+              :options="statusOptions"
+              @update:model-value="handleStatusChange"
+            />
+          </div>
+
           <div v-if="hasDatedOrders || hasUndatedOrders" class="flex flex-col gap-4">
             <div v-for="group in datedOrderGroups" :key="group.key" class="flex gap-4">
               <div class="flex flex-col items-center">
@@ -311,8 +444,21 @@ useHead({
               </ul>
             </div>
           </div>
-
-          <OrderEmptyState v-else />
+          <div v-else class="flex flex-col gap-4 pt-2">
+            <OrderEmptyState
+              v-if="hasStatusFilteredOrders"
+              icon="calendar_month"
+              title="Нет задач в выбранном месяце"
+              description="Попробуйте переключить месяц или показать все задачи."
+            />
+            <OrderEmptyState
+              v-else-if="hasOrders"
+              icon="manage_search"
+              title="Нет задач по выбранным фильтрам"
+              description="Измените статус, чтобы увидеть другие задачи."
+            />
+            <OrderEmptyState v-else />
+          </div>
         </template>
       </section>
     </main>
