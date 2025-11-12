@@ -161,11 +161,15 @@ const handleClear = () => {
                   <p v-if="!projectOptions.length" class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                     Нет доступных проектов.
                   </p>
-                  <ul v-else class="mt-3 flex flex-col gap-2" role="list">
-                    <li v-for="project in projectOptions" :key="project.id" role="listitem">
+                  <ul
+                    v-else
+                    class="mt-3 flex gap-2 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                    role="list"
+                  >
+                    <li v-for="project in projectOptions" :key="project.id" class="flex-shrink-0" role="listitem">
                       <button
                         type="button"
-                        class="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        class="flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         :class="selectedProjectIds.includes(project.id)
                           ? 'border-primary bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/20 dark:text-primary/90'
                           : 'border-black/10 bg-white text-zinc-900 hover:bg-gray-50 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:hover:bg-white/10'"
@@ -188,11 +192,15 @@ const handleClear = () => {
                   <p v-if="!assigneeOptions.length" class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                     Нет доступных исполнителей.
                   </p>
-                  <ul v-else class="mt-3 flex flex-col gap-2" role="list">
-                    <li v-for="assignee in assigneeOptions" :key="assignee.id" role="listitem">
+                  <ul
+                    v-else
+                    class="mt-3 flex gap-2 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                    role="list"
+                  >
+                    <li v-for="assignee in assigneeOptions" :key="assignee.id" class="flex-shrink-0" role="listitem">
                       <button
                         type="button"
-                        class="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        class="flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         :class="selectedAssigneeIds.includes(assignee.id)
                           ? 'border-primary bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/20 dark:text-primary/90'
                           : 'border-black/10 bg-white text-zinc-900 hover:bg-gray-50 dark:border-white/10 dark:bg-[#1C2431] dark:text-white dark:hover:bg-white/10'"
