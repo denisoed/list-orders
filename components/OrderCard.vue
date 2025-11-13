@@ -108,15 +108,15 @@ function formatDateAndTime(date: string): string {
 <template>
   <NuxtLink :to="orderDetailsRoute" :aria-label="orderAriaLabel" :class="containerClasses">
     <div class="flex flex-col gap-3">
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-start justify-between gap-3">
         <p :class="titleClasses">
           {{ order.title }}
         </p>
         <div
-          class="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+          class="ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
           :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
         >
-          <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
+          <span class="h-1.5 w-1.5 rounded-full" :class="statusMeta.dot"></span>
           <span>{{ statusMeta.singularLabel }}</span>
         </div>
       </div>
