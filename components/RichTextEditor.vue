@@ -31,7 +31,7 @@
     <textarea
       ref="textareaRef"
       :value="modelValue"
-      class="form-input min-h-36 w-full rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
+      class="form-input min-h-36 w-full resize-none rounded-xl border-none bg-[#282e39] p-4 text-base font-normal leading-normal text-white placeholder:text-[#9da6b9] focus:outline-none focus:ring-2 focus:ring-primary"
       :placeholder="placeholder"
       enterkeyhint="enter"
       @input="handleInput"
@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { renderMarkdown } from '~/utils/markdown'
 
 interface Props {
@@ -69,12 +69,29 @@ const emit = defineEmits<{
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const minTextareaHeight = ref(0)
 
 const previewHtml = computed(() => renderMarkdown(props.modelValue))
+
+const adjustTextareaHeight = () => {
+  const textarea = textareaRef.value
+  if (!textarea) {
+    return
+  }
+
+  if (!minTextareaHeight.value) {
+    minTextareaHeight.value = textarea.scrollHeight
+  }
+
+  textarea.style.height = 'auto'
+  const nextHeight = Math.max(textarea.scrollHeight, minTextareaHeight.value)
+  textarea.style.height = `${nextHeight}px`
+}
 
 function handleInput(event: Event) {
   const target = event.target as HTMLTextAreaElement
   emit('update:modelValue', target.value)
+  adjustTextareaHeight()
 }
 
 function applyInlineFormat(prefix: string, suffix: string) {
@@ -123,5 +140,17 @@ function applyBulletedList() {
     textarea.setSelectionRange(start, start + formatted.join('\n').length)
   })
 }
+
+onMounted(() => {
+  nextTick(adjustTextareaHeight)
+})
+
+watch(
+  () => props.modelValue,
+  () => {
+    nextTick(adjustTextareaHeight)
+  },
+  { immediate: true },
+)
 
 </script>
