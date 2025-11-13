@@ -567,7 +567,12 @@ const handleBack = () => {
   if (router.options.history.state.back) {
     router.back()
   } else {
-    router.push(`/projects/${orderData.value?.projectId}/orders`)
+    const targetProjectId = orderData.value?.projectId
+    if (targetProjectId) {
+      router.push(`/projects/${targetProjectId}/orders`)
+    } else {
+      router.push('/orders')
+    }
   }
 }
 
@@ -580,8 +585,9 @@ const handleEdit = () => {
 
   // Redirect to edit page with projectId
   router.push({
-    path: `/projects/${orderData.value.projectId}/orders/new`,
+    path: '/orders/new',
     query: {
+      ...(orderData.value.projectId ? { projectId: orderData.value.projectId } : {}),
       orderId: targetOrderId,
       from: route.fullPath,
     },
@@ -613,7 +619,7 @@ const handleArchiveConfirm = async () => {
     if (projectId) {
       await router.push(`/projects/${projectId}/orders`)
     } else {
-      await loadOrder()
+      await router.push('/orders')
     }
   } catch (err) {
     console.error('Не удалось архивировать задачу:', err)

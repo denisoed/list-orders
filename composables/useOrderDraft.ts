@@ -45,6 +45,9 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
    * Save draft data to localStorage
    */
   const saveDraft = (data: Partial<OrderDraftData>): void => {
+    if (!import.meta.client) {
+      return
+    }
     if (!projectIdRef.value) {
       return
     }
@@ -70,8 +73,9 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
         projectId: projectIdRef.value,
         ...(existingDraft as Partial<OrderDraftData>),
         ...data,
-        projectId: projectIdRef.value,
       }
+
+      draftData.projectId = projectIdRef.value
 
       draftData.reminderOffsets = Array.isArray(draftData.reminderOffsets)
         ? draftData.reminderOffsets.filter(isValidReminderOffset)
@@ -94,6 +98,9 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
    * Load draft data from localStorage
    */
   const loadDraft = (): Partial<OrderDraftData> | null => {
+    if (!import.meta.client) {
+      return null
+    }
     if (!projectIdRef.value) {
       return null
     }
@@ -131,6 +138,9 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
    * Clear draft data from localStorage
    */
   const clearDraft = (): void => {
+    if (!import.meta.client) {
+      return
+    }
     if (!projectIdRef.value) {
       return
     }
@@ -146,6 +156,9 @@ export const useOrderDraft = (projectId: Ref<string> | string) => {
    * Check if draft exists
    */
   const hasDraft = (): boolean => {
+    if (!import.meta.client) {
+      return false
+    }
     return loadDraft() !== null
   }
 

@@ -20,13 +20,14 @@ export default defineEventHandler(async (event) => {
 
     const query = getQuery(event)
     const projectId = query.project_id as string | undefined
+    const isFilteringNoProject = projectId === 'none'
 
     const supabase = getSupabaseClient()
 
     // Get all project IDs where user has access (owned or member)
     let accessibleProjectIds: string[] = []
 
-    if (projectId) {
+    if (projectId && !isFilteringNoProject) {
       // If project_id is provided, check if user has access to it (parallel check)
       const [ownedProjectResult, memberProjectResult] = await Promise.all([
         supabase
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
         // User doesn't have access to this project
         return []
       }
-    } else {
+    } else if (!isFilteringNoProject) {
       // Get all owned project IDs and member project IDs in parallel
       const [ownedProjectsResult, memberProjectsResult] = await Promise.all([
         supabase
@@ -72,19 +73,40 @@ export default defineEventHandler(async (event) => {
       const ownedIds = (ownedProjects || []).map((p: any) => p.id)
       const memberIds = (memberProjects || []).map((p: any) => p.project_id)
       accessibleProjectIds = [...new Set([...ownedIds, ...memberIds])]
+    } else {
+      accessibleProjectIds = []
     }
 
-    // If no accessible projects, return empty array
-    if (accessibleProjectIds.length === 0) {
-      return []
-    }
-
-    // Build query for orders in accessible projects
-    const { data: orders, error } = await supabase
+    let queryBuilder = supabase
       .from('orders')
       .select('*')
-      .in('project_id', accessibleProjectIds)
       .order('created_at', { ascending: false })
+
+    if (isFilteringNoProject) {
+      const noProjectFilters = [
+        `and(project_id.is.null,user_telegram_id.eq.${userTelegramId})`,
+        `and(project_id.is.null,assignee_telegram_id.eq.${userTelegramId})`,
+      ]
+      queryBuilder = queryBuilder.or(noProjectFilters.join(','))
+    } else if (projectId && !isFilteringNoProject) {
+      queryBuilder = queryBuilder.eq('project_id', projectId)
+    } else {
+      const orFilters: string[] = []
+      if (accessibleProjectIds.length > 0) {
+        const escapedProjectIds = accessibleProjectIds.map((id) =>
+          `"${id.replace(/"/g, '""')}"`,
+        )
+        orFilters.push(`project_id.in.(${escapedProjectIds.join(',')})`)
+      }
+
+      const noProjectOwnerFilter = `and(project_id.is.null,user_telegram_id.eq.${userTelegramId})`
+      const noProjectAssigneeFilter = `and(project_id.is.null,assignee_telegram_id.eq.${userTelegramId})`
+      orFilters.push(noProjectOwnerFilter, noProjectAssigneeFilter)
+
+      queryBuilder = queryBuilder.or(orFilters.join(','))
+    }
+
+    const { data: orders, error } = await queryBuilder
 
     if (error) {
       console.error('[Orders API] Error fetching orders:', error)

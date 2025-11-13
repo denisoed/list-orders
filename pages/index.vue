@@ -18,6 +18,8 @@ const { fetchOrders, orders, isLoading: isLoadingOrders } = useOrders()
 
 const isLoading = computed(() => isLoadingProjects.value || isLoadingOrders.value)
 
+const NO_PROJECT_ID = 'none'
+
 // Use computed to get orders array
 const ordersList = computed<Order[]>(() => {
   if (typeof orders === 'function') {
@@ -162,7 +164,8 @@ const getTaskItemsForDate = (targetDateKey: string) => {
     })
     .map((order) => {
       const normalizedStatus = mapDbStatusToOrderStatus(order.status)
-      const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
+      const projectTitle =
+        projectTitleById.value.get(order.projectId ?? NO_PROJECT_ID) ?? 'Без проекта'
 
       return {
         id: order.id,
@@ -195,7 +198,8 @@ const overdueTasks = computed<TaskItem[]>(() => {
     })
     .map((order) => {
       const normalizedStatus = mapDbStatusToOrderStatus(order.status)
-      const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
+      const projectTitle =
+        projectTitleById.value.get(order.projectId ?? NO_PROJECT_ID) ?? 'Без проекта'
 
       return {
         id: order.id,
@@ -220,6 +224,7 @@ const tomorrowTasks = computed<TaskItem[]>(() => {
 
 const projectTitleById = computed(() => {
   const map = new Map<string, string>()
+  map.set(NO_PROJECT_ID, 'Без проекта')
   for (const project of projects.value) {
     map.set(project.id, project.title)
   }
@@ -241,7 +246,8 @@ const availableOtherOrders = computed(() =>
 const otherTasks = computed<TaskItem[]>(() => {
   return availableOtherOrders.value.map((order) => {
     const normalizedStatus = mapDbStatusToOrderStatus(order.status)
-    const projectTitle = projectTitleById.value.get(order.projectId) ?? 'Без проекта'
+    const projectTitle =
+      projectTitleById.value.get(order.projectId ?? NO_PROJECT_ID) ?? 'Без проекта'
 
     return {
       id: order.id,

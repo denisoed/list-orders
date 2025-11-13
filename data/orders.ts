@@ -24,7 +24,7 @@ export interface Order {
   dueDate: string | null
   deliveryAddress: string | null
   reminderOffset: string | null
-  projectId: string
+  projectId: string | null
   clientName: string
   clientPhone: string
   paymentType: string | null

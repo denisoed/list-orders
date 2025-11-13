@@ -12,7 +12,13 @@ const imageId = computed(() => {
 
 const source = computed(() => (route.query.source as string) || '')
 const orderId = computed(() => route.query.orderId as string)
-const projectId = computed(() => route.query.projectId as string)
+const projectId = computed(() => {
+  const raw = route.query.projectId
+  if (typeof raw !== 'string') {
+    return ''
+  }
+  return raw === 'none' ? '' : raw
+})
 
 // Zoom state
 const scale = ref(1.0)

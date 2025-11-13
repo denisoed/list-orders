@@ -319,8 +319,9 @@ const handleAddOrder = () => {
   const { returnPath } = getReturnPath()
 
   router.push({
-    path: `/projects/${projectId.value}/orders/new`,
+    path: '/orders/new',
     query: {
+      projectId: projectId.value,
       from: returnPath,
     },
   })

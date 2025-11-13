@@ -26,7 +26,7 @@ export const convertOrderToProjectOrder = (
     description: order.description || undefined,
     clientName: order.clientName,
     clientPhone: order.clientPhone,
-    projectId: order.projectId,
+    projectId: order.projectId ?? undefined,
     projectTitle: options.projectTitle?.trim() || undefined,
   }
 }
