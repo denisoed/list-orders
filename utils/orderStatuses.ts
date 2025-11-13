@@ -86,11 +86,11 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
  * Filter options for order status filtering
  */
 export const ORDER_STATUS_FILTERS = [
-  { value: 'all' as const, label: 'Все' },
-  { value: 'pending' as const, label: ORDER_STATUS_META.pending.label },
   { value: 'in_progress' as const, label: ORDER_STATUS_META.in_progress.label },
+  { value: 'pending' as const, label: ORDER_STATUS_META.pending.label },
   { value: 'review' as const, label: ORDER_STATUS_META.review.label },
   { value: 'done' as const, label: ORDER_STATUS_META.done.label },
+  { value: 'all' as const, label: 'Все' },
 ] as const
 
 /**

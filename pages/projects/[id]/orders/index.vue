@@ -106,7 +106,7 @@ watch(
   [isReviewEnabled, activeStatus],
   ([reviewEnabled, currentStatus]) => {
     if (!reviewEnabled && currentStatus === 'review') {
-      setActiveStatus('all')
+      setActiveStatus('in_progress')
     }
   },
 )
