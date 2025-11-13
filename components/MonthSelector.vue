@@ -24,6 +24,7 @@ const menuRef = ref<HTMLElement | null>(null)
 
 const selectedMonth = computed(() => props.options.find((option) => option.value === props.modelValue) ?? null)
 const selectedMonthIndex = computed(() => props.options.findIndex((option) => option.value === props.modelValue))
+const isSelectorDisabled = computed(() => props.options.length === 0)
 
 const canGoToPreviousMonth = computed(() => selectedMonthIndex.value > 0)
 const canGoToNextMonth = computed(
@@ -31,6 +32,10 @@ const canGoToNextMonth = computed(
 )
 
 const toggleMenu = () => {
+  if (isSelectorDisabled.value) {
+    return
+  }
+
   isMenuOpen.value = !isMenuOpen.value
 }
 
@@ -69,6 +74,15 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
   document.removeEventListener('keydown', handleKeydown)
 })
+
+watch(
+  () => props.options.length,
+  (count) => {
+    if (count === 0) {
+      closeMenu()
+    }
+  },
+)
 
 const handleMonthSelect = (value: string) => {
   emit('update:modelValue', value)
@@ -119,7 +133,7 @@ const handleNextMonth = () => {
             class="flex w-full items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-medium text-white shadow-inner transition hover:bg-black/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/10 dark:hover:bg-white/15"
             :aria-expanded="isMenuOpen"
             aria-haspopup="listbox"
-            :disabled="!canGoToPreviousMonth && !canGoToNextMonth"
+            :disabled="isSelectorDisabled"
             @click.stop="toggleMenu"
           >
             <span class="truncate">
