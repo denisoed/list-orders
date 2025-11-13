@@ -376,7 +376,7 @@ const formatOrderCount = (project: Project) => {
 
 const projectCardWidthClass = computed(() =>
   visibleProjects.value.length > 1
-    ? 'min-w-[70%] max-w-[70%]'
+    ? 'min-w-[90%] max-w-[90%]'
     : 'min-w-full max-w-full',
 )
 
