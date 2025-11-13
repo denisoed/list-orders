@@ -60,13 +60,18 @@ const handleFilter = () => {
         <button
           v-if="showFilterButton"
           type="button"
-          class="flex size-12 shrink-0 items-center justify-center rounded-full border border-transparent bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
+          class="relative flex size-12 shrink-0 items-center justify-center rounded-full border border-transparent bg-black/5 text-zinc-600 transition hover:bg-black/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10"
           :class="isFilterActive ? 'border-primary/40 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary/90' : ''"
           aria-label="Открыть фильтры"
           :aria-pressed="isFilterActive"
           @click="handleFilter"
         >
           <span class="material-symbols-outlined">tune</span>
+          <span
+            v-if="isFilterActive"
+            class="absolute right-2 top-2 block size-2 rounded-full border border-white bg-[#FF4D4F] shadow-sm dark:border-zinc-900"
+            aria-hidden="true"
+          ></span>
         </button>
         <button
           v-if="isOwner"
