@@ -53,8 +53,13 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // Check if user has access to the project
-    const hasAccess = await checkProjectAccess(supabase, userTelegramId, order.project_id)
+    let hasAccess = false
+    if (order.project_id) {
+      hasAccess = await checkProjectAccess(supabase, userTelegramId, order.project_id)
+    } else {
+      hasAccess =
+        order.user_telegram_id === userTelegramId || order.assignee_telegram_id === userTelegramId
+    }
 
     if (!hasAccess) {
       return sendError(event, createError({

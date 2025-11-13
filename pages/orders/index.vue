@@ -27,6 +27,12 @@ const projectId = computed(() => {
   return typeof raw === 'string' ? raw : ''
 })
 
+const NO_PROJECT_ID = 'none'
+const activeProjectId = computed(() =>
+  projectId.value === NO_PROJECT_ID ? '' : projectId.value,
+)
+const isNoProjectFilter = computed(() => projectId.value === NO_PROJECT_ID)
+
 const { orders, fetchOrders, isLoading: isLoadingOrders } = useOrders()
 const {
   fetchProjects,
@@ -70,16 +76,27 @@ const projectFilterOptions = computed(() => {
   ordersList.value
     .filter((order) => !order.archived)
     .forEach((order) => {
-      if (map.has(order.projectId)) {
+      const projectKey = order.projectId ?? NO_PROJECT_ID
+
+      if (map.has(projectKey)) {
         return
       }
 
-      const projectTitle = getProjectById(order.projectId)?.title ?? 'Без проекта'
-      map.set(order.projectId, {
-        id: order.projectId,
+      const projectTitle = order.projectId
+        ? getProjectById(order.projectId)?.title ?? 'Без проекта'
+        : 'Без проекта'
+      map.set(projectKey, {
+        id: projectKey,
         label: projectTitle,
       })
     })
+
+  if (!map.has(NO_PROJECT_ID)) {
+    map.set(NO_PROJECT_ID, {
+      id: NO_PROJECT_ID,
+      label: 'Без проекта',
+    })
+  }
 
   return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ru-RU'))
 })
@@ -123,7 +140,9 @@ const assigneeFilterOptions = computed(() => {
 const ordersFilteredByProject = computed(() => {
   if (filterProjectIds.value.length > 0) {
     const projectIdSet = new Set(filterProjectIds.value)
-    return ordersList.value.filter((order) => projectIdSet.has(order.projectId))
+    return ordersList.value.filter((order) =>
+      projectIdSet.has(order.projectId ?? NO_PROJECT_ID),
+    )
   }
 
   return ordersList.value
@@ -145,17 +164,17 @@ const ordersFilteredByAssignee = computed(() => {
 })
 
 const project = computed(() => {
-  if (!projectId.value) {
+  if (!activeProjectId.value) {
     return null
   }
-  return getProjectById(projectId.value) ?? null
+  return getProjectById(activeProjectId.value) ?? null
 })
 
 const projectOrders = computed<ProjectOrder[]>(() =>
   ordersFilteredByAssignee.value
     .filter((order) => !order.archived)
     .map((order) => convertOrderToProjectOrder(order, {
-      projectTitle: getProjectById(order.projectId)?.title ?? null,
+      projectTitle: order.projectId ? getProjectById(order.projectId)?.title ?? null : null,
     })),
 )
 
@@ -401,29 +420,25 @@ const handleBack = () => {
 }
 
 const handleEditProject = () => {
-  if (!projectId.value) {
+  if (!activeProjectId.value) {
     return
   }
 
   router.push({
-    path: `/projects/${projectId.value}/edit`,
+    path: `/projects/${activeProjectId.value}/edit`,
     query: {
       from: route.fullPath,
-      fallback: `/orders?projectId=${projectId.value}`,
+      fallback: `/orders?projectId=${activeProjectId.value}`,
     },
   })
 }
 
 const handleAddOrder = () => {
-  if (!projectId.value) {
-    return
-  }
-
   router.push({
-    path: `/projects/${projectId.value}/orders/new`,
+    path: '/orders/new',
     query: {
+      ...(activeProjectId.value ? { projectId: activeProjectId.value } : {}),
       from: route.fullPath,
-      fallback: `/orders?projectId=${projectId.value}`,
     },
   })
 }
@@ -475,7 +490,7 @@ const handleClearFilters = async () => {
   }
 }
 
-const canCreateOrder = computed(() => projectId.value.length > 0)
+const canCreateOrder = computed(() => true)
 
 onMounted(async () => {
   try {
@@ -484,8 +499,8 @@ onMounted(async () => {
       fetchOrders(projectId.value || undefined),
     ])
 
-    if (projectId.value && !project.value) {
-      await fetchProject(projectId.value)
+    if (activeProjectId.value && !project.value) {
+      await fetchProject(activeProjectId.value)
     }
   } catch (error) {
     console.error('Failed to load orders data:', error)
@@ -505,7 +520,7 @@ watch(projectId, async (nextId, previousId) => {
   try {
     await fetchOrders(nextId || undefined)
 
-    if (nextId && !getProjectById(nextId)) {
+    if (nextId && nextId !== NO_PROJECT_ID && !getProjectById(nextId)) {
       await fetchProject(nextId)
     }
   } catch (error) {

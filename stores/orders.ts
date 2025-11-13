@@ -4,7 +4,7 @@ import type { Order } from '~/data/orders'
 import { useTelegram } from '~/composables/useTelegram'
 
 export interface CreateOrderInput {
-  project_id: string
+  project_id?: string | null
   title?: string | null
   summary?: string
   description?: string
@@ -26,6 +26,7 @@ export interface CreateOrderInput {
 }
 
 export interface UpdateOrderInput {
+  project_id?: string | null
   title?: string | null
   summary?: string
   description?: string
@@ -99,7 +100,10 @@ export const useOrdersStore = defineStore('orders', () => {
 
       // If filtering by project, replace orders for that project
       if (projectId) {
-        orders.value = orders.value.filter((order) => order.projectId !== projectId)
+        orders.value = orders.value.filter((order) => {
+          const normalizedProjectId = order.projectId ?? 'none'
+          return normalizedProjectId !== projectId
+        })
         orders.value = [...orders.value, ...response]
       } else {
         orders.value = response
@@ -161,7 +165,9 @@ export const useOrdersStore = defineStore('orders', () => {
    * Create a new order on the server
    */
   async function createOrder(input: CreateOrderInput): Promise<Order> {
-    const projectId = typeof input.project_id === 'string' ? input.project_id.trim() : ''
+    const projectId =
+      typeof input.project_id === 'string' ? input.project_id.trim() : input.project_id ?? ''
+    const normalizedProjectId = typeof projectId === 'string' && projectId.length > 0 ? projectId : null
     const toNullableString = (value: string | null | undefined): string | null => {
       if (value === undefined || value === null) {
         return null
@@ -171,12 +177,6 @@ export const useOrdersStore = defineStore('orders', () => {
       return trimmed.length > 0 ? trimmed : null
     }
 
-    if (!projectId) {
-      const errorMessage = 'ID проекта обязателен для создания задачи'
-      error.value = errorMessage
-      throw new Error(errorMessage)
-    }
-
     isCreating.value = true
     error.value = null
 
@@ -184,7 +184,7 @@ export const useOrdersStore = defineStore('orders', () => {
       const newOrder = await $fetch<Order>('/api/orders', getFetchOptions({
         method: 'POST',
         body: {
-          project_id: projectId,
+          project_id: normalizedProjectId,
           title: toNullableString(input.title ?? null),
           summary: input.summary?.trim() || '',
           description: input.description?.trim() || '',
@@ -270,6 +270,16 @@ export const useOrdersStore = defineStore('orders', () => {
       }
       if (input.assignee_telegram_id !== undefined) {
         body.assignee_telegram_id = input.assignee_telegram_id
+      }
+      if (input.project_id !== undefined) {
+        if (input.project_id === null) {
+          body.project_id = null
+        } else if (typeof input.project_id === 'string') {
+          const trimmedProjectId = input.project_id.trim()
+          body.project_id = trimmedProjectId.length > 0 ? trimmedProjectId : null
+        } else {
+          body.project_id = null
+        }
       }
       if (input.due_date !== undefined) {
         body.due_date = input.due_date
@@ -396,6 +406,9 @@ export const useOrdersStore = defineStore('orders', () => {
    * Get orders by project ID from the store
    */
   function getOrdersByProjectId(projectId: string): Order[] {
+    if (projectId === 'none') {
+      return orders.value.filter((order) => order.projectId === null)
+    }
     return orders.value.filter((order) => order.projectId === projectId)
   }
 

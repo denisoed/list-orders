@@ -98,18 +98,22 @@ onMounted(async () => {
   try {
     const orderData = await fetchOrder(orderId.value)
     order.value = orderData
-    orderProjectId.value = orderData.projectId
+    orderProjectId.value = orderData.projectId ?? null
 
-    // Load project if not already loaded
-    let projectData = getProjectById(orderData.projectId)
-    if (!projectData) {
-      try {
-        projectData = await fetchProject(orderData.projectId)
-      } catch (error) {
-        console.error('Failed to load project:', error)
+    if (orderData.projectId) {
+      // Load project if not already loaded
+      let projectData = getProjectById(orderData.projectId)
+      if (!projectData) {
+        try {
+          projectData = await fetchProject(orderData.projectId)
+        } catch (error) {
+          console.error('Failed to load project:', error)
+        }
       }
+      project.value = projectData
+    } else {
+      project.value = null
     }
-    project.value = projectData
 
     // Load existing review data if order is in review status
     const normalizedStatus = mapDbStatusToOrderStatus(orderData.status)
@@ -297,15 +301,12 @@ const handleFinish = async () => {
     attachments.value = updatedAttachments
 
     // Redirect to project orders list page
-    if (orderProjectId.value) {
-      await router.replace({
-        path: `/projects/${orderProjectId.value}/orders`,
-      })
-    } else {
-      await router.replace({
-        path: '/',
-      })
-    }
+    const fallbackPath = orderProjectId.value
+      ? `/projects/${orderProjectId.value}/orders`
+      : '/orders'
+    await router.replace({
+      path: fallbackPath,
+    })
   } catch (error) {
     const message =
       error instanceof Error
@@ -401,16 +402,13 @@ const handleReturn = async (reason: string) => {
       review_answer: reason,
     })
 
-    // Redirect to project orders list page
-    if (orderProjectId.value) {
-      await router.replace({
-        path: `/projects/${orderProjectId.value}/orders`,
-      })
-    } else {
-      await router.replace({
-        path: '/',
-      })
-    }
+    // Redirect to orders list page
+    const fallbackPath = orderProjectId.value
+      ? `/projects/${orderProjectId.value}/orders`
+      : '/orders'
+    await router.replace({
+      path: fallbackPath,
+    })
   } catch (error) {
     console.error('Не удалось вернуть задачу:', error)
     errorMessage.value = 'Не удалось вернуть задачу. Попробуйте ещё раз.'
@@ -431,16 +429,13 @@ const handleComplete = async () => {
       status: 'done',
     })
 
-    // Redirect to project orders list page
-    if (orderProjectId.value) {
-      await router.replace({
-        path: `/projects/${orderProjectId.value}/orders`,
-      })
-    } else {
-      await router.replace({
-        path: '/',
-      })
-    }
+    // Redirect to orders list page
+    const fallbackPath = orderProjectId.value
+      ? `/projects/${orderProjectId.value}/orders`
+      : '/orders'
+    await router.replace({
+      path: fallbackPath,
+    })
   } catch (error) {
     console.error('Не удалось завершить задачу:', error)
     errorMessage.value = 'Не удалось завершить задачу. Попробуйте ещё раз.'

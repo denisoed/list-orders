@@ -32,15 +32,8 @@ export default defineEventHandler(async (event) => {
       }))
     }
 
-    // Validate required fields
-    if (!body.project_id || typeof body.project_id !== 'string' || !body.project_id.trim()) {
-      return sendError(event, createError({
-        statusCode: 400,
-        message: 'Project ID is required'
-      }))
-    }
-
-    const sanitizedProjectId = body.project_id.trim()
+    const projectIdInput = typeof body.project_id === 'string' ? body.project_id.trim() : null
+    const sanitizedProjectId = projectIdInput && projectIdInput.length > 0 ? projectIdInput : null
 
     let sanitizedTitle: string | null = null
     if (body.title !== undefined && body.title !== null) {
@@ -77,14 +70,16 @@ export default defineEventHandler(async (event) => {
 
     const supabase = getSupabaseClient()
 
-    // Verify project exists and user has access to it
-    const hasAccess = await checkProjectAccess(supabase, userTelegramId, sanitizedProjectId)
+    if (sanitizedProjectId) {
+      // Verify project exists and user has access to it
+      const hasAccess = await checkProjectAccess(supabase, userTelegramId, sanitizedProjectId)
 
-    if (!hasAccess) {
-      return sendError(event, createError({
-        statusCode: 404,
-        message: 'Project not found'
-      }))
+      if (!hasAccess) {
+        return sendError(event, createError({
+          statusCode: 404,
+          message: 'Project not found'
+        }))
+      }
     }
 
     // Generate order code if not provided
@@ -98,7 +93,7 @@ export default defineEventHandler(async (event) => {
 
     // Prepare order data
     const orderData: {
-      project_id: string
+      project_id: string | null
       user_telegram_id: number
       code: string
       title: string | null

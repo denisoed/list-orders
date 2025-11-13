@@ -101,13 +101,14 @@ export default defineEventHandler(async (event) => {
     const supabase = getSupabaseClient()
 
     // Prepare update data
-    const updateData: {
-      title?: string | null
-      summary?: string
-      description?: string
-      status?: string
-      assignee_telegram_id?: number | null
-      due_date?: string | null
+  const updateData: {
+    title?: string | null
+    summary?: string
+    description?: string
+    status?: string
+    assignee_telegram_id?: number | null
+    project_id?: string | null
+    due_date?: string | null
       delivery_address?: string | null
       reminder_offset?: string | null
       client_name?: string | null
@@ -162,6 +163,20 @@ export default defineEventHandler(async (event) => {
 
     if (body.assignee_telegram_id !== undefined) {
       updateData.assignee_telegram_id = body.assignee_telegram_id || null
+    }
+
+    if (body.project_id !== undefined) {
+      if (body.project_id === null) {
+        updateData.project_id = null
+      } else if (typeof body.project_id === 'string') {
+        const trimmedProjectId = body.project_id.trim()
+        updateData.project_id = trimmedProjectId.length > 0 ? trimmedProjectId : null
+      } else {
+        return sendError(event, createError({
+          statusCode: 400,
+          message: 'Project ID must be a string or null'
+        }))
+      }
     }
 
     if (body.due_date !== undefined) {
@@ -331,13 +346,35 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if user has access to the project
-    const hasAccess = await checkProjectAccess(supabase, userTelegramId, existingOrder.project_id)
+    let hasAccess = false
+    if (existingOrder.project_id) {
+      hasAccess = await checkProjectAccess(supabase, userTelegramId, existingOrder.project_id)
+    } else {
+      hasAccess =
+        existingOrder.user_telegram_id === userTelegramId ||
+        existingOrder.assignee_telegram_id === userTelegramId
+    }
 
     if (!hasAccess) {
       return sendError(event, createError({
         statusCode: 404,
         message: 'Order not found'
       }))
+    }
+
+    if (updateData.project_id) {
+      const newProjectAccess = await checkProjectAccess(
+        supabase,
+        userTelegramId,
+        updateData.project_id,
+      )
+
+      if (!newProjectAccess) {
+        return sendError(event, createError({
+          statusCode: 404,
+          message: 'Project not found'
+        }))
+      }
     }
 
     const isOrderOwner = existingOrder.user_telegram_id === userTelegramId

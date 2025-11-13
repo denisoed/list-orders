@@ -29,7 +29,7 @@ const isCompleting = ref(false)
 const isReturnModalOpen = ref(false)
 
 // Load order data
-const ensureProjectLoaded = async (projectId: string) => {
+const ensureProjectLoaded = async (projectId: string | null) => {
   if (!projectId || getProjectById(projectId)) {
     return
   }
@@ -53,8 +53,8 @@ onMounted(async () => {
   try {
     const orderData = await fetchOrder(orderId.value)
     order.value = orderData
-    await ensureProjectLoaded(orderData.projectId)
-    const project = getProjectById(orderData.projectId)
+    await ensureProjectLoaded(orderData.projectId ?? null)
+    const project = orderData.projectId ? getProjectById(orderData.projectId) : null
     const detail = convertOrderToOrderDetail(orderData, project?.title)
     orderDetail.value = detail
   } catch (err) {
@@ -70,6 +70,10 @@ onMounted(async () => {
 // Convert Order to ProjectOrder for OrderCard
 const projectForOrder = computed(() => {
   if (!order.value) {
+    return null
+  }
+
+  if (!order.value.projectId) {
     return null
   }
 
@@ -115,8 +119,8 @@ const handleReturn = async (reason: string) => {
     // Reload order to get updated data
     const orderData = await fetchOrder(orderId.value)
     order.value = orderData
-    await ensureProjectLoaded(orderData.projectId)
-    const project = getProjectById(orderData.projectId)
+    await ensureProjectLoaded(orderData.projectId ?? null)
+    const project = orderData.projectId ? getProjectById(orderData.projectId) : null
     const detail = convertOrderToOrderDetail(orderData, project?.title)
     orderDetail.value = detail
   } catch (error) {
@@ -141,17 +145,12 @@ const handleComplete = async () => {
       status: 'done',
     })
 
-    // Redirect to orders list page
-    if (order.value?.projectId) {
-      await router.replace({
-        path: `/projects/${order.value.projectId}/orders`,
-      })
-    } else {
-      // Fallback to home page
-      await router.replace({
-        path: '/',
-      })
-    }
+    const fallbackPath = order.value?.projectId
+      ? `/projects/${order.value.projectId}/orders`
+      : '/orders'
+    await router.replace({
+      path: fallbackPath,
+    })
   } catch (error) {
     console.error('Не удалось завершить задачу:', error)
     // Show error message to user
