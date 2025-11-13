@@ -65,7 +65,7 @@ const projectTextClass = computed(() => {
 
 const containerClasses = computed(() => {
   return [
-    'block flex flex-col gap-4 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+    'relative block flex flex-col gap-4 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-lg focus-visible:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
     statusMeta.value.cardClass,
     isCompleted.value ? 'opacity-95' : '',
   ]
@@ -107,7 +107,7 @@ function formatDateAndTime(date: string): string {
 
 <template>
   <NuxtLink :to="orderDetailsRoute" :aria-label="orderAriaLabel" :class="containerClasses">
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2 pr-16">
       <p :class="titleClasses">
         {{ order.title }}
       </p>
@@ -137,14 +137,12 @@ function formatDateAndTime(date: string): string {
         </p>
       </div>
     </div>
-    <div class="flex items-center justify-between">
-      <div
-        class="flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
-        :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
-      >
-        <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
-        <span>{{ statusMeta.singularLabel }}</span>
-      </div>
+    <div
+      class="absolute right-4 top-4 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+      :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
+    >
+      <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
+      <span>{{ statusMeta.singularLabel }}</span>
     </div>
   </NuxtLink>
 </template>

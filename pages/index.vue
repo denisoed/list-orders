@@ -16,7 +16,14 @@ const userStore = useUserStore()
 const { fetchProjects, isLoading: isLoadingProjects } = useProjects()
 const { fetchOrders, orders, isLoading: isLoadingOrders } = useOrders()
 
-const isLoading = computed(() => isLoadingProjects.value || isLoadingOrders.value)
+const isInitialLoading = ref(true)
+const isLoading = computed(() => {
+  if (isInitialLoading.value) {
+    return true
+  }
+
+  return isLoadingProjects.value || isLoadingOrders.value
+})
 
 const NO_PROJECT_ID = 'none'
 
@@ -37,6 +44,8 @@ onMounted(async () => {
     ])
   } catch (error) {
     console.error('Failed to load projects or orders on mount:', error)
+  } finally {
+    isInitialLoading.value = false
   }
 })
 
@@ -643,55 +652,53 @@ useHead({
       </div>
     </main>
 
-    <div class="fixed bottom-5 right-5 z-20">
-      <div class="relative flex flex-col items-end gap-3">
-        <div
-          v-if="isFabMenuOpen"
-          ref="fabMenuRef"
-          class="w-64 rounded-3xl border border-black/5 bg-white/95 p-2 shadow-2xl ring-1 ring-black/5 backdrop-blur transition dark:border-white/10 dark:bg-[#1C2431]/95 dark:ring-white/10"
-        >
-          <div class="flex flex-col gap-1">
-            <button
-              type="button"
-              class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-zinc-900 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
-              @click="handleAddTask"
-            >
-              <span class="material-symbols-outlined text-xl text-primary">add_task</span>
-              <div class="flex flex-col">
-                <span>Создать задачу</span>
-                <span class="text-xs font-normal text-gray-500 dark:text-[#9da6b9]">Добавьте новую работу в любой проект</span>
-              </div>
-            </button>
-            <button
-              type="button"
-              class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-zinc-900 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
-              @click="handleAddProject"
-            >
-              <span class="material-symbols-outlined text-xl text-primary">folder</span>
-              <div class="flex flex-col">
-                <span>Создать проект</span>
-                <span class="text-xs font-normal text-gray-500 dark:text-[#9da6b9]">Организуйте задачи по новым направлениям</span>
-              </div>
-            </button>
-          </div>
-        </div>
-        <button
-          ref="fabButtonRef"
-          type="button"
-          class="flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          :aria-expanded="isFabMenuOpen"
-          aria-haspopup="true"
-          aria-label="Открыть меню создания"
-          @click="toggleFabMenu"
-        >
-          <span
-            class="material-symbols-outlined !text-3xl transition-transform"
-            :class="isFabMenuOpen ? 'rotate-45' : 'rotate-0'"
+    <div class="fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
+      <div
+        v-if="isFabMenuOpen"
+        ref="fabMenuRef"
+        class="w-64 rounded-3xl border border-black/5 bg-white/95 p-2 shadow-2xl ring-1 ring-black/5 backdrop-blur transition dark:border-white/10 dark:bg-[#1C2431]/95 dark:ring-white/10"
+      >
+        <div class="flex flex-col gap-1">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-zinc-900 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
+            @click="handleAddTask"
           >
-            add
-          </span>
-        </button>
+            <span class="material-symbols-outlined text-xl text-primary">add_task</span>
+            <div class="flex flex-col">
+              <span>Создать задачу</span>
+              <span class="text-xs font-normal text-gray-500 dark:text-[#9da6b9]">Добавьте новую работу в любой проект</span>
+            </div>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-zinc-900 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
+            @click="handleAddProject"
+          >
+            <span class="material-symbols-outlined text-xl text-primary">folder</span>
+            <div class="flex flex-col">
+              <span>Создать проект</span>
+              <span class="text-xs font-normal text-gray-500 dark:text-[#9da6b9]">Организуйте задачи по новым направлениям</span>
+            </div>
+          </button>
+        </div>
       </div>
+      <button
+        ref="fabButtonRef"
+        type="button"
+        class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        :aria-expanded="isFabMenuOpen"
+        aria-haspopup="true"
+        aria-label="Открыть меню создания"
+        @click="toggleFabMenu"
+      >
+        <span
+          class="material-symbols-outlined !text-3xl transition-transform"
+          :class="isFabMenuOpen ? 'rotate-45' : 'rotate-0'"
+        >
+          add
+        </span>
+      </button>
     </div>
   </div>
 </template>
