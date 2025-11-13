@@ -28,13 +28,13 @@ export const useProjectOrders = (projectId: Ref<string> | string): UseProjectOrd
   const project = computed(() => store.projects.find((item) => item.id === projectIdRef.value))
 
   const searchQuery = ref('')
-  const activeStatus = ref<OrderStatusFilter>('all')
+  const activeStatus = ref<OrderStatusFilter>('in_progress')
   const isCreating = ref(false)
   const isUpdating = ref(false)
 
   watch(projectIdRef, () => {
     searchQuery.value = ''
-    activeStatus.value = 'all'
+    activeStatus.value = 'in_progress'
   })
 
   return {

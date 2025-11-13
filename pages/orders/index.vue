@@ -178,7 +178,7 @@ const projectOrders = computed<ProjectOrder[]>(() =>
     })),
 )
 
-const activeStatus = ref<OrderStatusFilter>('all')
+const activeStatus = ref<OrderStatusFilter>('in_progress')
 
 const statusFilteredOrders = computed(() => {
   if (activeStatus.value === 'all') {
