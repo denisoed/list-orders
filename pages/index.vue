@@ -650,9 +650,6 @@ useHead({
           ref="fabMenuRef"
           class="w-64 rounded-3xl border border-black/5 bg-white/95 p-2 shadow-2xl ring-1 ring-black/5 backdrop-blur transition dark:border-white/10 dark:bg-[#1C2431]/95 dark:ring-white/10"
         >
-          <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-[#9da6b9]">
-            Создать
-          </p>
           <div class="flex flex-col gap-1">
             <button
               type="button"
