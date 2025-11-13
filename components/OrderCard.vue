@@ -107,10 +107,19 @@ function formatDateAndTime(date: string): string {
 
 <template>
   <NuxtLink :to="orderDetailsRoute" :aria-label="orderAriaLabel" :class="containerClasses">
-    <div class="flex flex-col gap-2 pr-16">
-      <p :class="titleClasses">
-        {{ order.title }}
-      </p>
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <p :class="titleClasses">
+          {{ order.title }}
+        </p>
+        <div
+          class="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+          :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
+        >
+          <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
+          <span>{{ statusMeta.singularLabel }}</span>
+        </div>
+      </div>
       <div class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
         <img
           :src="order.assignee.avatarUrl"
@@ -136,13 +145,6 @@ function formatDateAndTime(date: string): string {
           {{ projectLabel }}
         </p>
       </div>
-    </div>
-    <div
-      class="absolute right-4 top-4 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
-      :class="`${statusMeta.badgeBg} ${statusMeta.badgeText}`"
-    >
-      <span class="h-2 w-2 rounded-full" :class="statusMeta.dot"></span>
-      <span>{{ statusMeta.singularLabel }}</span>
     </div>
   </NuxtLink>
 </template>
