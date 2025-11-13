@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useAllProjects } from '~/composables/useProjectOrders'
 import { useProjects } from '~/composables/useProjects'
 import { useOrders } from '~/composables/useOrders'
@@ -390,9 +390,48 @@ const formatParticipantCount = (project: Project) => {
   return `${count} ${declOfNum(count, ['участник', 'участника', 'участников'])}`
 }
 
+const isFabMenuOpen = ref(false)
+const fabButtonRef = ref<HTMLElement | null>(null)
+const fabMenuRef = ref<HTMLElement | null>(null)
+
+const closeFabMenu = () => {
+  isFabMenuOpen.value = false
+}
+
+const toggleFabMenu = () => {
+  isFabMenuOpen.value = !isFabMenuOpen.value
+}
+
 const handleAddProject = () => {
+  closeFabMenu()
   router.push('/projects/new')
 }
+
+const handleAddTask = () => {
+  closeFabMenu()
+  router.push('/orders/new')
+}
+
+const handleDocumentPointerDown = (event: Event) => {
+  const target = event.target
+  if (!(target instanceof Node)) {
+    return
+  }
+
+  if (fabButtonRef.value?.contains(target) || fabMenuRef.value?.contains(target)) {
+    return
+  }
+
+  closeFabMenu()
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', handleDocumentPointerDown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', handleDocumentPointerDown)
+})
 
 useHead({
   title: 'Задачи',
@@ -605,14 +644,57 @@ useHead({
     </main>
 
     <div class="fixed bottom-5 right-5 z-20">
-      <button
-        type="button"
-        class="flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-label="Добавить проект"
-        @click="handleAddProject"
-      >
-        <span class="material-symbols-outlined !text-3xl">add</span>
-      </button>
+      <div class="relative flex flex-col items-end gap-3">
+        <div
+          v-if="isFabMenuOpen"
+          ref="fabMenuRef"
+          class="w-64 rounded-3xl border border-black/5 bg-white/95 p-2 shadow-2xl ring-1 ring-black/5 backdrop-blur transition dark:border-white/10 dark:bg-[#1C2431]/95 dark:ring-white/10"
+        >
+          <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-[#9da6b9]">
+            Создать
+          </p>
+          <div class="flex flex-col gap-1">
+            <button
+              type="button"
+              class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-zinc-900 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
+              @click="handleAddTask"
+            >
+              <span class="material-symbols-outlined text-xl text-primary">add_task</span>
+              <div class="flex flex-col">
+                <span>Создать задачу</span>
+                <span class="text-xs font-normal text-gray-500 dark:text-[#9da6b9]">Добавьте новую работу в любой проект</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-zinc-900 transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white dark:hover:bg-white/10"
+              @click="handleAddProject"
+            >
+              <span class="material-symbols-outlined text-xl text-primary">folder</span>
+              <div class="flex flex-col">
+                <span>Создать проект</span>
+                <span class="text-xs font-normal text-gray-500 dark:text-[#9da6b9]">Организуйте задачи по новым направлениям</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <button
+          ref="fabButtonRef"
+          type="button"
+          class="flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          :aria-expanded="isFabMenuOpen"
+          aria-haspopup="true"
+          aria-label="Открыть меню создания"
+          @click="toggleFabMenu"
+        >
+          <span
+            class="material-symbols-outlined !text-3xl transition-transform"
+            :class="isFabMenuOpen ? 'rotate-45' : 'rotate-0'"
+          >
+            add
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
