@@ -545,7 +545,7 @@ useHead({
     </main>
 
     <div
-      class="fixed bottom-6 right-6 z-20 flex items-center gap-2 rounded-[42px] border border-black/5 bg-white/80 p-1.5 shadow-lg transition dark:border-white/10 dark:bg-[#1C2431]/80"
+      class="fixed bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-[42px] border border-black/5 bg-white/80 p-1.5 shadow-lg transition dark:border-white/10 dark:bg-[#1C2431]/80"
     >
       <button
         type="button"
