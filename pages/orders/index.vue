@@ -597,11 +597,8 @@ useHead({
       :title="pageTitle"
       :subtitle="subtitle"
       :is-owner="isProjectOwner"
-      :show-filter-button="true"
-      :is-filter-active="hasActiveFilters"
       @back="handleBack"
       @edit="handleEditProject"
-      @filter="openFilterModal"
     />
 
     <main class="flex-1 px-4 pb-24">
@@ -674,15 +671,33 @@ useHead({
       </section>
     </main>
 
-    <button
+    <div
       v-if="canCreateOrder"
-      type="button"
-      class="fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      aria-label="Добавить задачу"
-      @click="handleAddOrder"
+      class="fixed bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-[42px] border border-black/5 bg-white/80 p-1.5 shadow-lg dark:border-white/10 dark:bg-[#1C2431]/80"
     >
-      <span class="material-symbols-outlined !text-3xl">add</span>
-    </button>
+      <button
+        type="button"
+        class="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[42px] bg-white text-primary shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#2A3242] dark:text-white"
+        :aria-pressed="hasActiveFilters"
+        aria-label="Открыть фильтры задач"
+        @click="openFilterModal"
+      >
+        <span class="material-symbols-outlined !text-3xl">tune</span>
+        <span
+          v-if="hasActiveFilters"
+          class="absolute right-3 top-3 block size-2 rounded-full border border-white bg-[#FF4D4F] shadow-sm dark:border-zinc-900"
+          aria-hidden="true"
+        ></span>
+      </button>
+      <button
+        type="button"
+        class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-[42px] bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Добавить задачу"
+        @click="handleAddOrder"
+      >
+        <span class="material-symbols-outlined !text-3xl">add</span>
+      </button>
+    </div>
 
     <OrderFilterModal
       :is-open="isFilterModalOpen"
@@ -690,6 +705,7 @@ useHead({
       :assignee-options="assigneeFilterOptions"
       :initial-project-ids="filterProjectIds"
       :initial-assignee-ids="appliedAssigneeIds"
+      :show-project-filters="!activeProjectId"
       @close="closeFilterModal"
       @apply="handleApplyFilters"
       @clear="handleClearFilters"
