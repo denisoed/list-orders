@@ -6,6 +6,7 @@ import OrderEmptyState from '~/components/OrderEmptyState.vue'
 import OrderPageHeader from '~/components/OrderPageHeader.vue'
 import OrderStatusChips from '~/components/OrderStatusChips.vue'
 import MonthSelector from '~/components/MonthSelector.vue'
+import OrderFilterModal from '~/components/OrderFilterModal.vue'
 import { ORDER_STATUS_FILTERS, useProjectOrders, type OrderStatusFilter } from '~/composables/useProjectOrders'
 import { convertOrderToProjectOrder } from '~/utils/convertOrderToProjectOrder'
 import { useProjects } from '~/composables/useProjects'
@@ -31,8 +32,61 @@ const isLoading = computed(() => isLoadingProject.value || isLoadingOrders.value
 const projectOrders = computed(() =>
   getOrdersByProjectId(projectId.value).filter((order) => !order.archived),
 )
+
+const UNASSIGNED_ASSIGNEE_ID = -1
+
+const appliedAssigneeIds = ref<number[]>([])
+const isFilterModalOpen = ref(false)
+
+const assigneeFilterOptions = computed(() => {
+  const map = new Map<number, { id: number; name: string; avatarUrl: string | null }>()
+  let hasUnassigned = false
+
+  projectOrders.value.forEach((order) => {
+    if (order.assigneeTelegramId === null) {
+      if (!hasUnassigned) {
+        hasUnassigned = true
+      }
+      return
+    }
+
+    if (map.has(order.assigneeTelegramId)) {
+      return
+    }
+
+    map.set(order.assigneeTelegramId, {
+      id: order.assigneeTelegramId,
+      name: order.assigneeTelegramName?.trim() || 'Без имени',
+      avatarUrl: order.assigneeTelegramAvatarUrl,
+    })
+  })
+
+  const options = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'ru-RU'))
+
+  if (hasUnassigned) {
+    options.push({ id: UNASSIGNED_ASSIGNEE_ID, name: 'Без исполнителя', avatarUrl: null })
+  }
+
+  return options
+})
+
+const assigneeFilteredOrders = computed(() => {
+  if (appliedAssigneeIds.value.length === 0) {
+    return projectOrders.value
+  }
+
+  const assigneeIdSet = new Set(appliedAssigneeIds.value)
+  return projectOrders.value.filter((order) => {
+    if (order.assigneeTelegramId === null) {
+      return assigneeIdSet.has(UNASSIGNED_ASSIGNEE_ID)
+    }
+
+    return assigneeIdSet.has(order.assigneeTelegramId)
+  })
+})
+
 const ordersAsOrders = computed(() =>
-  projectOrders.value.map((order) =>
+  assigneeFilteredOrders.value.map((order) =>
     convertOrderToProjectOrder(order, { projectTitle: project.value?.title ?? null }),
   ),
 )
@@ -127,6 +181,7 @@ const statusOptions = computed(() => {
 })
 
 const hasOrders = computed(() => allOrders.value.length > 0)
+const hasActiveFilters = computed(() => appliedAssigneeIds.value.length > 0)
 const hasFilteredOrders = computed(() => filteredOrders.value.length > 0)
 
 const monthNameFormatter = new Intl.DateTimeFormat('ru-RU', { month: 'long' })
@@ -343,6 +398,29 @@ const handleEditProject = () => {
   })
 }
 
+const openFilterModal = () => {
+  isFilterModalOpen.value = true
+}
+
+const closeFilterModal = () => {
+  isFilterModalOpen.value = false
+}
+
+const handleApplyFilters = ({
+  assigneeIds,
+}: {
+  projectIds: string[]
+  assigneeIds: number[]
+}) => {
+  appliedAssigneeIds.value = assigneeIds
+  isFilterModalOpen.value = false
+}
+
+const handleClearFilters = () => {
+  appliedAssigneeIds.value = []
+  isFilterModalOpen.value = false
+}
+
 const handleStatusChange = (value: string) => {
   setActiveStatus(value as OrderStatusFilter)
 }
@@ -466,13 +544,43 @@ useHead({
       </section>
     </main>
 
-    <button
-      type="button"
-      class="fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      aria-label="Добавить задачу"
-      @click="handleAddOrder"
+    <div
+      class="fixed bottom-6 right-6 z-20 flex items-center gap-2 rounded-[42px] border border-black/5 bg-white/80 p-1.5 shadow-lg transition dark:border-white/10 dark:bg-[#1C2431]/80"
     >
-      <span class="material-symbols-outlined !text-3xl">add</span>
-    </button>
+      <button
+        type="button"
+        class="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[42px] bg-white text-primary shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#2A3242] dark:text-white"
+        :aria-pressed="hasActiveFilters"
+        aria-label="Открыть фильтры задач"
+        @click="openFilterModal"
+      >
+        <span class="material-symbols-outlined !text-3xl">tune</span>
+        <span
+          v-if="hasActiveFilters"
+          class="absolute right-3 top-3 block size-2 rounded-full border border-white bg-[#FF4D4F] shadow-sm dark:border-zinc-900"
+          aria-hidden="true"
+        ></span>
+      </button>
+      <button
+        type="button"
+        class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-[42px] bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Добавить задачу"
+        @click="handleAddOrder"
+      >
+        <span class="material-symbols-outlined !text-3xl">add</span>
+      </button>
+    </div>
+
+    <OrderFilterModal
+      :is-open="isFilterModalOpen"
+      :project-options="[]"
+      :assignee-options="assigneeFilterOptions"
+      :initial-project-ids="[]"
+      :initial-assignee-ids="appliedAssigneeIds"
+      :show-project-filters="false"
+      @close="closeFilterModal"
+      @apply="handleApplyFilters"
+      @clear="handleClearFilters"
+    />
   </div>
 </template>
