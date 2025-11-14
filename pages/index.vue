@@ -13,17 +13,10 @@ const route = useRoute()
 const projects = useAllProjects()
 const router = useRouter()
 const userStore = useUserStore()
-const { fetchProjects, isLoading: isLoadingProjects } = useProjects()
-const { fetchOrders, orders, isLoading: isLoadingOrders } = useOrders()
+const { fetchProjects } = useProjects()
+const { fetchOrders, orders } = useOrders()
 
 const isInitialLoading = ref(true)
-const isLoading = computed(() => {
-  if (isInitialLoading.value) {
-    return true
-  }
-
-  return isLoadingProjects.value || isLoadingOrders.value
-})
 
 const NO_PROJECT_ID = 'none'
 
@@ -35,8 +28,22 @@ const ordersList = computed<Order[]>(() => {
   return Array.isArray(orders) ? orders : (orders?.value || [])
 })
 
+const hasCachedProjects = computed(() => projects.value.length > 0)
+const hasCachedOrders = computed(() => ordersList.value.length > 0)
+const hasCachedData = computed(() => hasCachedProjects.value && hasCachedOrders.value)
+
+const isLoading = computed(() => isInitialLoading.value && !hasCachedData.value)
+
+if (hasCachedData.value) {
+  isInitialLoading.value = false
+}
+
 // Load projects and orders on mount
 onMounted(async () => {
+  if (hasCachedData.value) {
+    isInitialLoading.value = false
+  }
+
   try {
     await Promise.all([
       fetchProjects(),
