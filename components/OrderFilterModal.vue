@@ -12,15 +12,28 @@ type AssigneeOption = {
   avatarUrl: string | null
 }
 
-const props = defineProps<{
+const props = withDefaults(
+  defineProps<{
   isOpen: boolean
   projectOptions: ProjectOption[]
   assigneeOptions: AssigneeOption[]
   initialProjectIds: string[]
   initialAssigneeIds: number[]
-}>()
+    showProjectFilters?: boolean
+  }>(),
+  {
+    showProjectFilters: true,
+  },
+)
 
-const { isOpen, projectOptions, assigneeOptions, initialProjectIds, initialAssigneeIds } = toRefs(props)
+const {
+  isOpen,
+  projectOptions,
+  assigneeOptions,
+  initialProjectIds,
+  initialAssigneeIds,
+  showProjectFilters,
+} = toRefs(props)
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -153,7 +166,7 @@ const handleClear = () => {
 
             <div class="flex-1 overflow-y-auto px-4 py-6">
               <div class="flex flex-col gap-6">
-                <section>
+                <section v-if="showProjectFilters">
                   <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Проекты</h3>
                     <span class="text-xs font-medium text-zinc-400 dark:text-zinc-500">{{ projectOptions.length }}</span>
