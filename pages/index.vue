@@ -690,22 +690,33 @@ useHead({
           </button>
         </div>
       </div>
-      <button
-        ref="fabButtonRef"
-        type="button"
-        class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        :aria-expanded="isFabMenuOpen"
-        aria-haspopup="true"
-        aria-label="Открыть меню создания"
-        @click="toggleFabMenu"
+      <div
+        class="flex items-center gap-2 rounded-[32px] border border-black/5 bg-white/80 p-1.5 shadow-lg dark:border-white/10 dark:bg-[#1C2431]/80"
       >
-        <span
-          class="material-symbols-outlined !text-3xl transition-transform"
-          :class="isFabMenuOpen ? 'rotate-45' : 'rotate-0'"
+        <NuxtLink
+          to="/orders"
+          class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-white text-primary shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-[#2A3242] dark:text-white"
+          aria-label="Перейти ко всем задачам"
         >
-          add
-        </span>
-      </button>
+          <span class="material-symbols-outlined !text-3xl">format_list_bulleted</span>
+        </NuxtLink>
+        <button
+          ref="fabButtonRef"
+          type="button"
+          class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          :aria-expanded="isFabMenuOpen"
+          aria-haspopup="true"
+          aria-label="Открыть меню создания"
+          @click="toggleFabMenu"
+        >
+          <span
+            class="material-symbols-outlined !text-3xl transition-transform"
+            :class="isFabMenuOpen ? 'rotate-45' : 'rotate-0'"
+          >
+            add
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
