@@ -42,9 +42,35 @@ const {
   projects,
 } = useProjects()
 
-const isLoading = computed(() => isLoadingOrders.value || isLoadingProjects.value)
+const isInitialLoading = ref(true)
 
 const ordersList = computed<Order[]>(() => (Array.isArray(orders.value) ? orders.value : []))
+
+const canUseCachedOrders = computed(() => !projectId.value)
+const hasCachedProjects = computed(() => projects.value.length > 0)
+const hasCachedOrders = computed(() => ordersList.value.length > 0)
+const hasCachedData = computed(
+  () => canUseCachedOrders.value && hasCachedProjects.value && hasCachedOrders.value,
+)
+
+const applyInitialLoadingState = () => {
+  if (!canUseCachedOrders.value) {
+    isInitialLoading.value = false
+    return
+  }
+
+  isInitialLoading.value = !hasCachedData.value
+}
+
+applyInitialLoadingState()
+
+const isLoading = computed(() => {
+  if (!canUseCachedOrders.value) {
+    return isLoadingOrders.value || isLoadingProjects.value
+  }
+
+  return isInitialLoading.value && !hasCachedData.value
+})
 
 const appliedProjectIds = ref<string[]>([])
 const appliedAssigneeIds = ref<number[]>([])
@@ -493,6 +519,8 @@ const handleClearFilters = async () => {
 const canCreateOrder = computed(() => true)
 
 onMounted(async () => {
+  applyInitialLoadingState()
+
   try {
     await Promise.all([
       fetchProjects(),
@@ -504,6 +532,8 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Failed to load orders data:', error)
+  } finally {
+    isInitialLoading.value = false
   }
 })
 
@@ -515,6 +545,9 @@ watch(projectId, async (nextId, previousId) => {
   if (nextId) {
     appliedProjectIds.value = []
     appliedAssigneeIds.value = []
+    isInitialLoading.value = false
+  } else {
+    applyInitialLoadingState()
   }
 
   try {
@@ -525,6 +558,10 @@ watch(projectId, async (nextId, previousId) => {
     }
   } catch (error) {
     console.error('Failed to reload orders data:', error)
+  } finally {
+    if (!nextId) {
+      isInitialLoading.value = false
+    }
   }
 })
 
