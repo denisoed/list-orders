@@ -4,6 +4,7 @@ import Checkbox from '~/components/Checkbox.vue'
 import type { ProjectOrder } from '~/data/projects'
 import { useOrders } from '~/composables/useOrders'
 import { getOrderStatusMeta } from '~/utils/orderStatuses'
+import { useUserStore } from '~/stores/user'
 
 const props = defineProps<{
   order: ProjectOrder
@@ -14,6 +15,25 @@ const isCompleted = computed(() => props.order.status === 'done')
 const isMarkingAsDone = ref(false)
 
 const { updateOrder } = useOrders()
+const userStore = useUserStore()
+
+const currentUserId = computed(() => userStore.user?.telegram_id ?? null)
+const isCurrentUserAssignee = computed(() => {
+  if (!currentUserId.value) {
+    return false
+  }
+
+  const assigneeId = props.order.assigneeTelegramId
+  if (assigneeId === null || assigneeId === undefined) {
+    return false
+  }
+
+  return assigneeId === currentUserId.value
+})
+
+const shouldShowDoneCheckbox = computed(
+  () => props.order.status === 'in_progress' && isCurrentUserAssignee.value,
+)
 
 const checkboxName = computed(() => `order-${props.order.id}-done-checkbox`)
 const isCheckboxChecked = computed(() => isCompleted.value || isMarkingAsDone.value)
@@ -72,7 +92,7 @@ const projectTextClass = computed(() => {
 })
 
 const handleCheckboxToggle = async () => {
-  if (isCompleted.value || isMarkingAsDone.value) {
+  if (isCompleted.value || isMarkingAsDone.value || !shouldShowDoneCheckbox.value) {
     return
   }
 
@@ -170,6 +190,7 @@ function formatDateAndTime(date: string): string {
         </p>
       </div>
       <div
+        v-if="shouldShowDoneCheckbox"
         class="flex items-center justify-end gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400"
         @click.stop
       >
