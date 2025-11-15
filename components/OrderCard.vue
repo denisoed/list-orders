@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { ProjectOrder, OrderStatus } from '~/data/projects'
+import { computed, ref } from 'vue'
+import Checkbox from '~/components/Checkbox.vue'
+import type { ProjectOrder } from '~/data/projects'
+import { useOrders } from '~/composables/useOrders'
 import { getOrderStatusMeta } from '~/utils/orderStatuses'
 
 const props = defineProps<{
@@ -9,6 +11,12 @@ const props = defineProps<{
 
 const statusMeta = computed(() => getOrderStatusMeta(props.order.status))
 const isCompleted = computed(() => props.order.status === 'done')
+const isMarkingAsDone = ref(false)
+
+const { updateOrder } = useOrders()
+
+const checkboxName = computed(() => `order-${props.order.id}-done-checkbox`)
+const isCheckboxChecked = computed(() => isCompleted.value || isMarkingAsDone.value)
 
 const orderDetailsRoute = computed(() => {
   // If order is in review status, redirect to review page
@@ -62,6 +70,22 @@ const projectTextClass = computed(() => {
 
   return 'text-sm font-normal text-zinc-600 dark:text-zinc-400'
 })
+
+const handleCheckboxToggle = async () => {
+  if (isCompleted.value || isMarkingAsDone.value) {
+    return
+  }
+
+  isMarkingAsDone.value = true
+  try {
+    await updateOrder(props.order.id, { status: 'done' })
+  } catch (error) {
+    console.error('Не удалось завершить задачу из карточки:', error)
+    alert('Не удалось завершить задачу. Попробуйте ещё раз.')
+  } finally {
+    isMarkingAsDone.value = false
+  }
+}
 
 const containerClasses = computed(() => {
   return [
@@ -144,6 +168,18 @@ function formatDateAndTime(date: string): string {
         <p :class="projectTextClass">
           {{ projectLabel }}
         </p>
+      </div>
+      <div
+        class="flex items-center justify-end gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400"
+        @click.stop
+      >
+        <span>Готово</span>
+        <Checkbox
+          :model-value="isCheckboxChecked"
+          :disabled="isCompleted || isMarkingAsDone"
+          :name="checkboxName"
+          @update:model-value="handleCheckboxToggle"
+        />
       </div>
     </div>
   </NuxtLink>
