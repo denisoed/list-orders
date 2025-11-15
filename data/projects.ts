@@ -50,6 +50,7 @@ export interface ProjectOrder {
   remindBefore?: OrderReminderOffset | OrderReminderOffset[]
   projectId?: string
   projectTitle?: string
+  assigneeTelegramId?: number | null
 }
 
 export interface ProjectFeaturesSettings {

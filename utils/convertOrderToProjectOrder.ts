@@ -28,5 +28,6 @@ export const convertOrderToProjectOrder = (
     clientPhone: order.clientPhone,
     projectId: order.projectId ?? undefined,
     projectTitle: options.projectTitle?.trim() || undefined,
+    assigneeTelegramId: order.assigneeTelegramId ?? null,
   }
 }
