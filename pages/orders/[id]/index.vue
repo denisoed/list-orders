@@ -36,6 +36,7 @@ const isDeclineModalOpen = ref(false)
 const isArchiveModalOpen = ref(false)
 const isDeclining = ref(false)
 const isArchiving = ref(false)
+const isReturningToWork = ref(false)
 
 // Get order fields settings from project
 const orderFieldsSettings = computed(() => {
@@ -447,6 +448,26 @@ const handleTakeInWork = async () => {
   }
 }
 
+const handleReturnToWork = async () => {
+  if (!orderId.value || !isDoneStatus.value || isReturningToWork.value) {
+    return
+  }
+
+  isReturningToWork.value = true
+
+  try {
+    await updateOrder(orderId.value, {
+      status: 'in_progress',
+    })
+
+    await loadOrder()
+  } catch (err) {
+    console.error('Не удалось вернуть задачу в работу:', err)
+  } finally {
+    isReturningToWork.value = false
+  }
+}
+
 // Check if project requires review
 const requiresReview = computed(() => {
   if (!project.value?.featuresSettings) {
@@ -673,6 +694,15 @@ const menuItems = computed<DropdownMenuItem[]>(() => {
       action: handleShare,
     },
   ]
+
+  if (isDoneStatus.value) {
+    items.push({
+      id: 'return-to-work',
+      label: 'В работу',
+      icon: 'restart_alt',
+      action: handleReturnToWork,
+    })
+  }
 
   // Show "Edit" button only for creator
   if (isOrderCreator.value) {
