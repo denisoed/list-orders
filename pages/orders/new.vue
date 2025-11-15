@@ -438,7 +438,23 @@ const dueDateLabel = computed(() => {
   return dateLabel
 })
 
-const isFormValid = computed(() => clientPhoneError.value.length === 0)
+const isProjectSelectionValid = computed(() => isEditMode.value || Boolean(selectedProjectId.value))
+
+const projectSelectionError = computed(() => {
+  if (isProjectSelectionValid.value) {
+    return ''
+  }
+
+  return 'Выберите проект, чтобы продолжить'
+})
+
+const showProjectSelectionError = computed(
+  () => !isEditMode.value && Boolean(projectSelectionError.value),
+)
+
+const isFormValid = computed(
+  () => clientPhoneError.value.length === 0 && isProjectSelectionValid.value,
+)
 
 const createTimeOptions = (stepMinutes: number): string[] => {
   const options: string[] = []
@@ -1454,8 +1470,9 @@ useHead({
               class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
               :disabled="isLoadingProjects"
               aria-label="Выберите проект"
+              :aria-invalid="showProjectSelectionError"
             >
-              <option value="">Без проекта</option>
+              <option value="">{{ isEditMode ? 'Без проекта' : 'Выберите проект' }}</option>
               <option v-for="option in projectOptions" :key="option.id" :value="option.id">
                 {{ option.title }}
               </option>
@@ -1466,6 +1483,7 @@ useHead({
             </div>
           </div>
         </div>
+        <p v-if="showProjectSelectionError" class="text-sm text-red-400">{{ projectSelectionError }}</p>
       </div>
 
       <div
@@ -1474,7 +1492,7 @@ useHead({
       >
         <span class="material-symbols-outlined text-4xl text-primary">search_off</span>
         <p class="text-base font-medium text-white">Не удалось загрузить проект</p>
-        <p>Проверьте доступ или выберите другой проект. Вы можете оставить задачу без проекта.</p>
+        <p>Проверьте доступ или выберите другой проект, чтобы продолжить создание задачи.</p>
       </div>
 
       <div class="flex flex-col space-y-6">
